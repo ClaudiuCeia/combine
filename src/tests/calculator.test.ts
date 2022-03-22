@@ -89,32 +89,32 @@ function factor(): Parser<number> {
   );
 }
 
-  const testExpr = (expr: string, value: number): void => {
-    assertObjectMatch(expression()({ text: expr, index: 0 }), {
-      value,
-    });
-  };
-
-  Deno.test("simple expressions", () => {
-    testExpr("123", 123);
-    testExpr("2+2", 4);
-    testExpr("2+2+3-1", 6);
-    testExpr("1*24", 24);
-    testExpr("24/2", 12);
-    testExpr("2-2", 0);
-    testExpr("(2+2)", 4);
-    testExpr("(1*24)", 24);
-    testExpr("(24/2)", 12);
-    testExpr("(2-2)", 0);
+const testExpr = (expr: string, value: number): void => {
+  assertObjectMatch(expression()({ text: expr, index: 0 }), {
+    value,
   });
+};
 
-  Deno.test("operator precedence", () => {
-    testExpr("2+2*3", 8);
-    testExpr("2+2*3+2/4-1", 7.5);
-    testExpr("2+4/2", 4);
-  });
+Deno.test("simple expressions", () => {
+  testExpr("123", 123);
+  testExpr("2+2", 4);
+  testExpr("2+2+3-1", 6);
+  testExpr("1*24", 24);
+  testExpr("24/2", 12);
+  testExpr("2-2", 0);
+  testExpr("(2+2)", 4);
+  testExpr("(1*24)", 24);
+  testExpr("(24/2)", 12);
+  testExpr("(2-2)", 0);
+});
 
-  Deno.test("parenthesis precedence", () => {
-    testExpr("2+(4/2 -2)", 2);
-    testExpr("(2+2)*3", 12);
-  })
+Deno.test("operator precedence", () => {
+  testExpr("2+2*3", 8);
+  testExpr("2+2*3+2/4-1", 7.5);
+  testExpr("2+4/2", 4);
+});
+
+Deno.test("parenthesis precedence", () => {
+  testExpr("2+(4/2 -2)", 2);
+  testExpr("(2+2)*3", 12);
+});

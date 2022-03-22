@@ -72,7 +72,7 @@ export const seq = <T extends [...Parser<unknown>[]]>(
  */
 export const either = <A, B>(a: Parser<A>, b: Parser<B>): Parser<A | B> => {
   return (ctx) => {
-    return any<A | B>([a, b])(ctx);
+    return any<A | B>(a, b)(ctx);
   };
 };
 
@@ -81,7 +81,7 @@ export const either = <A, B>(a: Parser<A>, b: Parser<B>): Parser<A | B> => {
  * If none match, return the failure result of the parser that
  * consumed most of the input.
  */
-export const any = <T>(parsers: Parser<T>[]): Parser<T> => {
+export const any = <T>(...parsers: Parser<T>[]): Parser<T> => {
   return (ctx) => {
     let furthestRes: Result<T> | undefined;
     for (const parser of parsers) {
@@ -114,7 +114,16 @@ export const oneOf = <T>(...parsers: Parser<T>[]): Parser<T> => {
       const res = parser(ctx);
       if (res.success) {
         if (match) {
-          return failure(ctx, "expected single parser to match");
+          if (match.success) {
+            return failure(
+              ctx,
+              `expected single parser to match, already matched "${JSON.stringify(
+                match.value
+              )}", now matched ${JSON.stringify(res.value)}`
+            );
+          } else {
+            return failure(ctx, "expected single parser to match", [match]);
+          }
         }
 
         match = res;
@@ -126,7 +135,7 @@ export const oneOf = <T>(...parsers: Parser<T>[]): Parser<T> => {
     }
 
     if (match) {
-        return match;
+      return match;
     }
 
     assert(furthestRes);
@@ -138,7 +147,7 @@ export const oneOf = <T>(...parsers: Parser<T>[]): Parser<T> => {
  * Try all parsers in sequence and keep track of which one consumed
  * the most input, then return it.
  */
-export const furthest = <T>(parsers: Parser<T>[]): Parser<T> => {
+export const furthest = <T>(...parsers: Parser<T>[]): Parser<T> => {
   return (ctx) => {
     let furthestRes: Result<T> | undefined;
     for (const parser of parsers) {
@@ -158,7 +167,7 @@ export const furthest = <T>(parsers: Parser<T>[]): Parser<T> => {
  * result without consuming any input.
  */
 export const optional = <T>(parser: Parser<T>): Parser<T | null> => {
-  return any([parser, (ctx) => success(ctx, null)]);
+  return any(parser, (ctx) => success(ctx, null));
 };
 
 /**
@@ -170,7 +179,6 @@ export const many = <T>(parser: Parser<T>): Parser<T[]> => {
     const values: T[] = [];
     let nextCtx = ctx;
 
-    // eslint-disable-next-line no-constant-condition
     while (true) {
       const res = parser(nextCtx);
       if (!res.success) {
@@ -214,6 +222,11 @@ export const manyTill = <A, B>(
 
     // eslint-disable-next-line no-constant-condition
     while (true) {
+      const maybeEnd = end(nextCtx);
+      if (maybeEnd.success) {
+        return success(maybeEnd.ctx, [...values, maybeEnd.value]);
+      }
+
       const res = parser(nextCtx);
       if (!res.success) {
         const maybeEnd = end(nextCtx);
@@ -303,7 +316,13 @@ export const sepBy1 = <T, S>(
   return (ctx) => {
     const res = sepBy(parser, sep)(ctx);
     if (res.ctx.index === ctx.index) {
-      return failure(res.ctx, "Expected at least one match");
+      const parserTest = parser(ctx);
+      if (parserTest.success) {
+        // This should never happen since `sepBy` didn't match - need to rewrite for statical guarantee
+        return failure(parserTest.ctx, "Unjustified error");
+      } else {
+        return failure(res.ctx, "Expected at least one match", [parserTest]);
+      }
     }
 
     return res;
@@ -367,5 +386,43 @@ export const surrounded = <T>(
   middle: Parser<T>,
   close: Parser<unknown>
 ): Parser<T> => {
+  /* return (ctx) => {
+    const openRes = open(ctx);
+    if (openRes.success) {
+      let cursor = openRes.ctx;
+      let closeRes = close(cursor);
+      while (!closeRes.success) {
+        const res = middle(cursor);
+        if (res.success) {
+
+        }
+      }
+    }
+  } */
   return map(seq(open, middle, close), ([_open, middle, _close]) => middle);
+};
+
+export const minus = <T>(a: Parser<T>, b: Parser<unknown>): Parser<T> => {
+  return (ctx) => {
+    const excludedRes = b(ctx);
+    if (excludedRes.success) {
+      return failure(
+        ctx,
+        `Matched excluded "${JSON.stringify(excludedRes.value)}"`
+      );
+    }
+
+    return a(ctx);
+  };
+};
+
+export const not = <T>(a: Parser<T>): Parser<null> => {
+  return (ctx) => {
+    const res = a(ctx);
+    if (res.success) {
+      return failure(ctx, `Matched "${JSON.stringify(res.value)}"`);
+    }
+
+    return success(ctx, null);
+  };
 };

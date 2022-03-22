@@ -144,7 +144,7 @@ Deno.test("either", () => {
 });
 
 Deno.test("any", () => {
-  const okayLangs = any([str("haskell"), str("typescript"), str("clojure")]);
+  const okayLangs = any(str("haskell"), str("typescript"), str("clojure"));
 
   assertObjectMatch(
     okayLangs({

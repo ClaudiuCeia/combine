@@ -1,0 +1,3 @@
+match foo[bar] {
+    allow: 1 && 2;
+}

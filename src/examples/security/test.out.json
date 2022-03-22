@@ -1,0 +1,174 @@
+[
+  [ { kind: 29, range: { start: 28, end: 30 }, value: 1, text: "1 " } ],
+  [ [ { kind: 34, range: [Object], value: [Array], text: "&& " }, [ [Object] ] ] ]
+]
+[
+  [ { kind: 29, range: { start: 28, end: 30 }, value: 1, text: "1 " } ],
+  [ [ { kind: 34, range: [Object], value: [Array], text: "&& " }, [ [Object] ] ] ]
+]
+[
+  [ { kind: 29, range: { start: 28, end: 30 }, value: 1, text: "1 " } ],
+  [ [ { kind: 34, range: [Object], value: [Array], text: "&& " }, [ [Object] ] ] ]
+]
+[
+  [ { kind: 29, range: { start: 28, end: 30 }, value: 1, text: "1 " } ],
+  [ [ { kind: 34, range: [Object], value: [Array], text: "&& " }, [ [Object] ] ] ]
+]
+{
+  "name": "Program",
+  "text": "match foo[bar] {\n    allow: 1 && 2;\n}",
+  "loc": [
+    0,
+    37
+  ],
+  "value": [
+    {
+      "name": "MatchStatement",
+      "text": "match foo[bar] {\n    allow: 1 && 2;\n}",
+      "loc": [
+        0,
+        37
+      ],
+      "value": [
+        {
+          "name": "MatchKeyword",
+          "text": "match",
+          "loc": [
+            0,
+            5
+          ],
+          "value": "\"match\""
+        },
+        {
+          "name": "Pattern",
+          "text": "foo[bar] ",
+          "loc": [
+            6,
+            15
+          ],
+          "value": [
+            {
+              "name": "PatternVariable",
+              "text": "[bar]",
+              "loc": [
+                9,
+                14
+              ],
+              "value": {
+                "name": "Identifer",
+                "text": "bar",
+                "loc": [
+                  10,
+                  13
+                ],
+                "value": [
+                  "\"bar\""
+                ]
+              }
+            }
+          ]
+        },
+        [
+          [],
+          [
+            [
+              [
+                [
+                  {
+                    "name": "Rule",
+                    "text": "allow: 1 && 2",
+                    "loc": [
+                      21,
+                      34
+                    ],
+                    "value": [
+                      {
+                        "name": "AllowKeyword",
+                        "text": "allow",
+                        "loc": [
+                          21,
+                          26
+                        ],
+                        "value": [
+                          "\"allow\""
+                        ]
+                      },
+                      {
+                        "name": "RuleMethodList",
+                        "text": "",
+                        "loc": [
+                          26,
+                          26
+                        ],
+                        "value": []
+                      },
+                      {
+                        "name": "BinaryExpression",
+                        "text": "1 && 2",
+                        "loc": [
+                          28,
+                          34
+                        ],
+                        "value": [
+                          [
+                            {
+                              "name": "IntLiteral",
+                              "text": "1 ",
+                              "loc": [
+                                28,
+                                30
+                              ],
+                              "value": "1"
+                            }
+                          ],
+                          [
+                            [
+                              {
+                                "name": "LogicalAnd",
+                                "text": "&& ",
+                                "loc": [
+                                  30,
+                                  33
+                                ],
+                                "value": [
+                                  "\"&&\"",
+                                  "null"
+                                ]
+                              },
+                              [
+                                {
+                                  "name": "IntLiteral",
+                                  "text": "2",
+                                  "loc": [
+                                    33,
+                                    34
+                                  ],
+                                  "value": "2"
+                                }
+                              ]
+                            ]
+                          ]
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              ],
+              "null"
+            ]
+          ],
+          []
+        ]
+      ]
+    },
+    {
+      "name": "EOF",
+      "text": "",
+      "loc": [
+        37,
+        37
+      ],
+      "value": "null"
+    }
+  ]
+}

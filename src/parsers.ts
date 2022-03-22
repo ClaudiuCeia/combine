@@ -35,7 +35,10 @@ export const anyChar = (): Parser<string> => {
       return failure(ctx, "reached end of input");
     }
 
-    return success({ ...ctx, index: ctx.index + 1 }, ctx.text.substr(-1));
+    return success(
+      { ...ctx, index: ctx.index + 1 },
+      ctx.text.substring(ctx.index, ctx.index + 1)
+    );
   };
 };
 
@@ -220,11 +223,11 @@ export const double = (): Parser<number> => {
 export const hexDigit = (): Parser<string> => {
   return (ctx) =>
     map(
-      any<string | number>([
+      any<string | number>(
         digit(),
         charWhere((code) => code >= 65 && code <= 70), // A-F
-        charWhere((code) => code >= 97 && code <= 102), // a-f
-      ]),
+        charWhere((code) => code >= 97 && code <= 102) // a-f
+      ),
       (digit) => digit.toString()
     )(ctx);
 };
@@ -253,9 +256,9 @@ export const number = (): Parser<number> => {
 /**
  * Matches a signed decimal number (with explicit +/- sign)
  */
-export const signed = (): Parser<number> => {
+export const signed = (nParser: Parser<number> = number()): Parser<number> => {
   return (ctx) => {
-    return map(seq(either(str("+"), str("-")), number()), (out) => {
+    return map(seq(either(str("+"), str("-")), nParser), (out) => {
       const [sign, num] = out;
       if (sign === "+") {
         return num;
