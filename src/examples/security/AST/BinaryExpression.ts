@@ -47,6 +47,6 @@ export class BinaryExpression<Left, Op, Right> extends Node<
         op: tuples[0][0],
         right: tuples[0][1],
       }
-    );
+    ).left;
   }
 }

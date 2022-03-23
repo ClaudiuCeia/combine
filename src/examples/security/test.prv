@@ -1,3 +1,7 @@
 match foo[bar] {
-    allow: 1 && 2;
+    function foo() {
+        42;
+    }
+    allow read: 1 && 2 * 8 - 2;
 }
+ 

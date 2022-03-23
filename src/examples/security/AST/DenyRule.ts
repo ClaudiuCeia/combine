@@ -5,7 +5,7 @@ type DenyRuleValue = {
   expression: Node;
 };
 export class DenyRule extends Node<DenyRuleValue> {
-  readonly kind = SyntaxKind.Block;
+  readonly kind = SyntaxKind.DenyRule;
 
   protected parseValue(v: unknown): DenyRuleValue {
     if (!(v instanceof Node)) {

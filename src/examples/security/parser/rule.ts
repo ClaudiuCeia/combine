@@ -9,14 +9,15 @@ import {
   surrounded,
   optional,
   peek,
+  either,
+sepBy1,
 } from "../../../combinators.ts";
 import { failure } from "../../../Parser.ts";
 import { charWhere, str } from "../../../parsers.ts";
 import { ifPeek, map, onFailure, peekAnd } from "../../../utility.ts";
-import { Node, node } from "../AST/node.ts";
 import { oneline } from "../common.ts";
 import { SyntaxKind } from "./SyntaxKind.ts";
-import { doubleColon } from "./atom.ts";
+import { comma, doubleColon } from "./atom.ts";
 import { semiColonDelimited } from "./common.ts";
 import { ident, expr } from "./expression.ts";
 import { allowKeyword, denyKeyword, skipKeyword } from "./keyword.ts";
@@ -27,62 +28,36 @@ import {
   toAST,
   terminated,
 } from "./combine/combinators.ts";
+import { RuleAction } from "../AST/RuleAction.ts";
+import { RuleKind } from "../AST/RuleKind.ts";
+import { Node } from "../AST/Node.ts";
+import { Rule } from "../AST/Rule.ts";
 
 /**
  * SyntaxKind.
  */
-export const ruleMethod = toAST(
-  SyntaxKind.RuleMethod,
+export const ruleMethod = map(
   terminated(
-    any(str("read"), str("create"), str("update"), str("delete"), str("write"))
-  )
-);
-
-export const ruleMethodList = toAST(
-  SyntaxKind.RuleMethodList,
-  keepNonNull(sepBy(ruleMethod, skip1(seq(str(","), skipMany(trivia)))))
-);
-
-export const patternVariable = toAST(
-  SyntaxKind.PatternVariable,
-  surrounded(str("["), ident, str("]"))
-);
-
-export const pattern = toAST(
-  SyntaxKind.Pattern,
-  manyTill(
     any(
-      patternVariable,
-      skipMany(charWhere((code) => code !== "[".charCodeAt(0)))
-    ),
-    any(trivia, peek(str("{")))
+      str("read"),
+      str("list"),
+      str("create"),
+      str("update"),
+      str("delete"),
+      str("write")
+    )
   ),
-  (m: (Node<unknown> | null)[]) => {
-    return m
-      .slice(0, -1)
-      .filter((v) => v !== null && v.kind !== SyntaxKind.Trivia);
-  }
+  (...args) => new RuleAction(...args)
 );
 
-export const rule = semiColonDelimited(
-  toAST(
-    SyntaxKind.Rule,
-    seqNonNull(
-      any(allowKeyword, denyKeyword, skipKeyword),
-      skipMany(trivia),
-      ruleMethodList,
-      skipMany(trivia),
-      skip1(doubleColon),
-      onFailure(expr(), (f) =>
-        failure(
-          f.ctx,
-          oneline`
-            This is an invalid expression - only ternary, binary or unary 
-            expressions are allowed.  
-            If you need more "space", define a function and use it inline.
-          `
-        )
-      )
-    )
-  )
+export const ruleMethodList = keepNonNull(sepBy1(ruleMethod, skip1(comma)));
+
+export const rule = map(
+  seqNonNull<RuleAction[] | Node<unknown> | null>(
+    map(either(allowKeyword, denyKeyword), (...args) => new RuleKind(...args)),
+    terminated(ruleMethodList),
+    skip1(doubleColon),
+    expr()
+  ),
+  (...args) => new Rule(...args)
 );

@@ -35,24 +35,6 @@ export const prettyPrintAST = (
   return interm;
 };
 
-export const printNode = (n: Node<unknown>): Record<string, unknown> => {
-  let value = n.value;
-  if (Array.isArray(value)) {
-    value = value.map((v) =>
-      obj(v) && "kind" in v ? printNode(v as Node<unknown>) : v
-    );
-  } else if (obj(value) && "kind" in value) {
-    value = printNode(value as Node<unknown>);
-  }
-
-  return {
-    value,
-    type: tr(n.kind),
-    loc: [n.range.start, n.range.end],
-    text: n.text,
-  };
-};
-
 export const printAstSummary = (
   ast: Record<string, unknown> | unknown[]
 ): Record<string, unknown> | unknown[] => {

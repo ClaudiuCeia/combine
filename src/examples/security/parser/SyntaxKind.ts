@@ -42,4 +42,9 @@ export enum SyntaxKind {
   Block,
   AllowRule,
   DenyRule,
+  SourceFile,
+  RuleAction,
+  RuleKind,
+  Rule,
+  EndOfFileToken
 }

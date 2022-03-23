@@ -4,6 +4,7 @@ import { Node } from "./Node.ts";
 type AllowRuleValue = {
   expression: Node;
 };
+
 export class AllowRule extends Node<AllowRuleValue> {
   readonly kind = SyntaxKind.AllowRule;
 

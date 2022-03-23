@@ -1,0 +1,163 @@
+[
+  {
+    "name": "MatchDeclaration",
+    "value": {
+      "pattern": {
+        "name": "MatchPatternExpression",
+        "value": {
+          "head": {
+            "name": "MatchPatternHead",
+            "value": "foo",
+            "text": "foo",
+            "range": { "start": 6, "end": 9 }
+          },
+          "patternSpans": [
+            {
+              "name": "MatchPatternSpan",
+              "value": {
+                "expression": {
+                  "name": "Identifier",
+                  "value": "bar",
+                  "text": "bar",
+                  "range": { "start": 10, "end": 13 }
+                },
+                "literal": null
+              },
+              "text": "[bar]",
+              "range": { "start": 9, "end": 14 }
+            }
+          ]
+        },
+        "text": "foo[bar] ",
+        "range": { "start": 6, "end": 15 }
+      },
+      "body": {
+        "name": "Block",
+        "value": {
+          "statements": [
+            {
+              "name": "FunctionDeclaration",
+              "value": {
+                "name": {
+                  "name": "Identifier",
+                  "value": "foo",
+                  "text": "foo",
+                  "range": { "start": 30, "end": 33 }
+                },
+                "parameters": [],
+                "body": [
+                  [
+                    {
+                      "name": "IntLiteral",
+                      "value": 42,
+                      "text": "42",
+                      "range": { "start": 46, "end": 48 }
+                    }
+                  ]
+                ]
+              },
+              "text": "function foo() {\n        42;\n    }\n    ",
+              "range": { "start": 21, "end": 60 }
+            },
+            [
+              {
+                "name": "Rule",
+                "value": {
+                  "kind": {
+                    "name": "RuleKind",
+                    "value": "allow",
+                    "text": "allow ",
+                    "range": { "start": 60, "end": 66 }
+                  },
+                  "actions": [
+                    {
+                      "name": "RuleAction",
+                      "value": "read",
+                      "text": "read",
+                      "range": { "start": 66, "end": 70 }
+                    }
+                  ],
+                  "conditon": {
+                    "name": "BinaryExpression",
+                    "value": {
+                      "left": {
+                        "name": "IntLiteral",
+                        "value": 1,
+                        "text": "1 ",
+                        "range": { "start": 72, "end": 74 }
+                      },
+                      "op": {
+                        "name": "AmpersandAmpersandToken",
+                        "value": "&&",
+                        "text": "&& ",
+                        "range": { "start": 74, "end": 77 }
+                      },
+                      "right": {
+                        "name": "BinaryExpression",
+                        "value": {
+                          "left": {
+                            "name": "BinaryExpression",
+                            "value": {
+                              "left": {
+                                "name": "IntLiteral",
+                                "value": 2,
+                                "text": "2 ",
+                                "range": { "start": 77, "end": 79 }
+                              },
+                              "op": {
+                                "name": "AsteriskToken",
+                                "value": "*",
+                                "text": "* ",
+                                "range": { "start": 79, "end": 81 }
+                              },
+                              "right": {
+                                "name": "IntLiteral",
+                                "value": 8,
+                                "text": "8 ",
+                                "range": { "start": 81, "end": 83 }
+                              }
+                            },
+                            "text": "2 * 8 ",
+                            "range": { "start": 77, "end": 83 }
+                          },
+                          "op": {
+                            "name": "MinusToken",
+                            "value": "-",
+                            "text": "- ",
+                            "range": { "start": 83, "end": 85 }
+                          },
+                          "right": {
+                            "name": "IntLiteral",
+                            "value": 2,
+                            "text": "2",
+                            "range": { "start": 85, "end": 86 }
+                          }
+                        },
+                        "text": "2 * 8 - 2",
+                        "range": { "start": 77, "end": 86 }
+                      }
+                    },
+                    "text": "1 && 2 * 8 - 2",
+                    "range": { "start": 72, "end": 86 }
+                  }
+                },
+                "text": "allow read: 1 && 2 * 8 - 2",
+                "range": { "start": 60, "end": 86 }
+              }
+            ]
+          ]
+        },
+        "text": "{\n    function foo() {\n        42;\n    }\n    allow read: 1 && 2 * 8 - 2;\n}\n ",
+        "range": { "start": 15, "end": 91 }
+      }
+    },
+    "text": "match foo[bar] {\n    function foo() {\n        42;\n    }\n    allow read: 1 && 2 * 8 - 2;\n}\n ",
+    "range": { "start": 0, "end": 91 }
+  },
+  {
+    "name": "EndOfFileToken",
+    "value": null,
+    "text": "",
+    "range": { "start": 91, "end": 91 }
+  }
+]

@@ -25,4 +25,33 @@ export abstract class Node<T = unknown> {
   }
 
   protected abstract parseValue(val: unknown): T;
+
+  private static printValue(value: unknown): unknown {
+    let out;
+    if (Array.isArray(value)) {
+      out = value.map((v) => this.printValue(v));
+    } else if (value instanceof Node) {
+      out = value.print();
+    } else if (typeof value === "object" && value !== null) {
+      out = Object.entries(value).reduce((acc, [k, v]) => {
+        return {
+          ...acc,
+          [k]: this.printValue(v),
+        };
+      }, {});
+    } else {
+      out = value;
+    }
+
+    return out;
+  }
+
+  public print(): Record<string, unknown> {
+    return {
+      name: this.constructor.name,
+      value: Node.printValue(this.value),
+      text: this.text,
+      range: this.range,
+    };
+  }
 }
