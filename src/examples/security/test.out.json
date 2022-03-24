@@ -1,0 +1,48 @@
+Did user.tenant == Tenant.ADMIN  and came up with  {
+  expression: BinaryExpression {
+    range: { start: 120, end: 147 },
+    text: "user.tenant == Tenant.ADMIN",
+    value: {
+      left: PropertyAccessExpression { range: [Object], text: "user.tenant ", value: [Array], kind: 9 },
+      op: EqualsEqualsToken { range: [Object], text: "== ", value: "==", kind: 16 },
+      right: PropertyAccessExpression { range: [Object], text: "Tenant.ADMIN", value: [Array], kind: 9 }
+    },
+    kind: 0
+  },
+  thenStatement: [
+    [
+      ReturnStatement { range: [Object], text: "return false", value: [Object], kind: 31 }
+    ]
+  ],
+  elseStatement: undefined
+} for  "=="
+Did toYears(userbirthdate()) >= age  and came up with  {
+  expression: BinaryExpression {
+    range: { start: 270, end: 301 },
+    text: "toYears(userbirthdate()) >= age",
+    value: {
+      left: CallExpression { range: [Object], text: "toYears(userbirthdate()) ", value: [Object], kind: 10 },
+      op: GreaterThanOrEqualToken { range: [Object], text: ">= ", value: ">=", kind: 15 },
+      right: Identifier { range: [Object], text: "age", value: "age", kind: 8 }
+    },
+    kind: 0
+  }
+} for  ">="
+Replaced IntLiteral { range: { start: 365, end: 367 }, text: "21", value: 21, kind: 3 } 21
+Did request.user.uuid == uuid  and came up with  {
+  kind: RuleKind { range: { start: 382, end: 388 }, text: "allow ", value: "allow", kind: 45 },
+  actions: [
+    RuleAction { range: { start: 388, end: 393 }, text: "write", value: "write", kind: 44 }
+  ],
+  conditon: BinaryExpression {
+    range: { start: 395, end: 420 },
+    text: "request.user.uuid == uuid",
+    value: {
+      left: PropertyAccessExpression { range: [Object], text: "request.user.uuid ", value: [Array], kind: 9 },
+      op: EqualsEqualsToken { range: [Object], text: "== ", value: "==", kind: 16 },
+      right: Identifier { range: [Object], text: "uuid", value: "uuid", kind: 8 }
+    },
+    kind: 0
+  }
+} for  "=="
+undefined

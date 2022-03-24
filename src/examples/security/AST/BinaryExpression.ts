@@ -2,14 +2,17 @@ import { SyntaxKind } from "../parser/SyntaxKind.ts";
 import { Node } from "./Node.ts";
 import { ParseError } from "./ParseError.ts";
 
-type BinaryExpressionValue<Left, Op, Right> = {
+export type BinaryExpressionValue<Left, Op, Right> = {
   left: Node<Left>;
   op: Node<Op>;
   right: Node<Right>;
 };
-export class BinaryExpression<Left, Op, Right> extends Node<
-  BinaryExpressionValue<Left, Op, Right>
-> {
+
+export class BinaryExpression<
+  Left = unknown,
+  Op = unknown,
+  Right = unknown
+> extends Node<BinaryExpressionValue<Left, Op, Right>> {
   readonly kind = SyntaxKind.BinaryExpression;
 
   protected parseValue(v: unknown): BinaryExpressionValue<Left, Op, Right> {

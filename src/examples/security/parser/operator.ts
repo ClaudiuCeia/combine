@@ -1,4 +1,4 @@
-import { seq, skipMany, furthest, any } from "../../../combinators.ts";
+import { furthest } from "../../../combinators.ts";
 import { str } from "../../../parsers.ts";
 import { map } from "../../../utility.ts";
 import { AmpersandAmpersandToken } from "../AST/AmpersandAmpersandToken.ts";
@@ -18,8 +18,6 @@ import { PlusEqualsToken } from "../AST/PlusEqualsToken.ts";
 import { PlusToken } from "../AST/PlusToken.ts";
 import { SlashToken } from "../AST/SlashToken.ts";
 import { terminated } from "./combine/combinators.ts";
-import { SyntaxKind } from "./SyntaxKind.ts";
-import { trivia } from "./trivia.ts";
 
 export const relOperator = furthest<Node>(
   map(terminated(str("<")), (...args) => new LessThanToken(...args)),
@@ -64,11 +62,6 @@ export const modOp = map(
   terminated(str("%")),
   (...args) => new PercentToken(...args)
 );
-
-/* export const negationOp = map(
-  seq(str("!"), skipMany(trivia)),
-  node(SyntaxKind.NegationOp)
-); */
 
 export const plusEq = map(
   terminated(str("+=")),

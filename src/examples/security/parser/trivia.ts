@@ -6,8 +6,7 @@ import {
   surrounded,
 } from "../../../combinators.ts";
 import { space, str, anyChar, eol } from "../../../parsers.ts";
-import { keepNonNull } from "./combine/combinators.ts";
-import { map, mapJoin, peekAnd } from "../../../utility.ts";
+import { map, peekAnd } from "../../../utility.ts";
 
 /**
  * SyntaxKind.Trivia

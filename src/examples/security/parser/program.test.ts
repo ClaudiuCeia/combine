@@ -1,6 +1,4 @@
 import { assertEquals } from "https://deno.land/std@0.120.0/testing/asserts.ts";
-import { kindName } from "./common.ts";
-import { SyntaxKind } from "./SyntaxKind.ts";
 import { program } from "./program.ts";
 
 Deno.test("program test", () => {
@@ -15,8 +13,8 @@ Deno.test("program test", () => {
                 return toYears(userbirthdate()) >= age;
             }
 
-            allow: isOverAge(21);
-            allow: request.user.uuid == uuid;
+            allow read: isOverAge(21);
+            allow write: request.user.uuid == uuid;
         }
     `;
 
@@ -25,7 +23,8 @@ Deno.test("program test", () => {
     index: 0,
   });
 
-  console.log(JSON.stringify((res as any).value))
+  // console.log(res);
+  // console.log(JSON.stringify((res as any).value));
   assertEquals(res.ctx.text.length, res.ctx.index);
   assertEquals(res.success, true);
 });

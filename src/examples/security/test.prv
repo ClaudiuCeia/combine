@@ -1,7 +1,15 @@
-match foo[bar] {
-    function foo() {
-        42;
-    }
-    allow read: 1 && 2 * 8 - 2;
-}
- 
+match urn:user:[uuid] {
+            function isOverAge(age) {
+                let user = get(uuid);
+                if (user.tenant == Tenant.ADMIN) {
+                    return false;
+                }
+                let a = 1 + 3;
+            
+                return toYears(userbirthdate()) >= age;
+            }
+
+            
+            allow read: isOverAge(21);
+            allow write: request.user.uuid == uuid;
+        }

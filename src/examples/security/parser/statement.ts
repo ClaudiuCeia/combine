@@ -1,4 +1,4 @@
-import { any, many1, optional, sepBy1, skip1 } from "../../../combinators.ts";
+import { any, optional, sepBy1, skip1 } from "../../../combinators.ts";
 import { Parser } from "../../../Parser.ts";
 import { semiColonDelimited } from "./common.ts";
 import { ident, expr } from "./expression.ts";
@@ -19,7 +19,10 @@ export const variableDeclaration = () =>
       ident,
       optional(seqNonNull(skip1(terminated(str("="))), expr()))
     ),
-    (...args) => new VariableDeclaration(...args)
+    ([identifier, assign], ...rest) => {
+      const assignVal = Array.isArray(assign) ? assign[0] : undefined;
+      new VariableDeclaration([identifier, assignVal], ...rest);
+    }
   );
 
 export const variableDeclarationList = () =>
@@ -38,13 +41,7 @@ export const returnStatement = () =>
   );
 
 export const statement = (): Parser<unknown> =>
-  semiColonDelimited(
-    any(
-      expr(),
-      variableDeclarationList() /* , shorthandReassign() */,
-      returnStatement()
-    )
-  );
+  semiColonDelimited(any(expr(), variableDeclarationList(), returnStatement()));
 
 export const continueStatement = () =>
   seqNonNull<Node<string | number> | string>(

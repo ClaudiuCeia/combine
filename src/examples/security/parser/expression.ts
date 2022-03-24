@@ -146,11 +146,7 @@ export const term = () =>
         factor(),
         many1(
           seq(
-            oneOf<AsteriskToken | SlashToken | PercentToken>(
-              mulOp,
-              divOp,
-              modOp
-            ),
+            any<AsteriskToken | SlashToken | PercentToken>(mulOp, divOp, modOp),
             factor()
           )
         )
