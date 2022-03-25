@@ -15,11 +15,18 @@ export type TraversalCallbackMap = {
   ) => void;
 };
 
+type Scope = {
+  locals: Record<string, unknown>;
+};
+
 export abstract class Node<T = unknown> {
   public readonly range: NodeRange;
   public readonly text: string;
   public value: T;
   public abstract readonly kind: SyntaxKind;
+  public scope: Scope = {
+    locals: {},
+  };
 
   public constructor(value: unknown, before: Context, after: Context) {
     this.range = {
@@ -33,32 +40,35 @@ export abstract class Node<T = unknown> {
   protected abstract parseValue(val: unknown): T;
 
   public traverse(callbackMap: Partial<TraversalCallbackMap>): void {
-    const _traverse = (value: unknown, key?: string, index?: number): void => {
-      if (Array.isArray(value)) {
-        value.map((v, idx) => _traverse(v, undefined, idx));
-      } else if (value instanceof Node) {
-        value.traverse(callbackMap);
-        const cb = callbackMap[value.kind];
-        cb && cb(value, this, key, index);
-      } else if (typeof value === "object" && value !== null) {
-        Object.entries(value).reduce((acc, [k, v]) => {
+    const _traverse = (
+      child: unknown,
+      parent?: Node,
+      key?: string,
+      index?: number
+    ): void => {
+      if (Array.isArray(child)) {
+        for (let i = 0; i <= child.length; i++) {
+          const original = child[i];
+          _traverse(original, parent, key, i);
+          // If the node was deleted, we need to reset to avoid skipping a node
+          if (original !== child[i]) {
+            i--;
+          }
+        }
+      } else if (child instanceof Node) {
+        _traverse(child.value, child, key);
+        const cb = callbackMap[child.kind];
+        cb && cb(child, parent, key, index);
+      } else if (typeof child === "object" && child !== null) {
+        Object.entries(child).reduce((acc, [k, v]) => {
           return {
             ...acc,
-            [k]: _traverse(v, k),
+            [k]: _traverse(v, parent, k),
           };
         }, {});
       }
     };
 
-    _traverse(this.value);
+    _traverse(this, this);
   }
-
-  /* public print(): Record<string, unknown> {
-    return {
-      name: this.constructor.name,
-      value: Node.printValue(this.value),
-      text: this.text,
-      range: this.range,
-    };
-  } */
 }

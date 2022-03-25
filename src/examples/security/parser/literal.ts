@@ -34,9 +34,7 @@ export type BinaryExpressionNode = Node<
 export const boolLiteral = map(
   terminated(oneOf(str("true"), str("false"))),
   (v, b, a) =>
-    v[0] === "true"
-      ? new TrueKeyword(true, b, a)
-      : new FalseKeyword(false, b, a)
+    v === "true" ? new TrueKeyword(true, b, a) : new FalseKeyword(false, b, a)
 );
 
 export const intLiteral = map(

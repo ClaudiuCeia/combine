@@ -46,5 +46,5 @@ export enum SyntaxKind {
   RuleAction,
   RuleKind,
   Rule,
-  EndOfFileToken
+  EndOfFileToken,
 }

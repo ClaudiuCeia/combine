@@ -17,7 +17,7 @@ export class IfStatement extends Node<IfStatementValue> {
 
     return {
       expression: v[0],
-      thenStatement: v[1],
+      thenStatement: v[1].map((v: [unknown]) => v[0]),
       elseStatement: v[2],
     };
   }

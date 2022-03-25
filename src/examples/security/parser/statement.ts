@@ -3,7 +3,7 @@ import { Parser } from "../../../Parser.ts";
 import { semiColonDelimited } from "./common.ts";
 import { ident, expr } from "./expression.ts";
 import { continueKeyword, letKeyword, returnKeyword } from "./keyword.ts";
-import { seqNonNull, terminated } from "./combine/combinators.ts";
+import { keepNonNull, seqNonNull, terminated } from "./combine/combinators.ts";
 import { str } from "../../../parsers.ts";
 import { comma, semiColon } from "./atom.ts";
 import { intLiteral } from "./literal.ts";
@@ -19,17 +19,14 @@ export const variableDeclaration = () =>
       ident,
       optional(seqNonNull(skip1(terminated(str("="))), expr()))
     ),
-    ([identifier, assign], ...rest) => {
-      const assignVal = Array.isArray(assign) ? assign[0] : undefined;
-      new VariableDeclaration([identifier, assignVal], ...rest);
-    }
+    (...args) => new VariableDeclaration(...args)
   );
 
 export const variableDeclarationList = () =>
   map(
     seqNonNull(
       skip1(letKeyword),
-      terminated(sepBy1(variableDeclaration(), comma))
+      terminated(keepNonNull(sepBy1(variableDeclaration(), skip1(comma))))
     ),
     (...args) => new VariableDeclarationList(...args)
   );
