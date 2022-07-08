@@ -426,3 +426,9 @@ export const not = <T>(a: Parser<T>): Parser<null> => {
     return success(ctx, null);
   };
 };
+
+export const keepNonNull = <T>(parser: Parser<(T | null)[]>): Parser<T[]> =>
+  map(parser, (matches) => matches.filter((v) => v !== null) as T[]);
+
+export const seqNonNull = <T>(...parsers: Parser<T | null>[]): Parser<T[]> =>
+  keepNonNull(seq(...parsers));
