@@ -12,7 +12,8 @@ import {
   skipMany,
   skipMany1,
 } from "../combinators.ts";
-import { char, notChar, regex, space, str } from "../parsers.ts";
+import { anyChar, char, notChar, regex, space, str } from "../parsers.ts";
+import { map, mapJoin } from "../utility.ts";
 
 Deno.test("str", () => {
   assertObjectMatch(
@@ -542,6 +543,38 @@ Deno.test("skipMany1", () => {
       success: false,
       expected: "Expected at least a skip",
       ctx: { text: "ABC123", index: 0 },
+    }
+  );
+});
+
+Deno.test("Hello world test", () => {
+  const helloWorldParser = seq(
+    str("Hello,"),
+    optional(space()),
+    mapJoin(manyTill(anyChar(), str("!"))),
+  );
+  
+  assertObjectMatch(
+    helloWorldParser({
+      text: "Hello, World!",
+      index: 0,
+    }),
+    {
+      success: true,
+      ctx: { text: "Hello, World!", index: 13 },
+    }
+  );
+
+  const nameParser = map(helloWorldParser, ([,,name]) => name);
+  assertObjectMatch(
+    nameParser({
+      text: "Hello, Joe Doe!",
+      index: 0,
+    }),
+    {
+      success: true,
+      value: "Joe Doe!",
+      ctx: { text: "Hello, Joe Doe!", index: 15 },
     }
   );
 });
