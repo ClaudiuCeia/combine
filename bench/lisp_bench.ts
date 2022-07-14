@@ -16,16 +16,16 @@ const text = `
 
 const combineLisp = createLanguage({
   Expression: (s) => {
-    return seq(any(s.Symbol, s.Number, s.List), space());
+    return any(s.Symbol, s.Number, s.List);
   },
   Symbol: () => {
-    return regex(/[a-zA-Z_-][a-zA-Z0-9_-]*/, "symbol");
+    return seq(regex(/[a-zA-Z_-][a-zA-Z0-9_-]*/, "symbol"), space());
   },
   Number: () => {
-    return regex(/[0-9]+/, "number");
+    return seq(regex(/[0-9]+/, "number"), space());
   },
   List: (s) => {
-    return seq(str("("), many(s.Expression), str(")"));
+    return seq(str("("), many(s.Expression), str(")"), space());
   },
   File: (s) => {
     return seq(space(), many(s.Expression), eof());

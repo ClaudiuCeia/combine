@@ -1,32 +1,32 @@
-import { any, surrounded, many, seq, optional } from "../src/combinators.ts";
-import { regex, number, str, eof, space } from "../src/parsers.ts";
-import { createLanguage, map } from "../src/utility.ts";
+import { any, many, seq, seqNonNull, skip1 } from "../src/combinators.ts";
+import { regex, str, eof, space } from "../src/parsers.ts";
+import { createLanguage } from "../src/utility.ts";
 
-const L = createLanguage({
-  Expression: (s) => {
-    return map(
-      seq(any(s.Symbol, s.Number, s.List), optional(space())),
-      ([first]) => first
-    );
+const L = createLanguage(
+  {
+    Expression: (s) => {
+      return any(s.Symbol, s.Number, s.List);
+    },
+    Symbol: () => {
+      return seqNonNull(regex(/[a-zA-Z_-][a-zA-Z0-9_-]*/, "symbol"), skip1(space()));
+    },
+    Number: () => {
+      return seqNonNull(regex(/[0-9]+/, "number"), skip1(space()));
+    },
+    List: (s) => {
+      return seqNonNull<unknown>(str("("), many(s.Expression), str(")"), skip1(space()));
+    },
+    File: (s) => {
+      return seq(space(), many(s.Expression), eof());
+    },
   },
-  Symbol: () => {
-    return regex(/[a-zA-Z_-][a-zA-Z0-9_-]*/, "symbol");
-  },
-  Number: number,
-  List: (s) => {
-    return surrounded(str("("), many(s.Expression), str(")"));
-  },
-  File: (s) => {
-    return map(
-      seq(optional(space()), many(s.Expression), eof()),
-      ([, mid]) => mid
-    );
-  },
-});
+  {
+    debug: true,
+  }
+);
 
 const text = `
   (list 1 2 (cons 1 (list)))
-  (print 5 golden rings)
-`;
+  (print 5 golden rings)`;
 
-export const res = L.File({ text, index: 0 });
+console.log(JSON.stringify(L.File({ text, index: 0 }), undefined, 2));
