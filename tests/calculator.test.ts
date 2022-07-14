@@ -13,31 +13,23 @@ const paren = <T>(parser: Parser<T>): Parser<T> =>
 const addop = either(str("+"), str("-"));
 const mulop = either(str("*"), str("/"));
 
-function expression(): Parser<number> {
-  return map(seq(term(), many(seq(addop, term()))), ([term, maybeRest]) => {
-    if (!maybeRest) {
-      return term;
-    }
-
-    let total = term;
-    for (const pair of maybeRest) {
-      const [op, term2] = pair;
-      switch (op) {
-        case "+": {
-          total += term2;
-          break;
-        }
-        case "-": {
-          total -= term2;
-          break;
-        }
-        default:
-          throw new Error("Expected addition or substraction");
+function factor(): Parser<number> {
+  return map(
+    oneOf(
+      peekAnd(
+        str("("),
+        lazy(() => paren(expression()))
+      ),
+      number()
+    ),
+    (maybeNum) => {
+      if (maybeNum === null) {
+        throw new Error("Panic at the disco");
       }
-    }
 
-    return total;
-  });
+      return maybeNum;
+    }
+  );
 }
 
 function term(): Parser<number> {
@@ -70,23 +62,31 @@ function term(): Parser<number> {
   );
 }
 
-function factor(): Parser<number> {
-  return map(
-    oneOf(
-      peekAnd(
-        str("("),
-        lazy(() => paren(expression()))
-      ),
-      number()
-    ),
-    (maybeNum) => {
-      if (maybeNum === null) {
-        throw new Error("Panic at the disco");
-      }
-
-      return maybeNum;
+function expression(): Parser<number> {
+  return map(seq(term(), many(seq(addop, term()))), ([term, maybeRest]) => {
+    if (!maybeRest) {
+      return term;
     }
-  );
+
+    let total = term;
+    for (const pair of maybeRest) {
+      const [op, term2] = pair;
+      switch (op) {
+        case "+": {
+          total += term2;
+          break;
+        }
+        case "-": {
+          total -= term2;
+          break;
+        }
+        default:
+          throw new Error("Expected addition or substraction");
+      }
+    }
+
+    return total;
+  });
 }
 
 const testExpr = (expr: string, value: number): void => {

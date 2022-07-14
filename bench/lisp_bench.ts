@@ -54,10 +54,10 @@ const ParsimmonLisp = P.createLanguage({
   },
 });
 
-Deno.bench("combine lisp", { group: "timing" }, () => {
+Deno.bench("combine", { group: "lisp" }, () => {
   combineLisp.File({ text, index: 0 });
 });
 
-Deno.bench("parsimmon lisp", { group: "timing", baseline: true }, () => {
+Deno.bench("parsimmon", { group: "lisp", baseline: true }, () => {
   ParsimmonLisp.File.tryParse(text);
 });
