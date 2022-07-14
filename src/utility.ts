@@ -1,4 +1,6 @@
+import { optional, seq } from "./combinators.ts";
 import { Context, Failure, failure, Parser, success } from "./Parser.ts";
+import { space } from "./parsers.ts";
 
 /**
  * Map the result of a parser using a given function. Useful for building
@@ -90,4 +92,25 @@ export const onFailure = <T>(
       ],
     };
   };
+};
+
+export const trim = <T>(p: Parser<T>): Parser<T> => {
+  return map(seq(optional(space()), p, optional(space())), ([_, p]) => p);
+};
+
+export type LanguageDefinition = Record<
+  string,
+  (self: BoundLanguageDefinition) => Parser<unknown>
+>;
+export type BoundLanguageDefinition = Record<string, Parser<unknown>>;
+
+export const createLanguage = (
+  def: LanguageDefinition
+): BoundLanguageDefinition => {
+  const bound: BoundLanguageDefinition = {};
+  for (const [key, func] of Object.entries(def)) {
+    bound[key] = lazy(() => func.call(null, bound));
+  }
+  
+  return bound;
 };

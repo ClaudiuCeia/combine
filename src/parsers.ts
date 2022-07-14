@@ -126,7 +126,7 @@ export const letter = (): Parser<string> => {
  */
 export const space = (): Parser<string> => {
   return (ctx) => {
-    return regex(/\s+/, "expected whitespace")(ctx);
+    return regex(/\s*/, "expected whitespace")(ctx);
   };
 };
 
@@ -174,11 +174,11 @@ export const eol = (): Parser<string> => {
  */
 export const eof = (): Parser<null> => {
   return (ctx) => {
-    if (ctx.text.length === ctx.index) {
-      return success(ctx, null);
+    if (ctx.index < ctx.text.length) {
+      return failure(ctx, "eof not reached");
     }
-
-    return failure(ctx, "eof not reached");
+    
+    return success(ctx, null);
   };
 };
 

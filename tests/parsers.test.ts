@@ -11,9 +11,9 @@ import {
   sepBy1,
   skipMany,
   skipMany1,
-} from "../combinators.ts";
-import { anyChar, char, notChar, regex, space, str } from "../parsers.ts";
-import { map, mapJoin } from "../utility.ts";
+} from "../src/combinators.ts";
+import { anyChar, char, notChar, regex, space, str } from "../src/parsers.ts";
+import { map, mapJoin } from "../src/utility.ts";
 
 Deno.test("str", () => {
   assertObjectMatch(

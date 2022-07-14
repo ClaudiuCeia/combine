@@ -1,8 +1,8 @@
 import { assertObjectMatch } from "https://deno.land/std@0.120.0/testing/asserts.ts";
-import { either, many, oneOf, seq, surrounded } from "../combinators.ts";
-import { Parser } from "../Parser.ts";
-import { number, str } from "../parsers.ts";
-import { lazy, map, peekAnd } from "../utility.ts";
+import { either, many, oneOf, seq, surrounded } from "../src/combinators.ts";
+import { Parser } from "../src/Parser.ts";
+import { number, str } from "../src/parsers.ts";
+import { lazy, map, peekAnd } from "../src/utility.ts";
 
 /**
  * An implementation of a simple calculator.

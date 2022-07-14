@@ -28,7 +28,7 @@ export const success = <T>(ctx: Context, value: T): Success<T> => {
   return {
     success: true,
     value,
-    ctx,
+    ctx
   };
 };
 
