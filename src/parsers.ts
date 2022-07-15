@@ -259,7 +259,7 @@ export const hex = (): Parser<string> => {
  * Matches a positive decimal number
  */
 export const number = (): Parser<number> => {
-  return (ctx) => either(int(), double())(ctx);
+  return (ctx) => either(double(), int())(ctx);
 };
 
 /**
