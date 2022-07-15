@@ -177,7 +177,7 @@ export const eof = (): Parser<null> => {
     if (ctx.index < ctx.text.length) {
       return failure(ctx, "eof not reached");
     }
-    
+
     return success(ctx, null);
   };
 };
@@ -211,9 +211,18 @@ export const double = (): Parser<number> => {
     const comma = str(".");
     const fractional = map(seq(comma, int()), (fraction) => fraction[1]);
 
-    return map(seq(int(), either(fractional, peek(str(".")))), (double) => {
-      return parseFloat(double.join());
-    })(ctx);
+    return map(
+      seq(
+        int(),
+        either(
+          fractional,
+          map(str("."), () => 0)
+        )
+      ),
+      (double) => {
+        return parseFloat(double.join("."));
+      }
+    )(ctx);
   };
 };
 

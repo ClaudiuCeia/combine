@@ -12,7 +12,7 @@ import {
   skipMany,
   skipMany1,
 } from "../src/combinators.ts";
-import { anyChar, char, notChar, regex, space, str } from "../src/parsers.ts";
+import { anyChar, char, double, notChar, regex, space, str } from "../src/parsers.ts";
 import { map, mapJoin } from "../src/utility.ts";
 
 Deno.test("str", () => {
@@ -36,6 +36,32 @@ Deno.test("str", () => {
       success: false,
       expected: "Typescript",
       ctx: { text: "Haskell is okay", index: 0 },
+    }
+  );
+});
+
+Deno.test("double", () => {
+  assertObjectMatch(
+    double()({
+      text: "29.8",
+      index: 0,
+    }),
+    {
+      success: true,
+      ctx: { text: "29.8", index: 4 },
+      value: 29.8
+    }
+  );
+
+  assertObjectMatch(
+    double()({
+      text: "29.",
+      index: 0,
+    }),
+    {
+      success: true,
+      ctx: { text: "29.", index: 3 },
+      value: 29
     }
   );
 });
