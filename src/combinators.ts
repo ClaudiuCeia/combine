@@ -24,6 +24,19 @@ type UnwrapParsers<T extends [...unknown[]]> = T extends [
   : [];
 
 /**
+ * For a list of parsers, combine them into an union Parser
+ *
+ * let foo = [str("bar"), number()];
+ * let bar: UnwrapParsers<typeof foo>; // Parser<string | number>
+ */
+type ArrayUnion<T extends unknown[]> = T extends [infer Head, ...infer Tail]
+  ? Head | ArrayUnion<Tail>
+  : never;
+
+type UnionParser<T extends unknown[]> = Parser<ArrayUnion<T>>;
+
+// const foo: UnionParser<[string, number]> = 
+/**
  * Used for sequential combinators, such that:
  *
  * let foo = seq(str("bar"), number); // returns a Parser<[string, number]>
@@ -72,7 +85,7 @@ export const seq = <T extends [...Parser<unknown>[]]>(
  */
 export const either = <A, B>(a: Parser<A>, b: Parser<B>): Parser<A | B> => {
   return (ctx) => {
-    return any<A | B>(a, b)(ctx);
+    return any(a, b)(ctx);
   };
 };
 
@@ -81,11 +94,13 @@ export const either = <A, B>(a: Parser<A>, b: Parser<B>): Parser<A | B> => {
  * If none match, return the failure result of the parser that
  * consumed most of the input.
  */
-export const any = <T>(...parsers: Parser<T>[]): Parser<T> => {
+export const any = <T extends [...Parser<unknown>[]]>(
+  ...parsers: [...T]
+): UnionParser<UnwrapParsers<T>> => {
   return (ctx) => {
-    let furthestRes: Result<T> | undefined;
+    let furthestRes: Result<ArrayUnion<UnwrapParsers<T>>> | undefined;
     for (const parser of parsers) {
-      const res = parser(ctx);
+      const res = parser(ctx) as Result<ArrayUnion<UnwrapParsers<T>>>;
       if (res.success) {
         return res;
       }
