@@ -270,7 +270,7 @@ export const repeat = <T>(n: number, parser: Parser<T>): Parser<T[]> => {
     while (idx < n) {
       const res = parser(nextCtx);
       if (!res.success) {
-        break;
+        return failure(ctx, res.expected);
       }
       values.push(res.value);
       nextCtx = res.ctx;

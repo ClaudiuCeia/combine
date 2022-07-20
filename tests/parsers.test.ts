@@ -11,8 +11,19 @@ import {
   sepBy1,
   skipMany,
   skipMany1,
+  repeat,
 } from "../src/combinators.ts";
-import { anyChar, char, double, notChar, number, regex, space, str } from "../src/parsers.ts";
+import {
+  anyChar,
+  char,
+  double,
+  notChar,
+  number,
+  regex,
+  space,
+  str,
+  digit,
+} from "../src/parsers.ts";
 import { map, mapJoin } from "../src/utility.ts";
 
 Deno.test("str", () => {
@@ -49,7 +60,7 @@ Deno.test("double", () => {
     {
       success: true,
       ctx: { text: "29.8", index: 4 },
-      value: 29.8
+      value: 29.8,
     }
   );
 
@@ -61,7 +72,7 @@ Deno.test("double", () => {
     {
       success: true,
       ctx: { text: "29.", index: 3 },
-      value: 29
+      value: 29,
     }
   );
 });
@@ -75,7 +86,7 @@ Deno.test("number", () => {
     {
       success: true,
       ctx: { text: "29.8", index: 4 },
-      value: 29.8
+      value: 29.8,
     }
   );
 
@@ -87,7 +98,7 @@ Deno.test("number", () => {
     {
       success: true,
       ctx: { text: "29", index: 2 },
-      value: 29
+      value: 29,
     }
   );
 });
@@ -603,9 +614,9 @@ Deno.test("Hello world test", () => {
   const helloWorldParser = seq(
     str("Hello,"),
     optional(space()),
-    mapJoin(manyTill(anyChar(), str("!"))),
+    mapJoin(manyTill(anyChar(), str("!")))
   );
-  
+
   assertObjectMatch(
     helloWorldParser({
       text: "Hello, World!",
@@ -617,7 +628,7 @@ Deno.test("Hello world test", () => {
     }
   );
 
-  const nameParser = map(helloWorldParser, ([,,name]) => name);
+  const nameParser = map(helloWorldParser, ([, , name]) => name);
   assertObjectMatch(
     nameParser({
       text: "Hello, Joe Doe!",
@@ -627,6 +638,43 @@ Deno.test("Hello world test", () => {
       success: true,
       value: "Joe Doe!",
       ctx: { text: "Hello, Joe Doe!", index: 15 },
+    }
+  );
+});
+
+Deno.test("repeat", () => {
+  const yearParser = repeat(4, digit());
+
+  assertObjectMatch(
+    yearParser({
+      text: "1988",
+      index: 0,
+    }),
+    {
+      success: true,
+      ctx: { text: "1988", index: 4},
+    }
+  );
+
+  assertObjectMatch(
+    yearParser({
+      text: "days",
+      index: 0,
+    }),
+    {
+      success: false,
+      ctx: { text: "days", index: 0 },
+    }
+  );
+
+  assertObjectMatch(
+    yearParser({
+      text: "12ys",
+      index: 0,
+    }),
+    {
+      success: false,
+      ctx: { text: "12ys", index: 0 },
     }
   );
 });
