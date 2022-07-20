@@ -12,7 +12,7 @@ import {
   skipMany,
   skipMany1,
 } from "../src/combinators.ts";
-import { anyChar, char, double, notChar, regex, space, str } from "../src/parsers.ts";
+import { anyChar, char, double, notChar, number, regex, space, str } from "../src/parsers.ts";
 import { map, mapJoin } from "../src/utility.ts";
 
 Deno.test("str", () => {
@@ -61,6 +61,32 @@ Deno.test("double", () => {
     {
       success: true,
       ctx: { text: "29.", index: 3 },
+      value: 29
+    }
+  );
+});
+
+Deno.test("number", () => {
+  assertObjectMatch(
+    number()({
+      text: "29.8",
+      index: 0,
+    }),
+    {
+      success: true,
+      ctx: { text: "29.8", index: 4 },
+      value: 29.8
+    }
+  );
+
+  assertObjectMatch(
+    number()({
+      text: "29",
+      index: 0,
+    }),
+    {
+      success: true,
+      ctx: { text: "29", index: 2 },
       value: 29
     }
   );

@@ -1,8 +1,6 @@
 import { optional, seq } from "./combinators.ts";
 import { Context, Failure, failure, Parser, success } from "./Parser.ts";
 import { space } from "./parsers.ts";
-import { bgGreen, green, italic } from "https://deno.land/std@0.123.0/fmt/colors.ts";
-import { stripIndents } from "https://esm.sh/common-tags@1.8.2";
 
 /**
  * Map the result of a parser using a given function. Useful for building
@@ -16,7 +14,8 @@ export const map = <A, B>(
   opts?: { trace: boolean; name: string }
 ): Parser<B> => {
   return (ctx) => {
-    let a = 0, b = 0;
+    let a = 0,
+      b = 0;
     opts?.trace && (a = performance.now());
     const res = parser(ctx);
     opts?.trace && (b = performance.now());
@@ -24,12 +23,7 @@ export const map = <A, B>(
     return res.success
       ? success(
           res.ctx,
-          fn(
-            res.value,
-            ctx,
-            res.ctx,
-            opts && (b - a).toFixed(5)
-          )
+          fn(res.value, ctx, res.ctx, opts && (b - a).toFixed(5))
         )
       : res;
   };
@@ -115,39 +109,34 @@ export const trim = <T>(p: Parser<T>): Parser<T> => {
   return map(seq(optional(space()), p, optional(space())), ([_, p]) => p);
 };
 
-export type LanguageDefinition = Record<
-  string,
-  (self: BoundLanguageDefinition) => Parser<unknown>
->;
-export type BoundLanguageDefinition = Record<string, Parser<unknown>>;
+export type LanguageParser<TArg, TResponse> = (s: TArg) => Parser<TResponse>;
+export interface LanguageDefinition {
+  [key: string]: LanguageParser<this, unknown>
+}
+
+type BoundLanguageParser<Original> = Original extends ((s: LanguageDefinition) => Parser<infer R>)
+  ? Parser<R>
+  : never;
+export type BoundLanguageDefinition<D> = {
+  [key in keyof D]: BoundLanguageParser<D[key]>
+}
+
+
+/* const Def: LanguageDefinition<unknown> = {
+  Foo: (s) => any(str("Foo"), s.Bar),
+  Bar: (s) => digit(), 
+} */
 export type LanguageDefinitionOpts = {
   debug: boolean;
 };
 
-const printTrace = (
-  name: string,
-  _value: unknown,
-  before: Context,
-  after: Context,
-  measurement?: string,
-) => {
-  const text = after.text;
-  const beforeText = text.substring(0, before.index);
-  const afterText = text.substring(after.index);
-  const targetText = text.substring(before.index, after.index);
-
-  console.log(stripIndents`
-    ${green(beforeText)}${bgGreen(targetText)}${afterText}
-    ${name}::${italic(`${measurement}ms`)}
-  `);
-};
-
-export const createLanguage = (
+/* export const createLanguage = (
   def: LanguageDefinition,
   opts?: LanguageDefinitionOpts
-): BoundLanguageDefinition => {
-  const bound: BoundLanguageDefinition = {};
-  for (const [key, func] of Object.entries(def)) {
+): BoundLanguageDefinition<typeof def> => {
+  const bound: Record<string, Parser<unknown>> = {};
+  for (const key of Object.keys(def)) {
+    const func = def[key];
     const mapOpts = opts?.debug
       ? {
           name: key,
@@ -157,7 +146,7 @@ export const createLanguage = (
 
     bound[key] = lazy(() =>
       map(
-        func.call(null, bound),
+        func(bound as any) as Parser<unknown>,
         (v, b, a, m) => {
           if (opts?.debug) {
             printTrace(key, null, b, a, m);
@@ -170,5 +159,23 @@ export const createLanguage = (
     );
   }
 
-  return bound;
-};
+  return bound as unknown as BoundLanguageDefinition<typeof def>;
+}; */
+
+/* const printTrace = (
+  name: string,
+  _value: unknown,
+  before: Context,
+  after: Context,
+  measurement?: string
+) => {
+  const text = after.text;
+  const beforeText = text.substring(0, before.index);
+  const afterText = text.substring(after.index);
+  const targetText = text.substring(before.index, after.index);
+
+  console.log(stripIndents`
+    ${green(beforeText)}${bgGreen(targetText)}${afterText}
+    ${name}::${italic(`${measurement}ms`)}
+  `);
+}; */

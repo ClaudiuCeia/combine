@@ -1,7 +1,8 @@
 import { surrounded, either, seq, many, oneOf } from "../src/combinators.ts";
+import { createLanguage, UntypedLanguage } from "../src/language.ts";
 import { Parser } from "../src/Parser.ts";
 import { str, number } from "../src/parsers.ts";
-import { map, peekAnd, lazy, createLanguage } from "../src/utility.ts";
+import { map, peekAnd, lazy } from "../src/utility.ts";
 
 const text = `2+2*3+2/4-1+2+2*3+(2/(4-1+2+2*3+2/4-1+2+2*3+2/4-1+2+2*3+2/4-1+2+2)*3+2/4-1+2+2*3+2/4-1`;
 
@@ -9,7 +10,7 @@ const paren = <T>(parser: Parser<T>): Parser<T> =>
   surrounded(str("("), parser, str(")"));
 
 Deno.bench("createLanguage", { group: "calculator" }, () => {
-  const C = createLanguage({
+  const C = createLanguage<UntypedLanguage>({
     AddOp: () => either(str("+"), str("-")),
     MulOp: () => either(str("*"), str("/")),
     Factor: (s) => {

@@ -232,7 +232,7 @@ export const double = (): Parser<number> => {
 export const hexDigit = (): Parser<string> => {
   return (ctx) =>
     map(
-      any<string | number>(
+      any(
         digit(),
         charWhere((code) => code >= 65 && code <= 70), // A-F
         charWhere((code) => code >= 97 && code <= 102) // a-f
@@ -259,7 +259,7 @@ export const hex = (): Parser<string> => {
  * Matches a positive decimal number
  */
 export const number = (): Parser<number> => {
-  return (ctx) => either(int(), double())(ctx);
+  return (ctx) => either(double(), int())(ctx);
 };
 
 /**

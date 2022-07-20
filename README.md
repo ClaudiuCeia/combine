@@ -120,6 +120,43 @@ vs `createLanguage` in
 and you can see another example in
 [this other benchmark](https://github.com/ClaudiuCeia/combine/blob/main/bench/lisp_bench.ts).
 
+Typing support for `createLanguage` is not great at the moment. There are two ways to use it:
+
+```ts
+/**
+ * Untyped, provide `UnknownLanguage` as a type parameter.
+ * This will make all of the grammar consist of Parser<unknown>,
+ * but you at least get a mapping for the `self` parameter.
+ */
+const lang = createLanguage<UnknownLanguage>({
+  Foo: (s) => either(s.Bar /* this is checked to exist */, number()),
+  Bar: () => str("Bar"),
+});
+
+// Typed
+type TypedLanguage = {
+  Foo: Parser<string, number>,
+  Bar: Parser<string>,
+  // ...
+}
+const typedLang = createLanguage<TypedLanguage>({
+  Foo: (s) => either(
+    s.Bar // this is checked to exist with the expected type 
+    number(),
+  ),
+  Bar: () => str("Bar"),
+});
+```
+
+Note that for more complex grammar you generally need some sort of recursion. 
+For those cases, it can be tricky to define the `TypedLanguage`, have a look at 
+[this example](https://github.com/ClaudiuCeia/combine/blob/main/tests/language.test.ts)
+for inspiration.
+
+Note that since this also wraps all of the functions in a `lazy()` closure, this does also 
+bring a small performance hit. In the future we should be able to only apply `lazy()` only
+where it's needed.
+
 ## Performance
 
 Performance is an inherent challenge for parser combinators. It's easy to create

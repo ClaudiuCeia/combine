@@ -2,18 +2,30 @@ import {
   assertEquals,
   assertObjectMatch,
 } from "https://deno.land/std@0.120.0/testing/asserts.ts";
-import {
-  any,
-  many,
-  surrounded,
-  seq,
-  optional,
-} from "../src/combinators.ts";
+import { any, many, surrounded, seq, optional } from "../src/combinators.ts";
 import { eof, number, regex, str, space } from "../src/parsers.ts";
-import { createLanguage, map } from "../src/utility.ts";
+import { map } from "../src/utility.ts";
+import {
+  createLanguage,
+} from "../src/language.ts";
+import { Parser } from "../src/Parser.ts";
+
+type SymbolNode = string;
+type NumberNode = number;
+type ExpressionNode = string | number | ListNode;
+type ListNode = ExpressionNode[];
+type FileNode = ExpressionNode[];
+
+type LanguageDefinition = {
+  Expression: Parser<ExpressionNode>;
+  Symbol: Parser<SymbolNode>;
+  Number: Parser<NumberNode>;
+  List: Parser<ListNode>;
+  File: Parser<FileNode>;
+};
 
 Deno.test("create language", () => {
-  const L = createLanguage({
+  const L = createLanguage<LanguageDefinition>({
     Expression: (s) => {
       return map(
         seq(any(s.Symbol, s.Number, s.List), optional(space())),

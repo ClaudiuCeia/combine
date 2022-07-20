@@ -1,7 +1,7 @@
 import { any, many, seq } from "../src/combinators.ts";
 import { regex, str, eof, space } from "../src/parsers.ts";
-import { createLanguage } from "../src/utility.ts";
 import * as P from "https://esm.sh/parsimmon@1.18.1";
+import { UntypedLanguage, createLanguage } from "../src/language.ts";
 
 const text = `
     (list 1 2 (cons 1 (list))) (list 1 2 (cons 1 (list))) (list 1 2 (cons 1 (list))) (list 1 2 (cons 1 (list)))
@@ -14,7 +14,7 @@ const text = `
     (list 1 2 (cons 1 (list))) (list 1 2 (cons 1 (list))) (list 1 2 (cons 1 (list)))(list 1 2 (cons 1 (list)))
 `;
 
-const combineLisp = createLanguage({
+const combineLisp = createLanguage<UntypedLanguage>({
   Expression: (s) => {
     return any(s.Symbol, s.Number, s.List);
   },
