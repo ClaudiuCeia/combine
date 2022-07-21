@@ -1,5 +1,6 @@
 import { either, skipMany1, many1, seq, peek, any } from "./combinators.ts";
 import { failure, Parser, success } from "./Parser.ts";
+import { Trie } from "./Trie.ts";
 import { map } from "./utility.ts";
 
 /**
@@ -13,6 +14,37 @@ export const str = (match: string): Parser<string> => {
     } else {
       return failure(ctx, match);
     }
+  };
+};
+
+/**
+ * Matches any of the given strings by using a trie.
+ * Use instead of `any(str("..."), ...) when you want
+ * to match against many possible strings.
+ * 
+ * Caution: Terribly slow at the moment, see benchmark
+ */
+export const trie = (matches: string[]): Parser<string> => {
+  return (ctx) => {
+    const trie = new Trie();
+    trie.insertMany(matches);
+    const longest = matches.reduce(
+      (acc, s) => (s.length > acc ? s.length : acc),
+      0
+    );
+    const candidate = ctx.text.substring(ctx.index, ctx.index + longest);
+    const [exists, match] = trie.existsSubstring(candidate);
+    if (exists && match) {
+      return success(
+        {
+          ...ctx,
+          index: ctx.index + match.length,
+        },
+        match
+      );
+    }
+
+    return failure(ctx, `Expected one of ${matches.join(", ")}`);
   };
 };
 
