@@ -18,7 +18,7 @@ Deno.test("trie parser", () => {
      }),
      {
        success: true,
-       ctx: { text: "Ronaldo, not a bad footballer", index: 7 },
+       ctx: { text: "Ronaldo, not a bad footballer", index: 8 },
      }
    );
 });

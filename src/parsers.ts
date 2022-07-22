@@ -158,7 +158,7 @@ export const letter = (): Parser<string> => {
  */
 export const space = (): Parser<string> => {
   return (ctx) => {
-    return regex(/\s*/, "expected whitespace")(ctx);
+    return regex(/\s+/, "expected whitespace")(ctx);
   };
 };
 
