@@ -7,7 +7,16 @@ you're looking for production-ready code use
 ## Example
 
 ```ts
-import { seq, str, optional, mapJoin, manyTill, anyChar, space, map } from "https://deno.land/x/combine@v0.0.9";
+import { 
+  seq, 
+  str, 
+  optional, 
+  mapJoin, 
+  manyTill, 
+  anyChar, 
+  space, 
+  map 
+} from "https://deno.land/x/combine@v0.0.9/mod.ts";
 
 const helloWorldParser = seq(
   str("Hello,"),
@@ -125,7 +134,14 @@ and you can see another example in
 Typing support for `createLanguage` is not great at the moment. There are two ways to use it:
 
 ```ts
-import { createLanguage, either, str, Parser, UnknownLanguage, number } from "https://deno.land/x/combine@v0.0.9";
+import { 
+  createLanguage, 
+  either, 
+  str, 
+  Parser, 
+  UnknownLanguage, 
+  number 
+} from "https://deno.land/x/combine@v0.0.9/mod.ts";
 
 /**
  * Untyped, provide `UnknownLanguage` as a type parameter.
