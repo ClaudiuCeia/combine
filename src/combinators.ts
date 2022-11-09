@@ -1,4 +1,4 @@
-import { assert } from "https://deno.land/std@0.120.0/testing/asserts.ts";
+import { assert } from "https://deno.land/std@0.149.0/testing/asserts.ts";
 import { failure, Parser, Result, success } from "./Parser.ts";
 import { map } from "./utility.ts";
 

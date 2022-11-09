@@ -22,7 +22,7 @@ export const createLanguage = <
       const bound: Partial<BoundDefinition<T>> = {};
       for (const key of Object.keys(map)) {
         bound[key as keyof T] = lazy(() =>
-          map[key](this as T)
+          map[key](this as unknown as T)
         ) as unknown as T[keyof T];
       }
 

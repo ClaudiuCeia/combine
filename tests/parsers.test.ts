@@ -652,7 +652,7 @@ Deno.test("repeat", () => {
     }),
     {
       success: true,
-      ctx: { text: "1988", index: 4},
+      ctx: { text: "1988", index: 4 },
     }
   );
 
