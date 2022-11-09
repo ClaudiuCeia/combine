@@ -1,4 +1,4 @@
-import { assertObjectMatch } from "https://deno.land/std@0.120.0/testing/asserts.ts";
+import { assertObjectMatch } from "https://deno.land/std@0.149.0/testing/asserts.ts";
 import { either, many, oneOf, seq, surrounded } from "../src/combinators.ts";
 import { Parser } from "../src/Parser.ts";
 import { number, str } from "../src/parsers.ts";

@@ -1,4 +1,7 @@
-import { assertEquals, assertObjectMatch } from "https://deno.land/std@0.120.0/testing/asserts.ts";
+import {
+  assertEquals,
+  assertObjectMatch,
+} from "https://deno.land/std@0.149.0/testing/asserts.ts";
 import { trie } from "../src/parsers.ts";
 import { Trie } from "../src/Trie.ts";
 

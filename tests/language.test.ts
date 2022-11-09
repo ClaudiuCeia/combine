@@ -1,7 +1,7 @@
 import {
   assertEquals,
   assertObjectMatch,
-} from "https://deno.land/std@0.120.0/testing/asserts.ts";
+} from "https://deno.land/std@0.149.0/testing/asserts.ts";
 import { any, many, surrounded, seq, optional } from "../src/combinators.ts";
 import { eof, number, regex, str, space } from "../src/parsers.ts";
 import { map } from "../src/utility.ts";
