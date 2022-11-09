@@ -16,7 +16,7 @@ import {
   anyChar, 
   space, 
   map 
-} from "https://deno.land/x/combine@v0.0.9/mod.ts";
+} from "https://deno.land/x/combine@v0.0.10/mod.ts";
 
 const helloWorldParser = seq(
   str("Hello,"),
@@ -141,7 +141,7 @@ import {
   Parser, 
   UntypedLanguage, 
   number 
-} from "https://deno.land/x/combine@v0.0.9/mod.ts";
+} from "https://deno.land/x/combine@v0.0.10/mod.ts";
 
 /**
  * Untyped, provide `UntypedLanguage` as a type parameter.
