@@ -10,10 +10,12 @@ export type UnboundDefinition<T extends BoundDefinition<any>> = {
   [Key in keyof T]: (self: T) => T[Key];
 };
 
-export type UntypedLanguage = Record<string, Parser<any>>;
+export type UntypedLanguage = {
+  [key: string]: Parser<unknown>;
+};
 
 export const createLanguage = <
-  T extends BoundDefinition<any>
+  T extends BoundDefinition<any> = UntypedLanguage
 >(
   map: UnboundDefinition<T>
 ) => {

@@ -139,16 +139,16 @@ import {
   either, 
   str, 
   Parser, 
-  UnknownLanguage, 
+  UntypedLanguage, 
   number 
 } from "https://deno.land/x/combine@v0.0.9/mod.ts";
 
 /**
- * Untyped, provide `UnknownLanguage` as a type parameter.
+ * Untyped, provide `UntypedLanguage` as a type parameter.
  * This will make all of the grammar consist of Parser<unknown>,
  * but you at least get a mapping for the `self` parameter.
  */
-const lang = createLanguage<UnknownLanguage>({
+const lang = createLanguage<UntypedLanguage>({
   Foo: (s) => either(s.Bar /* this is checked to exist */, number()),
   Bar: () => str("Bar"),
 });
