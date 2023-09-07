@@ -1,5 +1,4 @@
-// ex. scripts/build_npm.ts
-import { build, emptyDir } from "https://deno.land/x/dnt@0.28.0/mod.ts";
+import { build, emptyDir } from "https://deno.land/x/dnt@0.38.1/mod.ts";
 
 await emptyDir("./npm");
 
@@ -7,11 +6,9 @@ await build({
   entryPoints: ["./mod.ts"],
   outDir: "./npm",
   shims: {
-    // see JS docs for overview and more options
     deno: true,
   },
   package: {
-    // package.json properties
     name: "deno-combine",
     version: Deno.args[0],
     description:
