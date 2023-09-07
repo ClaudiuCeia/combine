@@ -1,8 +1,6 @@
 # combine
 
-An implementation of parser combinators for [Deno](https://deno.land/). If
-you're looking for production-ready code use
-[Parsimmon](https://github.com/jneen/parsimmon).
+An implementation of [parser combinators](https://en.wikipedia.org/wiki/Parser_combinator) for [Deno](https://deno.land/). 
 
 ## Example
 
@@ -122,7 +120,7 @@ where:
 
 ### createLanguage
 
-Borrowing a trick from Parsimmon, we can use the `createLanguage` function to
+Borrowing a trick from [Parsimmon](https://github.com/jneen/parsimmon), we can use the `createLanguage` function to
 define our grammar. This allows us to not worry about the order in which we
 define parsers, and we get each parser defined as lazy for free (well, with some
 minor computational cost). You can see a comparison of directly using the parser
@@ -173,8 +171,8 @@ For those cases, it can be tricky to define the `TypedLanguage`, have a look at
 [this example](https://github.com/ClaudiuCeia/combine/blob/main/tests/language.test.ts)
 for inspiration.
 
-Note that since this also wraps all of the functions in a `lazy()` closure, this does also 
-bring a small performance hit. In the future we should be able to only apply `lazy()` only
+Note that since this wraps all of the functions in a `lazy()` closure, this also 
+bring a small performance hit. In the future we should be able to apply `lazy()` only
 where it's needed.
 
 ## Performance
@@ -184,22 +182,34 @@ a parser that performs badly due to backtracking, or by using expensive
 combinators like
 [furthest](https://github.com/ClaudiuCeia/combine/blob/main/src/combinators.ts#L150).
 
-For small inputs, `combine` performs ~3x slower than
-[Parsimmon](https://github.com/jneen/parsimmon) (see
-[benchmark](https://github.com/ClaudiuCeia/combine/blob/main/bench/lisp_bench.ts)),
-but that gap widens even further as the input grows.
+With previous Deno versions, the performance of `combine` was abysmal. However,
+the latest Deno version at the time of writing this (1.36.4) seems to perform
+much better than Parsimmon (which I previously recommended as a faster alternative). 
+See [this benchmark](https://github.com/ClaudiuCeia/combine/blob/main/bench/lisp_bench.ts)
+for a comparison.
+
+```
+benchmark      time (avg)        iter/s             (min … max)       p75       p99      p995
+--------------------------------------------------------------- -----------------------------
+
+
+combine        69.01 µs/iter      14,490.2    (46.42 µs … 1.21 ms)  58.88 µs 348.59 µs 405.41 µs
+parsimmon       1.21 ms/iter         828.5   (872.27 µs … 2.87 ms)   1.34 ms   2.07 ms   2.23 ms
+
+summary
+  parsimmon
+   17.49x slower than combine
+```
 
 ## Going forward
 
 This started out as a learning exercise and it most likely will stay that way
-for some time. There's no reason at the moment for anyone to be using this
-instead of any other framework available for TypeScript - not in terms of
-usability, and not in terms of performance or tooling. If this changes - then it
-would make sense to get this out of pre-release.
+for some time, or until it sees some real use. I'm not sure how much time I'll
+be able to dedicate to this project, but I'll try to keep it up to date with
+Deno releases.
 
 ### Major improvement opportunities:
 
-- Address performance issues
 - Tooling: tracing, profiling, etc.
 - Nicer composition of parsers (avoid the
   [pyramid of doom](https://en.wikipedia.org/wiki/Pyramid_of_doom_(programming)))
