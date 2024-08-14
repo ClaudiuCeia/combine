@@ -1,5 +1,5 @@
 // deno-lint-ignore-file no-explicit-any
-import { Parser } from "./Parser.ts";
+import type { Parser } from "./Parser.ts";
 import { lazy } from "./utility.ts";
 
 export type BoundDefinition<T extends UnboundDefinition<any>> = {
@@ -18,7 +18,7 @@ export const createLanguage = <
   T extends BoundDefinition<any> = UntypedLanguage
 >(
   map: UnboundDefinition<T>
-) => {
+): BoundDefinition<UnboundDefinition<T>> => {
   const LanguageDefinition = class LanguageDefinitionClass {
     constructor() {
       const bound: Partial<BoundDefinition<T>> = {};

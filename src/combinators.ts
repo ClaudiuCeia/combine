@@ -1,5 +1,5 @@
-import { assert } from "https://deno.land/std@0.149.0/testing/asserts.ts";
-import { failure, Parser, Result, success } from "./Parser.ts";
+import { assert } from "@std/assert";
+import { failure, type Parser, type Result, success } from "./Parser.ts";
 import { map } from "./utility.ts";
 
 /**
@@ -35,7 +35,7 @@ type ArrayUnion<T extends unknown[]> = T extends [infer Head, ...infer Tail]
 
 type UnionParser<T extends unknown[]> = Parser<ArrayUnion<T>>;
 
-// const foo: UnionParser<[string, number]> = 
+// const foo: UnionParser<[string, number]> =
 /**
  * Used for sequential combinators, such that:
  *
