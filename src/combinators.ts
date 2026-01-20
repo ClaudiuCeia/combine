@@ -557,3 +557,142 @@ export const keepNonNull = <T>(parser: Parser<(T | null)[]>): Parser<T[]> =>
 
 export const seqNonNull = <T>(...parsers: Parser<T | null>[]): Parser<T[]> =>
   keepNonNull(seq(...parsers));
+
+/**
+ * Parse left-associative infix expressions.
+ * Parses: term (op term)* and folds left using the combine function.
+ *
+ * This is useful for parsing binary operators with the same precedence level.
+ *
+ * @param term - Parser for the operands
+ * @param op - Parser for the operator(s)
+ * @param combine - Function to combine left operand, operator, and right operand
+ * @returns A parser that produces the left-folded result
+ *
+ * @example
+ * ```ts
+ * // Parse addition/subtraction: 1 + 2 - 3 => ((1 + 2) - 3)
+ * const addSub = chainl1(
+ *   numberParser,
+ *   any(str("+"), str("-")),
+ *   (left, op, right) => ({ type: "binary", op, left, right })
+ * );
+ * ```
+ *
+ * Fatal errors are propagated immediately.
+ */
+export const chainl1 = <T, Op>(
+  term: Parser<T>,
+  op: Parser<Op>,
+  combine: (left: T, op: Op, right: T) => T,
+): Parser<T> => {
+  return (ctx) => {
+    const firstRes = term(ctx);
+    if (!firstRes.success) {
+      return firstRes;
+    }
+
+    let acc = firstRes.value;
+    let nextCtx = firstRes.ctx;
+
+    while (true) {
+      const opRes = op(nextCtx);
+      if (!opRes.success) {
+        // Fatal errors propagate
+        if (isFatal(opRes)) {
+          return opRes;
+        }
+        break;
+      }
+
+      const rightRes = term(opRes.ctx);
+      if (!rightRes.success) {
+        // Fatal errors propagate
+        if (isFatal(rightRes)) {
+          return rightRes;
+        }
+        // Operator matched but operand didn't - this is a failure
+        return rightRes;
+      }
+
+      acc = combine(acc, opRes.value, rightRes.value);
+      nextCtx = rightRes.ctx;
+    }
+
+    return success(nextCtx, acc);
+  };
+};
+
+/**
+ * Parse right-associative infix expressions.
+ * Parses: term (op term)* and folds right using the combine function.
+ *
+ * This is useful for operators like exponentiation: 2 ** 3 ** 4 => 2 ** (3 ** 4)
+ *
+ * @param term - Parser for the operands
+ * @param op - Parser for the operator(s)
+ * @param combine - Function to combine left operand, operator, and right operand
+ * @returns A parser that produces the right-folded result
+ *
+ * @example
+ * ```ts
+ * // Parse exponentiation: 2 ** 3 ** 4 => 2 ** (3 ** 4)
+ * const pow = chainr1(
+ *   numberParser,
+ *   str("**"),
+ *   (left, op, right) => ({ type: "binary", op, left, right })
+ * );
+ * ```
+ *
+ * Fatal errors are propagated immediately.
+ */
+export const chainr1 = <T, Op>(
+  term: Parser<T>,
+  op: Parser<Op>,
+  combine: (left: T, op: Op, right: T) => T,
+): Parser<T> => {
+  return (ctx) => {
+    const firstRes = term(ctx);
+    if (!firstRes.success) {
+      return firstRes;
+    }
+
+    // Collect all terms and operators
+    const terms: T[] = [firstRes.value];
+    const ops: Op[] = [];
+    let nextCtx = firstRes.ctx;
+
+    while (true) {
+      const opRes = op(nextCtx);
+      if (!opRes.success) {
+        // Fatal errors propagate
+        if (isFatal(opRes)) {
+          return opRes;
+        }
+        break;
+      }
+
+      const rightRes = term(opRes.ctx);
+      if (!rightRes.success) {
+        // Fatal errors propagate
+        if (isFatal(rightRes)) {
+          return rightRes;
+        }
+        // Operator matched but operand didn't - this is a failure
+        return rightRes;
+      }
+
+      ops.push(opRes.value);
+      terms.push(rightRes.value);
+      nextCtx = rightRes.ctx;
+    }
+
+    // Fold right: a op b op c => a op (b op c)
+    let acc = terms[terms.length - 1];
+    for (let i = terms.length - 2; i >= 0; i--) {
+      acc = combine(terms[i], ops[i], acc);
+    }
+
+    return success(nextCtx, acc);
+  };
+};

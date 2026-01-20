@@ -1,17 +1,17 @@
 import { assertObjectMatch } from "@std/assert";
-import { either, many, oneOf, seq, surrounded } from "../src/combinators.ts";
+import { any, chainl1, oneOf, surrounded } from "../src/combinators.ts";
 import type { Parser } from "../src/Parser.ts";
 import { number, str } from "../src/parsers.ts";
 import { lazy, map, peekAnd } from "../src/utility.ts";
 
 /**
- * An implementation of a simple calculator.
+ * An implementation of a simple calculator using chainl1.
  */
 const paren = <T>(parser: Parser<T>): Parser<T> =>
   surrounded(str("("), parser, str(")"));
 
-const addop = either(str("+"), str("-"));
-const mulop = either(str("*"), str("/"));
+const addop = any(str("+"), str("-"));
+const mulop = any(str("*"), str("/"));
 
 function factor(): Parser<number> {
   return map(
@@ -33,59 +33,28 @@ function factor(): Parser<number> {
 }
 
 function term(): Parser<number> {
-  return map(
-    seq(factor(), many(seq(mulop, factor()))),
-    ([factor, maybeRest]) => {
-      if (!maybeRest) {
-        return factor;
-      }
-
-      let total = factor;
-      for (const pair of maybeRest) {
-        const [op, factor2] = pair;
-        switch (op) {
-          case "*": {
-            total *= factor2;
-            break;
-          }
-          case "/": {
-            total /= factor2;
-            break;
-          }
-          default:
-            throw new Error("Expected multiplication or division");
-        }
-      }
-
-      return total;
-    },
-  );
+  return chainl1(factor(), mulop, (left, op, right) => {
+    switch (op) {
+      case "*":
+        return left * right;
+      case "/":
+        return left / right;
+      default:
+        throw new Error("Expected multiplication or division");
+    }
+  });
 }
 
 function expression(): Parser<number> {
-  return map(seq(term(), many(seq(addop, term()))), ([term, maybeRest]) => {
-    if (!maybeRest) {
-      return term;
+  return chainl1(term(), addop, (left, op, right) => {
+    switch (op) {
+      case "+":
+        return left + right;
+      case "-":
+        return left - right;
+      default:
+        throw new Error("Expected addition or subtraction");
     }
-
-    let total = term;
-    for (const pair of maybeRest) {
-      const [op, term2] = pair;
-      switch (op) {
-        case "+": {
-          total += term2;
-          break;
-        }
-        case "-": {
-          total -= term2;
-          break;
-        }
-        default:
-          throw new Error("Expected addition or substraction");
-      }
-    }
-
-    return total;
   });
 }
 
@@ -115,6 +84,6 @@ Deno.test("operator precedence", () => {
 });
 
 Deno.test("parenthesis precedence", () => {
-  testExpr("2+(4/2 -2)", 2);
+  testExpr("2+(4/2-2)", 2);
   testExpr("(2+2)*3", 12);
 });
