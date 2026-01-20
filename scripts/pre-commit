@@ -2,13 +2,13 @@
 
 echo "Running pre-commit checks..."
 
-echo "→ Formatting..."
+echo "Formatting..."
 deno fmt || exit 1
 
-echo "→ Linting..."
+echo "Linting..."
 deno lint || exit 1
 
-echo "→ Testing..."
+echo "Testing..."
 deno test || exit 1
 
-echo "✓ All checks passed!"
+echo "All checks passed!"
