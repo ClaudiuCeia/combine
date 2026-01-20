@@ -1,6 +1,6 @@
 import { surrounded, either, seq, many, oneOf } from "../src/combinators.ts";
 import { createLanguage, type UntypedLanguage } from "../src/language.ts";
-import { Parser } from "../src/Parser.ts";
+import type { Parser } from "../src/Parser.ts";
 import { str, number } from "../src/parsers.ts";
 import { map, peekAnd, lazy } from "../src/utility.ts";
 
