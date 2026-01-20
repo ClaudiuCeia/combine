@@ -27,8 +27,10 @@ const term = (ctx: { text: string; index: number }) => {
 };
 
 Deno.test("chainl1 - single term", () => {
-  const parser = chainl1(term, str("+"), (left, op, right) =>
-    binaryExpr(op, left, right),
+  const parser = chainl1(
+    term,
+    str("+"),
+    (left, op, right) => binaryExpr(op, left, right),
   );
 
   assertObjectMatch(parser({ text: "42", index: 0 }), {
@@ -38,8 +40,10 @@ Deno.test("chainl1 - single term", () => {
 });
 
 Deno.test("chainl1 - two terms", () => {
-  const parser = chainl1(term, str("+"), (left, op, right) =>
-    binaryExpr(op, left, right),
+  const parser = chainl1(
+    term,
+    str("+"),
+    (left, op, right) => binaryExpr(op, left, right),
   );
 
   assertObjectMatch(parser({ text: "1+2", index: 0 }), {
@@ -54,8 +58,10 @@ Deno.test("chainl1 - two terms", () => {
 });
 
 Deno.test("chainl1 - three terms (left associative)", () => {
-  const parser = chainl1(term, str("-"), (left, op, right) =>
-    binaryExpr(op, left, right),
+  const parser = chainl1(
+    term,
+    str("-"),
+    (left, op, right) => binaryExpr(op, left, right),
   );
 
   // 1 - 2 - 3 should parse as ((1 - 2) - 3)
@@ -77,8 +83,10 @@ Deno.test("chainl1 - three terms (left associative)", () => {
 
 Deno.test("chainl1 - mixed operators", () => {
   const addSub = any(str("+"), str("-"));
-  const parser = chainl1(term, addSub, (left, op, right) =>
-    binaryExpr(op, left, right),
+  const parser = chainl1(
+    term,
+    addSub,
+    (left, op, right) => binaryExpr(op, left, right),
   );
 
   // 1 + 2 - 3 should parse as ((1 + 2) - 3)
@@ -99,8 +107,10 @@ Deno.test("chainl1 - mixed operators", () => {
 });
 
 Deno.test("chainr1 - single term", () => {
-  const parser = chainr1(term, str("**"), (left, op, right) =>
-    binaryExpr(op, left, right),
+  const parser = chainr1(
+    term,
+    str("**"),
+    (left, op, right) => binaryExpr(op, left, right),
   );
 
   assertObjectMatch(parser({ text: "42", index: 0 }), {
@@ -110,8 +120,10 @@ Deno.test("chainr1 - single term", () => {
 });
 
 Deno.test("chainr1 - two terms", () => {
-  const parser = chainr1(term, str("**"), (left, op, right) =>
-    binaryExpr(op, left, right),
+  const parser = chainr1(
+    term,
+    str("**"),
+    (left, op, right) => binaryExpr(op, left, right),
   );
 
   assertObjectMatch(parser({ text: "2**3", index: 0 }), {
@@ -126,8 +138,10 @@ Deno.test("chainr1 - two terms", () => {
 });
 
 Deno.test("chainr1 - three terms (right associative)", () => {
-  const parser = chainr1(term, str("**"), (left, op, right) =>
-    binaryExpr(op, left, right),
+  const parser = chainr1(
+    term,
+    str("**"),
+    (left, op, right) => binaryExpr(op, left, right),
   );
 
   // 2 ** 3 ** 4 should parse as (2 ** (3 ** 4))
@@ -149,12 +163,16 @@ Deno.test("chainr1 - three terms (right associative)", () => {
 
 // Verify left vs right associativity difference
 Deno.test("chainl1 vs chainr1 - associativity difference", () => {
-  const leftParser = chainl1(term, str("^"), (left, op, right) =>
-    binaryExpr(op, left, right),
+  const leftParser = chainl1(
+    term,
+    str("^"),
+    (left, op, right) => binaryExpr(op, left, right),
   );
 
-  const rightParser = chainr1(term, str("^"), (left, op, right) =>
-    binaryExpr(op, left, right),
+  const rightParser = chainr1(
+    term,
+    str("^"),
+    (left, op, right) => binaryExpr(op, left, right),
   );
 
   // 1 ^ 2 ^ 3 with left associativity: ((1 ^ 2) ^ 3)
