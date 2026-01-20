@@ -15,9 +15,9 @@ export type UntypedLanguage = {
 };
 
 export const createLanguage = <
-  T extends BoundDefinition<any> = UntypedLanguage
+  T extends BoundDefinition<any> = UntypedLanguage,
 >(
-  map: UnboundDefinition<T>
+  map: UnboundDefinition<T>,
 ): BoundDefinition<UnboundDefinition<T>> => {
   const LanguageDefinition = class LanguageDefinitionClass {
     constructor() {

@@ -1,10 +1,11 @@
-import { surrounded, either, seq, many, oneOf } from "../src/combinators.ts";
+import { either, many, oneOf, seq, surrounded } from "../src/combinators.ts";
 import { createLanguage, type UntypedLanguage } from "../src/language.ts";
 import type { Parser } from "../src/Parser.ts";
-import { str, number } from "../src/parsers.ts";
-import { map, peekAnd, lazy } from "../src/utility.ts";
+import { number, str } from "../src/parsers.ts";
+import { lazy, map, peekAnd } from "../src/utility.ts";
 
-const text = `2+2*3+2/4-1+2+2*3+(2/(4-1+2+2*3+2/4-1+2+2*3+2/4-1+2+2*3+2/4-1+2+2)*3+2/4-1+2+2*3+2/4-1`;
+const text =
+  `2+2*3+2/4-1+2+2*3+(2/(4-1+2+2*3+2/4-1+2+2*3+2/4-1+2+2*3+2/4-1+2+2)*3+2/4-1+2+2*3+2/4-1`;
 
 const paren = <T>(parser: Parser<T>): Parser<T> =>
   surrounded(str("("), parser, str(")"));
@@ -22,14 +23,14 @@ Deno.bench("createLanguage", { group: "calculator" }, () => {
           }
 
           return maybeNum;
-        }
+        },
       );
     },
     Term: (s) => {
       return map(
         seq(
           s.Factor as Parser<number>,
-          many(seq(s.MulOp, s.Factor)) as Parser<[string, number][]>
+          many(seq(s.MulOp, s.Factor)) as Parser<[string, number][]>,
         ),
         ([factor, maybeRest]: [number, [string, number][]]) => {
           if (!maybeRest) {
@@ -54,14 +55,14 @@ Deno.bench("createLanguage", { group: "calculator" }, () => {
           }
 
           return total;
-        }
+        },
       );
     },
     Expression: (s) => {
       return map(
         seq(
           s.Term as Parser<number>,
-          many(seq(s.AddOp, s.Term)) as Parser<[string, number][]>
+          many(seq(s.AddOp, s.Term)) as Parser<[string, number][]>,
         ),
         ([term, maybeRest]) => {
           if (!maybeRest) {
@@ -86,7 +87,7 @@ Deno.bench("createLanguage", { group: "calculator" }, () => {
           }
 
           return total;
-        }
+        },
       );
     },
   });
@@ -151,7 +152,7 @@ Deno.bench("raw", { group: "calculator", baseline: true }, () => {
         }
 
         return total;
-      }
+      },
     );
   }
 
@@ -160,9 +161,9 @@ Deno.bench("raw", { group: "calculator", baseline: true }, () => {
       oneOf(
         peekAnd(
           str("("),
-          lazy(() => paren(expression()))
+          lazy(() => paren(expression())),
         ),
-        number()
+        number(),
       ),
       (maybeNum) => {
         if (maybeNum === null) {
@@ -170,7 +171,7 @@ Deno.bench("raw", { group: "calculator", baseline: true }, () => {
         }
 
         return maybeNum;
-      }
+      },
     );
   }
 

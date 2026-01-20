@@ -50,7 +50,7 @@ export class Trie {
       if (!node) {
         return [false, undefined];
       }
-        
+
       if (node.isWord) {
         return [true, word.substring(0, i + 1)];
       }

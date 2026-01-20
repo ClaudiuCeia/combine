@@ -1,16 +1,16 @@
 import { assertEquals } from "@std/assert";
-import { seq, any, either, optional, many, many1 } from "../src/combinators.ts";
-import { str, digit, letter, space } from "../src/parsers.ts";
-import { map, context, cut, attempt, lazy } from "../src/utility.ts";
+import { any, either, many, many1, optional, seq } from "../src/combinators.ts";
+import { digit, letter, space, str } from "../src/parsers.ts";
+import { attempt, context, cut, lazy, map } from "../src/utility.ts";
 import {
+  type Failure,
   failure,
   fatalFailure,
-  isFatal,
-  pushFrame,
-  formatErrorStack,
   formatErrorCompact,
-  type Failure,
+  formatErrorStack,
+  isFatal,
   type Parser,
+  pushFrame,
 } from "../src/Parser.ts";
 
 Deno.test("Failure type has stack field", () => {

@@ -5,8 +5,13 @@
   "publish": {
     "exclude": ["bench/", "tests/"]
   },
+  "tasks": {
+    "check": "deno fmt && deno lint && deno test",
+    "hooks:install": "ln -sf ../../scripts/pre-commit .git/hooks/pre-commit && chmod +x scripts/pre-commit",
+    "hooks:uninstall": "rm -f .git/hooks/pre-commit"
+  },
   "imports": {
-    "@std/assert": "jsr:@std/assert@^1.0.2",
+    "@std/assert": "jsr:@std/assert@^1.0.17",
     "parsimmon": "npm:parsimmon@1.18.1",
     "uats": "https://raw.githubusercontent.com/ClaudiuCeia/geojson-romania/master/generated/uats.json"
   }

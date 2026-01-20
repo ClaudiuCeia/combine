@@ -1,4 +1,4 @@
-import { either, skipMany1, many1, seq, peek, any } from "./combinators.ts";
+import { any, either, many1, peek, seq, skipMany1 } from "./combinators.ts";
 import { failure, type Parser, success } from "./Parser.ts";
 import { Trie } from "./Trie.ts";
 import { map } from "./utility.ts";
@@ -28,7 +28,7 @@ export const trie = (matches: string[]): Parser<string> => {
   t.insertMany(matches);
   const longest = matches.reduce(
     (acc, s) => (s.length > acc ? s.length : acc),
-    0
+    0,
   );
 
   return (ctx) => {
@@ -40,7 +40,7 @@ export const trie = (matches: string[]): Parser<string> => {
           ...ctx,
           index: ctx.index + match.length,
         },
-        match
+        match,
       );
     }
 
@@ -69,7 +69,7 @@ export const anyChar = (): Parser<string> => {
 
     return success(
       { ...ctx, index: ctx.index + 1 },
-      ctx.text.substring(ctx.index, ctx.index + 1)
+      ctx.text.substring(ctx.index, ctx.index + 1),
     );
   };
 };
@@ -85,13 +85,13 @@ export const notChar = (code: number): Parser<string> => {
       const endIdx = res.ctx.index + matchLength;
       return success(
         { ...res.ctx, index: endIdx },
-        res.ctx.text.substring(res.ctx.index, endIdx)
+        res.ctx.text.substring(res.ctx.index, endIdx),
       );
     }
 
     return failure(
       { ...res.ctx, index: res.ctx.index - matchLength },
-      `found char "${res.value}"`
+      `found char "${res.value}"`,
     );
   };
 };
@@ -119,7 +119,7 @@ export const charWhere = (pred: (code: number) => boolean): Parser<string> => {
  * Skips matching any character not matching the given UTF-16 code.
  */
 export const skipCharWhere = (
-  pred: (code: number) => boolean
+  pred: (code: number) => boolean,
 ): Parser<string | null> => {
   return (ctx) => {
     const res = charWhere(pred)(ctx);
@@ -172,7 +172,7 @@ export const take = (count: number): Parser<string> => {
     if (endIdx <= ctx.text.length) {
       return success(
         { ...ctx, index: endIdx },
-        ctx.text.substring(ctx.index, endIdx)
+        ctx.text.substring(ctx.index, endIdx),
       );
     } else {
       return failure(ctx, "unexpected end of input");
@@ -187,7 +187,7 @@ export const takeText = (): Parser<string> => {
   return (ctx) => {
     return success(
       { ...ctx, index: ctx.text.length },
-      ctx.text.substring(ctx.index, ctx.text.length)
+      ctx.text.substring(ctx.index, ctx.text.length),
     );
   };
 };
@@ -221,7 +221,7 @@ export const eof = (): Parser<null> => {
 export const horizontalSpace = (): Parser<null> => {
   return (ctx) => {
     return skipMany1(
-      charWhere((code) => String.fromCharCode(code).trim() === "")
+      charWhere((code) => String.fromCharCode(code).trim() === ""),
     )(ctx);
   };
 };
@@ -248,12 +248,12 @@ export const double = (): Parser<number> => {
         int(),
         either(
           fractional,
-          map(str("."), () => 0)
-        )
+          map(str("."), () => 0),
+        ),
       ),
       (double) => {
         return parseFloat(double.join("."));
-      }
+      },
     )(ctx);
   };
 };
@@ -267,9 +267,9 @@ export const hexDigit = (): Parser<string> => {
       any(
         digit(),
         charWhere((code) => code >= 65 && code <= 70), // A-F
-        charWhere((code) => code >= 97 && code <= 102) // a-f
+        charWhere((code) => code >= 97 && code <= 102), // a-f
       ),
-      (digit) => digit.toString()
+      (digit) => digit.toString(),
     )(ctx);
 };
 
@@ -317,7 +317,7 @@ export const regex = (re: RegExp, expected: string): Parser<string> => {
     // Non-global regexps don't support `lastIndex`
     const globalRe = new RegExp(
       re.source,
-      re.global ? re.flags : `${re.flags}g`
+      re.global ? re.flags : `${re.flags}g`,
     );
 
     globalRe.lastIndex = ctx.index;

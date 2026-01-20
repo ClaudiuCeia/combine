@@ -1,14 +1,9 @@
-import {
-  assertEquals,
-  assertObjectMatch,
-} from "https://deno.land/std@0.149.0/testing/asserts.ts";
-import { any, many, surrounded, seq, optional } from "../src/combinators.ts";
-import { eof, number, regex, str, space } from "../src/parsers.ts";
+import { assertEquals, assertObjectMatch } from "@std/assert";
+import { any, many, optional, seq, surrounded } from "../src/combinators.ts";
+import { eof, number, regex, space, str } from "../src/parsers.ts";
 import { map } from "../src/utility.ts";
-import {
-  createLanguage,
-} from "../src/language.ts";
-import { Parser } from "../src/Parser.ts";
+import { createLanguage } from "../src/language.ts";
+import type { Parser } from "../src/Parser.ts";
 
 type SymbolNode = string;
 type NumberNode = number;
@@ -29,7 +24,7 @@ Deno.test("create language", () => {
     Expression: (s) => {
       return map(
         seq(any(s.Symbol, s.Number, s.List), optional(space())),
-        ([first]) => first
+        ([first]) => first,
       );
     },
     Symbol: () => {
@@ -42,7 +37,7 @@ Deno.test("create language", () => {
     File: (s) => {
       return map(
         seq(optional(space()), many(s.Expression), eof()),
-        ([, mid]) => mid
+        ([, mid]) => mid,
       );
     },
   });

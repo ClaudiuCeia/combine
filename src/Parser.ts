@@ -38,7 +38,7 @@ export type Failure = Readonly<{
   };
   /** Alternative parse attempts at the same position */
   variants: Failure[];
-  /** 
+  /**
    * Error causation stack - traces back through parser hierarchy.
    * First element is the most immediate cause, last is the root context.
    * Example: ["expected identifier", "in field declaration", "in viewer block"]
@@ -52,7 +52,7 @@ export const success = <T>(ctx: Context, value: T): Success<T> => {
   return {
     success: true,
     value,
-    ctx
+    ctx,
   };
 };
 
@@ -75,7 +75,7 @@ export const failure = (
   expected: string,
   variants: Failure[] = [],
   stack: ErrorFrame[] = [],
-  fatal = false
+  fatal = false,
 ): Failure => {
   const location = getLocation(ctx);
 
@@ -98,7 +98,7 @@ export const failure = (
 export const fatalFailure = (
   ctx: Context,
   expected: string,
-  stack: ErrorFrame[] = []
+  stack: ErrorFrame[] = [],
 ): Failure => {
   return failure(ctx, expected, [], stack, true);
 };
@@ -110,7 +110,7 @@ export const fatalFailure = (
 export const pushFrame = (
   f: Failure,
   label: string,
-  ctx?: Context
+  ctx?: Context,
 ): Failure => {
   const location = ctx ? getLocation(ctx) : f.location;
   const frame: ErrorFrame = {
@@ -131,7 +131,7 @@ export const isFatal = (f: Failure): boolean => f.fatal;
 /**
  * Format an error stack into a human-readable string.
  * Produces output similar to TypeScript's type error traces.
- * 
+ *
  * Example output:
  * ```
  * expected '}' at line 5, column 3
@@ -141,15 +141,19 @@ export const isFatal = (f: Failure): boolean => f.fatal;
  */
 export const formatErrorStack = (f: Failure): string => {
   const lines: string[] = [];
-  
+
   // Primary error message
-  lines.push(`expected ${f.expected} at line ${f.location.line}, column ${f.location.column}`);
-  
+  lines.push(
+    `expected ${f.expected} at line ${f.location.line}, column ${f.location.column}`,
+  );
+
   // Stack frames (indented)
   for (const frame of f.stack) {
-    lines.push(`  ${frame.label} at line ${frame.location.line}, column ${frame.location.column}`);
+    lines.push(
+      `  ${frame.label} at line ${frame.location.line}, column ${frame.location.column}`,
+    );
   }
-  
+
   return lines.join("\n");
 };
 

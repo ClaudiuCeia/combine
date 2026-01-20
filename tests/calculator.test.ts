@@ -1,6 +1,6 @@
-import { assertObjectMatch } from "https://deno.land/std@0.149.0/testing/asserts.ts";
+import { assertObjectMatch } from "@std/assert";
 import { either, many, oneOf, seq, surrounded } from "../src/combinators.ts";
-import { Parser } from "../src/Parser.ts";
+import type { Parser } from "../src/Parser.ts";
 import { number, str } from "../src/parsers.ts";
 import { lazy, map, peekAnd } from "../src/utility.ts";
 
@@ -18,9 +18,9 @@ function factor(): Parser<number> {
     oneOf(
       peekAnd(
         str("("),
-        lazy(() => paren(expression()))
+        lazy(() => paren(expression())),
       ),
-      number()
+      number(),
     ),
     (maybeNum) => {
       if (maybeNum === null) {
@@ -28,7 +28,7 @@ function factor(): Parser<number> {
       }
 
       return maybeNum;
-    }
+    },
   );
 }
 
@@ -58,7 +58,7 @@ function term(): Parser<number> {
       }
 
       return total;
-    }
+    },
   );
 }
 

@@ -1,7 +1,7 @@
 import { any, many, seq } from "../src/combinators.ts";
-import { regex, str, eof, space } from "../src/parsers.ts";
+import { eof, regex, space, str } from "../src/parsers.ts";
 import P from "parsimmon";
-import { type UntypedLanguage, createLanguage } from "../src/language.ts";
+import { createLanguage, type UntypedLanguage } from "../src/language.ts";
 
 const text = `
     (list 1 2 (cons 1 (list))) (list 1 2 (cons 1 (list))) (list 1 2 (cons 1 (list))) (list 1 2 (cons 1 (list)))

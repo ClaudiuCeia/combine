@@ -1,19 +1,21 @@
 # combine
 
-An implementation of [parser combinators](https://en.wikipedia.org/wiki/Parser_combinator) for [Deno](https://deno.land/). 
+An implementation of
+[parser combinators](https://en.wikipedia.org/wiki/Parser_combinator) for
+[Deno](https://deno.land/).
 
 ## Example
 
 ```ts
-import { 
-  seq, 
-  str, 
-  optional, 
-  mapJoin, 
-  manyTill, 
-  anyChar, 
-  space, 
-  map 
+import {
+  anyChar,
+  manyTill,
+  map,
+  mapJoin,
+  optional,
+  seq,
+  space,
+  str,
 } from "https://deno.land/x/combine@v0.0.10/mod.ts";
 
 const helloWorldParser = seq(
@@ -120,16 +122,17 @@ where:
 
 ### createLanguage
 
-Borrowing a trick from [Parsimmon](https://github.com/jneen/parsimmon), we can use the `createLanguage` function to
-define our grammar. This allows us to not worry about the order in which we
-define parsers, and we get each parser defined as lazy for free (well, with some
-minor computational cost). You can see a comparison of directly using the parser
-vs `createLanguage` in
+Borrowing a trick from [Parsimmon](https://github.com/jneen/parsimmon), we can
+use the `createLanguage` function to define our grammar. This allows us to not
+worry about the order in which we define parsers, and we get each parser defined
+as lazy for free (well, with some minor computational cost). You can see a
+comparison of directly using the parser vs `createLanguage` in
 [this benchmark](https://github.com/ClaudiuCeia/combine/blob/main/bench/createLanguage_bench.ts),
 and you can see another example in
 [this other benchmark](https://github.com/ClaudiuCeia/combine/blob/main/bench/lisp_bench.ts).
 
-Typing support for `createLanguage` is not great at the moment. There are two ways to use it:
+Typing support for `createLanguage` is not great at the moment. There are two
+ways to use it:
 
 ```ts
 import { 
@@ -166,18 +169,20 @@ const typedLang = createLanguage<TypedLanguage>({
 });
 ```
 
-Note that for more complex grammar you generally need some sort of recursion. 
-For those cases, it can be tricky to define the `TypedLanguage`, have a look at 
+Note that for more complex grammar you generally need some sort of recursion.
+For those cases, it can be tricky to define the `TypedLanguage`, have a look at
 [this example](https://github.com/ClaudiuCeia/combine/blob/main/tests/language.test.ts)
 for inspiration.
 
-Note that since this wraps all of the functions in a `lazy()` closure, this also 
-bring a small performance hit. In the future we should be able to apply `lazy()` only
-where it's needed.
+Note that since this wraps all of the functions in a `lazy()` closure, this also
+bring a small performance hit. In the future we should be able to apply `lazy()`
+only where it's needed.
 
 ## Error Handling
 
-combine provides TypeScript-style error stack traces for better debugging. When a parse fails, you get a detailed trace showing the context at each level of your grammar.
+combine provides TypeScript-style error stack traces for better debugging. When
+a parse fails, you get a detailed trace showing the context at each level of
+your grammar.
 
 ### Error Stack
 
@@ -185,31 +190,33 @@ The `Failure` type includes a `stack` field containing error frames:
 
 ```ts
 type ErrorFrame = {
-  label: string;     // Context description (e.g., "in match expression")
+  label: string; // Context description (e.g., "in match expression")
   location: { line: number; column: number };
 };
 
 type Failure = {
   success: false;
-  expected: string;       // What was expected (from innermost parser or cut)
+  expected: string; // What was expected (from innermost parser or cut)
   ctx: Context;
   location: { line: number; column: number };
-  variants: Failure[];    // Alternative failures from `any`/`either`
-  stack: ErrorFrame[];    // Error causation chain (innermost first)
-  fatal: boolean;         // If true, won't backtrack in any/either
+  variants: Failure[]; // Alternative failures from `any`/`either`
+  stack: ErrorFrame[]; // Error causation chain (innermost first)
+  fatal: boolean; // If true, won't backtrack in any/either
 };
 ```
 
 ### The `context` combinator
 
-Add a stack frame to parser errors using `context`. This tells the user **where in the grammar** the error occurred:
+Add a stack frame to parser errors using `context`. This tells the user **where
+in the grammar** the error occurred:
 
 ```ts
-import { context, seq, str, many1, letter } from "@claudiu-ceia/combine";
+import { context, letter, many1, seq, str } from "@claudiu-ceia/combine";
 
 const identifier = context("in identifier", many1(letter()));
-const declaration = context("in declaration", 
-  seq(str("let"), str(" "), identifier)
+const declaration = context(
+  "in declaration",
+  seq(str("let"), str(" "), identifier),
 );
 
 const result = declaration({ text: "let 123", index: 0 });
@@ -219,57 +226,71 @@ const result = declaration({ text: "let 123", index: 0 });
 ```
 
 Key points:
+
 - Each `context` wrapping a **failing** parser adds one frame to the stack
 - Frames are added as the failure bubbles up: innermost first, outermost last
 - On **success**, `context` is a no-op (no frame added)
 
 ### The `cut` combinator
 
-Mark a point of no return with `cut`. After a cut, failures become "fatal" and won't be caught by alternative parsers like `any` or `either`.
+Mark a point of no return with `cut`. After a cut, failures become "fatal" and
+won't be caught by alternative parsers like `any` or `either`.
 
 `cut` does two things:
+
 1. **Always:** Makes the failure fatal (prevents backtracking)
-2. **Optionally:** Overrides the `expected` message if you provide a second argument
+2. **Optionally:** Overrides the `expected` message if you provide a second
+   argument
 
 ```ts
 // cut(parser) — fatal failure, keeps original expected message
-cut(str("then"))  
+cut(str("then"));
 // Failure: { expected: "then", fatal: true }
 
-// cut(parser, "message") — fatal failure, overrides expected message  
-cut(str("then"), "'then' keyword after condition")
+// cut(parser, "message") — fatal failure, overrides expected message
+cut(str("then"), "'then' keyword after condition");
 // Failure: { expected: "'then' keyword after condition", fatal: true }
 ```
 
 ### `context` vs `cut` — when to use which
 
-| | `context("label", parser)` | `cut(parser, "label")` |
-|---|---|---|
-| **Purpose** | WHERE in grammar | WHAT was expected |
-| **Adds to stack?** | Yes | No |
-| **Changes expected?** | No | Yes |
-| **Makes fatal?** | No | Yes |
+|                       | `context("label", parser)` | `cut(parser, "label")` |
+| --------------------- | -------------------------- | ---------------------- |
+| **Purpose**           | WHERE in grammar           | WHAT was expected      |
+| **Adds to stack?**    | Yes                        | No                     |
+| **Changes expected?** | No                         | Yes                    |
+| **Makes fatal?**      | No                         | Yes                    |
 
 You can combine both for rich error messages:
 
 ```ts
 // Stack frame AND custom expected message
-context("in then keyword", cut(str("then"), "'then' after condition"))
+context("in then keyword", cut(str("then"), "'then' after condition"));
 // Failure: { expected: "'then' after condition", stack: ["in then keyword"], fatal: true }
 ```
 
 ### Real-world example with `cut`
 
 ```ts
-import { seq, str, cut, any, context, many1, letter, map } from "@claudiu-ceia/combine";
+import {
+  any,
+  context,
+  cut,
+  letter,
+  many1,
+  map,
+  seq,
+  str,
+} from "@claudiu-ceia/combine";
 
-const identifier = map(many1(letter()), ls => ls.join(""));
+const identifier = map(many1(letter()), (ls) => ls.join(""));
 
 // After seeing "if", we're committed - don't backtrack
-const ifExpr = context("in if expression",
+const ifExpr = context(
+  "in if expression",
   seq(
     str("if "),
-    cut(seq(                                    // everything after "if" is committed
+    cut(seq( // everything after "if" is committed
       context("in condition", identifier),
       str(" "),
       context("in then keyword", str("then ")),
@@ -277,8 +298,8 @@ const ifExpr = context("in if expression",
       str(" "),
       context("in else keyword", str("else ")),
       context("in else branch", identifier),
-    ))
-  )
+    )),
+  ),
 );
 
 // Without cut: if "then" is misspelled, `any` would backtrack and try
@@ -288,13 +309,14 @@ const expr = any(ifExpr, whileExpr, forExpr, identifier);
 // With cut: after matching "if ", we're committed to parsing an if-expression
 const result = expr({ text: "if x thn y else z", index: 0 });
 // Error: expected then at line 1, column 5
-//   in then keyword at line 1, column 5  
+//   in then keyword at line 1, column 5
 //   in if expression at line 1, column 1
 ```
 
 ### The `attempt` combinator
 
-Convert a fatal error back to non-fatal, restoring backtracking. Use sparingly - it defeats the purpose of `cut`:
+Convert a fatal error back to non-fatal, restoring backtracking. Use sparingly -
+it defeats the purpose of `cut`:
 
 ```ts
 import { any, attempt } from "@claudiu-ceia/combine";
@@ -308,7 +330,8 @@ const parser2 = any(attempt(ifExpr), otherExpr);
 
 ### `any` vs `furthest` for error quality
 
-`any` short-circuits on the first success. If a "greedy" parser like `identifier` succeeds early, you may get wrong results:
+`any` short-circuits on the first success. If a "greedy" parser like
+`identifier` succeeds early, you may get wrong results:
 
 ```ts
 const expr = any(ifExpr, whileExpr, identifier);
@@ -316,7 +339,8 @@ expr({ text: "if x thn y", index: 0 });
 // SUCCESS: "if" — wrong! identifier matched the keyword
 ```
 
-`furthest` tries all alternatives and picks the one that consumed the most input:
+`furthest` tries all alternatives and picks the one that consumed the most
+input:
 
 ```ts
 const expr = furthest(ifExpr, whileExpr, identifier);
@@ -324,14 +348,15 @@ expr({ text: "if x thn y", index: 0 });
 // FAILURE: expected "then" at position 5 — correct! ifExpr got furthest
 ```
 
-Use `furthest` for better error messages, or use `cut` to prevent backtracking to greedy alternatives.
+Use `furthest` for better error messages, or use `cut` to prevent backtracking
+to greedy alternatives.
 
 ### Formatting errors
 
 Use the built-in formatters for error messages:
 
 ```ts
-import { formatErrorStack, formatErrorCompact } from "@claudiu-ceia/combine";
+import { formatErrorCompact, formatErrorStack } from "@claudiu-ceia/combine";
 
 if (!result.success) {
   // Multi-line trace
@@ -358,7 +383,6 @@ Deno releases.
 - Tooling: tracing, profiling, etc.
 - Nicer composition of parsers (avoid the
   [pyramid of doom](https://en.wikipedia.org/wiki/Pyramid_of_doom_(programming)))
-
 
 ## License
 

@@ -1,7 +1,7 @@
 import { any, many, seq, seqNonNull, skip1 } from "../src/combinators.ts";
-import { regex, str, eof, space } from "../src/parsers.ts";
+import { eof, regex, space, str } from "../src/parsers.ts";
 import { createLanguage } from "../src/language.ts";
-import { Parser } from "../src/Parser.ts";
+import type { Parser } from "../src/Parser.ts";
 
 type LispLang = {
   Number: Parser<string[]>;
@@ -18,7 +18,7 @@ const L = createLanguage<LispLang>({
   Symbol: () => {
     return seqNonNull(
       regex(/[a-zA-Z_-][a-zA-Z0-9_-]*/, "symbol"),
-      skip1(space())
+      skip1(space()),
     );
   },
   Number: () => {
@@ -29,7 +29,7 @@ const L = createLanguage<LispLang>({
       str("("),
       many(s.Expression),
       str(")"),
-      skip1(space())
+      skip1(space()),
     );
   },
   File: (s) => {

@@ -1,29 +1,28 @@
-
 import { assertObjectMatch } from "@std/assert";
 import {
-  seq,
-  either,
   any,
-  optional,
+  either,
   many,
   many1,
   manyTill,
+  optional,
+  repeat,
   sepBy,
   sepBy1,
+  seq,
   skipMany,
   skipMany1,
-  repeat,
 } from "../src/combinators.ts";
 import {
   anyChar,
   char,
+  digit,
   double,
   notChar,
   number,
   regex,
   space,
   str,
-  digit,
 } from "../src/parsers.ts";
 import { map, mapJoin } from "../src/utility.ts";
 
@@ -36,7 +35,7 @@ Deno.test("str", () => {
     {
       success: true,
       ctx: { text: "Typescript is okay", index: 10 },
-    }
+    },
   );
 
   assertObjectMatch(
@@ -48,7 +47,7 @@ Deno.test("str", () => {
       success: false,
       expected: "Typescript",
       ctx: { text: "Haskell is okay", index: 0 },
-    }
+    },
   );
 });
 
@@ -62,7 +61,7 @@ Deno.test("double", () => {
       success: true,
       ctx: { text: "29.8", index: 4 },
       value: 29.8,
-    }
+    },
   );
 
   assertObjectMatch(
@@ -74,7 +73,7 @@ Deno.test("double", () => {
       success: true,
       ctx: { text: "29.", index: 3 },
       value: 29,
-    }
+    },
   );
 });
 
@@ -88,7 +87,7 @@ Deno.test("number", () => {
       success: true,
       ctx: { text: "29.8", index: 4 },
       value: 29.8,
-    }
+    },
   );
 
   assertObjectMatch(
@@ -100,7 +99,7 @@ Deno.test("number", () => {
       success: true,
       ctx: { text: "29", index: 2 },
       value: 29,
-    }
+    },
   );
 });
 
@@ -108,7 +107,7 @@ Deno.test("regex", () => {
   assertObjectMatch(
     regex(
       /[A-Z]+/,
-      "expected yelling"
+      "expected yelling",
     )({
       text: "typescript is okay",
       index: 0,
@@ -117,13 +116,13 @@ Deno.test("regex", () => {
       success: false,
       expected: "expected yelling",
       ctx: { text: "typescript is okay", index: 0 },
-    }
+    },
   );
 
   assertObjectMatch(
     regex(
       /[A-Z]+/,
-      "expected yelling"
+      "expected yelling",
     )({
       text: "TYPESCRIPT is okay",
       index: 0,
@@ -131,7 +130,7 @@ Deno.test("regex", () => {
     {
       success: true,
       ctx: { text: "TYPESCRIPT is okay", index: 10 },
-    }
+    },
   );
 });
 
@@ -139,7 +138,7 @@ Deno.test("seq", () => {
   const brownAnimal = seq(
     str("brown"),
     str(" "),
-    regex(/fox|bear/, "expected fox or bear")
+    regex(/fox|bear/, "expected fox or bear"),
   );
 
   assertObjectMatch(
@@ -150,7 +149,7 @@ Deno.test("seq", () => {
     {
       success: true,
       ctx: { text: "The brown fox jumps over the lazy dog", index: 13 },
-    }
+    },
   );
 
   assertObjectMatch(
@@ -162,7 +161,7 @@ Deno.test("seq", () => {
       success: false,
       expected: "expected fox or bear",
       ctx: { text: "The brown polar bear jumps over the lazy dog", index: 10 },
-    }
+    },
   );
 });
 
@@ -170,7 +169,7 @@ Deno.test("either", () => {
   const brownAnimal = seq(
     str("brown"),
     str(" "),
-    either(str("fox"), str("bear"))
+    either(str("fox"), str("bear")),
   );
 
   assertObjectMatch(
@@ -181,7 +180,7 @@ Deno.test("either", () => {
     {
       success: true,
       ctx: { text: "The brown bear jumps over the lazy dog", index: 14 },
-    }
+    },
   );
 
   assertObjectMatch(
@@ -192,7 +191,7 @@ Deno.test("either", () => {
     {
       success: true,
       ctx: { text: "The brown fox jumps over the lazy dog", index: 13 },
-    }
+    },
   );
 
   assertObjectMatch(
@@ -204,7 +203,7 @@ Deno.test("either", () => {
       success: false,
       expected: "fox",
       ctx: { text: "The brown polar bear jumps over the lazy dog", index: 10 },
-    }
+    },
   );
 });
 
@@ -219,7 +218,7 @@ Deno.test("any", () => {
     {
       success: true,
       ctx: { text: "haskell is okay", index: 7 },
-    }
+    },
   );
 
   assertObjectMatch(
@@ -230,7 +229,7 @@ Deno.test("any", () => {
     {
       success: true,
       ctx: { text: "typescript is okay", index: 10 },
-    }
+    },
   );
 
   assertObjectMatch(
@@ -242,7 +241,7 @@ Deno.test("any", () => {
       success: false,
       expected: "haskell",
       ctx: { text: "clojure is okay", index: 10 },
-    }
+    },
   );
 });
 
@@ -257,7 +256,7 @@ Deno.test("optional", () => {
     {
       success: true,
       ctx: { text: "The fluffy clouds are covering the sky", index: 10 },
-    }
+    },
   );
 
   assertObjectMatch(
@@ -268,7 +267,7 @@ Deno.test("optional", () => {
     {
       success: true,
       ctx: { text: "The clouds are covering the sky", index: 4 },
-    }
+    },
   );
 });
 
@@ -276,7 +275,7 @@ Deno.test("space", () => {
   assertObjectMatch(
     seq(
       optional(space()),
-      str("!")
+      str("!"),
     )({
       text: "            !",
       index: 0,
@@ -284,7 +283,7 @@ Deno.test("space", () => {
     {
       success: true,
       ctx: { text: "            !", index: 13 },
-    }
+    },
   );
 
   assertObjectMatch(
@@ -295,7 +294,7 @@ Deno.test("space", () => {
     {
       success: true,
       ctx: { text: "          \t", index: 11 },
-    }
+    },
   );
 });
 
@@ -308,7 +307,7 @@ Deno.test("char", () => {
     {
       success: true,
       ctx: { text: `"`, index: 1 },
-    }
+    },
   );
 
   assertObjectMatch(
@@ -319,7 +318,7 @@ Deno.test("char", () => {
     {
       success: false,
       ctx: { text: `A`, index: 0 },
-    }
+    },
   );
 });
 
@@ -332,7 +331,7 @@ Deno.test("notChar", () => {
     {
       success: false,
       ctx: { text: `"`, index: 0 },
-    }
+    },
   );
 
   assertObjectMatch(
@@ -343,7 +342,7 @@ Deno.test("notChar", () => {
     {
       success: true,
       ctx: { text: `A`, index: 1 },
-    }
+    },
   );
 });
 
@@ -358,7 +357,7 @@ Deno.test("many", () => {
     {
       success: true,
       ctx: { text: "12345678910", index: 11 },
-    }
+    },
   );
 
   assertObjectMatch(
@@ -369,7 +368,7 @@ Deno.test("many", () => {
     {
       success: true,
       ctx: { text: "112111725625AAA", index: 12 },
-    }
+    },
   );
 
   assertObjectMatch(
@@ -380,7 +379,7 @@ Deno.test("many", () => {
     {
       success: true,
       ctx: { text: "1AAA", index: 1 },
-    }
+    },
   );
 
   assertObjectMatch(
@@ -391,7 +390,7 @@ Deno.test("many", () => {
     {
       success: true,
       ctx: { text: "AAA123", index: 0 },
-    }
+    },
   );
 });
 
@@ -406,7 +405,7 @@ Deno.test("many1", () => {
     {
       success: true,
       ctx: { text: "12345678910", index: 11 },
-    }
+    },
   );
 
   assertObjectMatch(
@@ -417,7 +416,7 @@ Deno.test("many1", () => {
     {
       success: true,
       ctx: { text: "1AAA", index: 1 },
-    }
+    },
   );
 
   assertObjectMatch(
@@ -429,7 +428,7 @@ Deno.test("many1", () => {
       success: false,
       expected: "Expected at least one match",
       ctx: { text: "AAA1", index: 0 },
-    }
+    },
   );
 });
 
@@ -437,7 +436,7 @@ Deno.test("manyTill", () => {
   const anyLowercaseLetter = regex(/[a-z]/, "expected a lowercase letter");
   const letterOrSpace = either(
     anyLowercaseLetter,
-    regex(/\s/, "expected space")
+    regex(/\s/, "expected space"),
   );
 
   const commentBlock = seq(str("/*"), manyTill(letterOrSpace, str("*/")));
@@ -450,7 +449,7 @@ Deno.test("manyTill", () => {
     {
       success: true,
       ctx: { text: "/* the brown fox jumped over the lazy dog */", index: 44 },
-    }
+    },
   );
 
   assertObjectMatch(
@@ -462,7 +461,7 @@ Deno.test("manyTill", () => {
       success: false,
       expected: "*/",
       ctx: { text: "/* the brown fox jumped over the lazy dog", index: 41 },
-    }
+    },
   );
 
   assertObjectMatch(
@@ -473,14 +472,14 @@ Deno.test("manyTill", () => {
     {
       success: true,
       ctx: { text: "/**/", index: 4 },
-    }
+    },
   );
 });
 
 Deno.test("sepBy", () => {
   const numberList = sepBy(
     regex(/[0-9]+/, "expected digit or number"),
-    str(",")
+    str(","),
   );
 
   assertObjectMatch(
@@ -491,7 +490,7 @@ Deno.test("sepBy", () => {
     {
       success: true,
       ctx: { text: "1,2,3,4,11", index: 10 },
-    }
+    },
   );
 
   assertObjectMatch(
@@ -502,7 +501,7 @@ Deno.test("sepBy", () => {
     {
       success: true,
       ctx: { text: "1", index: 1 },
-    }
+    },
   );
 
   assertObjectMatch(
@@ -513,14 +512,14 @@ Deno.test("sepBy", () => {
     {
       success: true,
       ctx: { text: "not a list", index: 0 },
-    }
+    },
   );
 });
 
 Deno.test("sepBy1", () => {
   const numberList = sepBy1(
     regex(/[0-9]+/, "expected digit or number"),
-    str(",")
+    str(","),
   );
 
   assertObjectMatch(
@@ -531,7 +530,7 @@ Deno.test("sepBy1", () => {
     {
       success: true,
       ctx: { text: "1,2,3,4,11", index: 10 },
-    }
+    },
   );
 
   assertObjectMatch(
@@ -542,7 +541,7 @@ Deno.test("sepBy1", () => {
     {
       success: true,
       ctx: { text: "1", index: 1 },
-    }
+    },
   );
 
   assertObjectMatch(
@@ -554,7 +553,7 @@ Deno.test("sepBy1", () => {
       success: false,
       expected: "Expected at least one match",
       ctx: { text: "not a list", index: 0 },
-    }
+    },
   );
 });
 
@@ -569,7 +568,7 @@ Deno.test("skipMany", () => {
     {
       success: true,
       ctx: { text: "123ABC", index: 3 },
-    }
+    },
   );
 
   assertObjectMatch(
@@ -580,7 +579,7 @@ Deno.test("skipMany", () => {
     {
       success: true,
       ctx: { text: "ABC123", index: 0 },
-    }
+    },
   );
 });
 
@@ -595,7 +594,7 @@ Deno.test("skipMany1", () => {
     {
       success: true,
       ctx: { text: "123ABC", index: 3 },
-    }
+    },
   );
 
   assertObjectMatch(
@@ -607,7 +606,7 @@ Deno.test("skipMany1", () => {
       success: false,
       expected: "Expected at least one match",
       ctx: { text: "ABC123", index: 0 },
-    }
+    },
   );
 });
 
@@ -615,7 +614,7 @@ Deno.test("Hello world test", () => {
   const helloWorldParser = seq(
     str("Hello,"),
     optional(space()),
-    mapJoin(manyTill(anyChar(), str("!")))
+    mapJoin(manyTill(anyChar(), str("!"))),
   );
 
   assertObjectMatch(
@@ -626,7 +625,7 @@ Deno.test("Hello world test", () => {
     {
       success: true,
       ctx: { text: "Hello, World!", index: 13 },
-    }
+    },
   );
 
   const nameParser = map(helloWorldParser, ([, , name]) => name);
@@ -639,7 +638,7 @@ Deno.test("Hello world test", () => {
       success: true,
       value: "Joe Doe!",
       ctx: { text: "Hello, Joe Doe!", index: 15 },
-    }
+    },
   );
 });
 
@@ -654,7 +653,7 @@ Deno.test("repeat", () => {
     {
       success: true,
       ctx: { text: "1988", index: 4 },
-    }
+    },
   );
 
   assertObjectMatch(
@@ -665,7 +664,7 @@ Deno.test("repeat", () => {
     {
       success: false,
       ctx: { text: "days", index: 0 },
-    }
+    },
   );
 
   assertObjectMatch(
@@ -676,6 +675,6 @@ Deno.test("repeat", () => {
     {
       success: false,
       ctx: { text: "12ys", index: 0 },
-    }
+    },
   );
 });

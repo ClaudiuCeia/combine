@@ -1,5 +1,14 @@
 import { optional, seq } from "./combinators.ts";
-import { type Context, type Failure, failure, fatalFailure, isFatal, type Parser, pushFrame, success } from "./Parser.ts";
+import {
+  type Context,
+  type Failure,
+  failure,
+  fatalFailure,
+  isFatal,
+  type Parser,
+  pushFrame,
+  success,
+} from "./Parser.ts";
 import { space } from "./parsers.ts";
 
 /**
@@ -11,7 +20,7 @@ import { space } from "./parsers.ts";
 export const map = <A, B>(
   parser: Parser<A>,
   fn: (val: A, before: Context, after: Context, measurement?: string) => B,
-  opts?: { trace: boolean; name: string }
+  opts?: { trace: boolean; name: string },
 ): Parser<B> => {
   return (ctx) => {
     let a = 0,
@@ -22,9 +31,9 @@ export const map = <A, B>(
 
     return res.success
       ? success(
-          res.ctx,
-          fn(res.value, ctx, res.ctx, opts && (b - a).toFixed(5))
-        )
+        res.ctx,
+        fn(res.value, ctx, res.ctx, opts && (b - a).toFixed(5)),
+      )
       : res;
   };
 };
@@ -43,7 +52,7 @@ export const lazy = <A>(fn: () => Parser<A>): Parser<A> => {
 
 export const peekAnd = <A, B>(
   peek: Parser<A>,
-  and: Parser<B>
+  and: Parser<B>,
 ): Parser<B | null> => {
   return (ctx) => {
     const res = peek(ctx);
@@ -56,7 +65,6 @@ export const peekAnd = <A, B>(
 };
 
 /**
- *
  * @param peek A parser to probe the waters with
  * @param continueWith A parser to continue parsing with, if the previous
  * one succeeded. Note that this will take off from where the peek parser
@@ -65,7 +73,7 @@ export const peekAnd = <A, B>(
  */
 export const ifPeek = <A, B>(
   peek: Parser<A>,
-  continueWith: Parser<B>
+  continueWith: Parser<B>,
 ): Parser<B | null> => {
   return (ctx) => {
     const res = peek(ctx);
@@ -85,7 +93,7 @@ export const ifPeek = <A, B>(
  */
 export const onFailure = <T>(
   parser: Parser<T>,
-  onFail: (f: Failure) => Failure
+  onFail: (f: Failure) => Failure,
 ): Parser<T> => {
   return (ctx) => {
     const res = parser(ctx);
@@ -112,18 +120,18 @@ export const trim = <T>(p: Parser<T>): Parser<T> => {
 /**
  * Add context to a parser's error messages by pushing a frame onto the error stack.
  * This creates TypeScript-style error traces showing where in the grammar the error occurred:
- * 
+ *
  * ```
  * expected '}' at line 5, column 3
  *   in function body at line 2, column 1
  *   in function declaration at line 2, column 1
  *   in program at line 1, column 1
  * ```
- * 
+ *
  * @param contextLabel - A human-readable description of the parsing context (e.g., "in function body")
  * @param parser - The parser to wrap with context
  * @returns A parser that adds the label to the error stack on failure
- * 
+ *
  * @example
  * ```ts
  * const fnDecl = context("in function declaration",
@@ -131,13 +139,16 @@ export const trim = <T>(p: Parser<T>): Parser<T> => {
  * );
  * ```
  */
-export const context = <T>(contextLabel: string, parser: Parser<T>): Parser<T> => {
+export const context = <T>(
+  contextLabel: string,
+  parser: Parser<T>,
+): Parser<T> => {
   return (ctx) => {
     const res = parser(ctx);
     if (res.success) {
       return res;
     }
-    
+
     // Add context frame to the error stack
     return pushFrame(res, contextLabel, ctx);
   };
@@ -146,14 +157,14 @@ export const context = <T>(contextLabel: string, parser: Parser<T>): Parser<T> =
 /**
  * Mark a point of no return in parsing. After `cut`, if the inner parser fails,
  * the failure becomes fatal and will not be caught by alternative parsers like `any` or `either`.
- * 
+ *
  * This is useful after parsing enough to "commit" to a grammar branch. For example,
  * after seeing "if", we're committed to parsing an if-expression and shouldn't backtrack.
- * 
+ *
  * @param parser - The parser that, if it fails, should produce a fatal error
  * @param expected - Optional custom error message for the fatal failure
  * @returns A parser that produces fatal failures
- * 
+ *
  * @example
  * ```ts
  * // After seeing "if", we're committed - don't backtrack if "then" is missing
@@ -173,17 +184,17 @@ export const cut = <T>(parser: Parser<T>, expected?: string): Parser<T> => {
     if (res.success) {
       return res;
     }
-    
+
     // If it's already fatal, preserve it
     if (isFatal(res)) {
       return res;
     }
-    
+
     // Make this failure fatal
     return fatalFailure(
-      res.ctx, 
+      res.ctx,
       expected ?? res.expected,
-      res.stack
+      res.stack,
     );
   };
 };
@@ -191,7 +202,7 @@ export const cut = <T>(parser: Parser<T>, expected?: string): Parser<T> => {
 /**
  * Attempt a parser, but if it fails with a fatal error, convert it back to a
  * non-fatal failure. This allows catching committed parse errors in specific contexts.
- * 
+ *
  * @param parser - The parser whose fatal errors should be caught
  * @returns A parser that converts fatal failures to non-fatal ones
  */
@@ -201,12 +212,12 @@ export const attempt = <T>(parser: Parser<T>): Parser<T> => {
     if (res.success) {
       return res;
     }
-    
+
     // Convert fatal back to non-fatal
     if (res.fatal) {
       return { ...res, fatal: false };
     }
-    
+
     return res;
   };
 };

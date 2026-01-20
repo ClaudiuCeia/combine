@@ -1,0 +1,14 @@
+#!/bin/sh
+
+echo "Running pre-commit checks..."
+
+echo "→ Formatting..."
+deno fmt || exit 1
+
+echo "→ Linting..."
+deno lint || exit 1
+
+echo "→ Testing..."
+deno test || exit 1
+
+echo "✓ All checks passed!"
