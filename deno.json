@@ -2,7 +2,9 @@
   "name": "@claudiu-ceia/combine",
   "version": "0.2.0",
   "exports": "./mod.ts",
-  "exclude": ["bench/", "tests/"],
+  "publish": {
+    "exclude": ["bench/", "tests/"]
+  },
   "imports": {
     "@std/assert": "jsr:@std/assert@^1.0.2",
     "parsimmon": "npm:parsimmon@1.18.1"

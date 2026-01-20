@@ -52,7 +52,7 @@ export class Trie {
       }
         
       if (node.isWord) {
-        return [true, word.substring(0, i + i)];
+        return [true, word.substring(0, i + 1)];
       }
 
       current = node;

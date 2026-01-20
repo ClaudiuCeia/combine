@@ -48,12 +48,12 @@ Compares different strategies for matching one of many string literals.
 benchmark              time/iter (avg)        iter/s      (min … max)           p75      p99     p995
 ---------------------- ------------------- ----------- --------------------- --------- --------- ---------
 trie_vs_any_bench.ts
-any                         8.9 µs       112,540.0     (7.1 µs … 256.7 µs)     8.6 µs    15.3 µs    23.9 µs
-furthest                   30.5 µs        32,830.0    (24.2 µs … 351.9 µs)    29.2 µs    62.7 µs    86.5 µs
-trie                      197.0 µs         5,076.0   (160.7 µs … 598.9 µs)   193.9 µs   364.7 µs   450.7 µs
+trie                      326.7 ns     3,061,000.0   (290.3 ns … 458.2 ns)   334.0 ns   444.8 ns   458.2 ns
+any                       114.5 µs         8,731.0    (96.3 µs …   2.3 ms)   113.5 µs   280.5 µs   305.6 µs
+furthest                  426.8 µs         2,343.0   (348.5 µs …   1.1 ms)   447.2 µs   746.9 µs   784.4 µs
 
 summary
-  any
-     3.43x faster than furthest
-    22.17x faster than trie
+  trie
+   350.60x faster than any
+     1306x faster than furthest
 ```
