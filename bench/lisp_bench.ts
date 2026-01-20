@@ -1,7 +1,7 @@
 import { any, many, seq } from "../src/combinators.ts";
 import { regex, str, eof, space } from "../src/parsers.ts";
-import * as P from "https://esm.sh/parsimmon@1.18.1";
-import { UntypedLanguage, createLanguage } from "../src/language.ts";
+import P from "parsimmon";
+import { type UntypedLanguage, createLanguage } from "../src/language.ts";
 
 const text = `
     (list 1 2 (cons 1 (list))) (list 1 2 (cons 1 (list))) (list 1 2 (cons 1 (list))) (list 1 2 (cons 1 (list)))
@@ -33,7 +33,8 @@ const combineLisp = createLanguage<UntypedLanguage>({
 });
 
 const ParsimmonLisp = P.createLanguage({
-  Expression: (r) => {
+  // deno-lint-ignore no-explicit-any
+  Expression: (r: any) => {
     return P.alt(r.Symbol, r.Number, r.List);
   },
   Symbol: () => {
@@ -44,12 +45,14 @@ const ParsimmonLisp = P.createLanguage({
       .map(Number)
       .desc("number");
   },
-  List: (r) => {
+  // deno-lint-ignore no-explicit-any
+  List: (r: any) => {
     return r.Expression.trim(P.optWhitespace)
       .many()
       .wrap(P.string("("), P.string(")"));
   },
-  File: function (r) {
+  // deno-lint-ignore no-explicit-any
+  File: function (r: any) {
     return r.Expression.trim(P.optWhitespace).many();
   },
 });

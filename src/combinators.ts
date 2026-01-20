@@ -1,5 +1,5 @@
 import { assert } from "@std/assert";
-import { failure, type Parser, type Result, success } from "./Parser.ts";
+import { failure, isFatal, type Failure, type Parser, type Result, success } from "./Parser.ts";
 import { map } from "./utility.ts";
 
 /**
@@ -82,6 +82,7 @@ export const seq = <T extends [...Parser<unknown>[]]>(
 
 /**
  * Try both parsers in sequence, return the first one that's succesful.
+ * Fatal errors from either parser will be propagated immediately.
  */
 export const either = <A, B>(a: Parser<A>, b: Parser<B>): Parser<A | B> => {
   return (ctx) => {
@@ -93,6 +94,8 @@ export const either = <A, B>(a: Parser<A>, b: Parser<B>): Parser<A | B> => {
  * Try all parsers in order, return the first one that is succesful.
  * If none match, return the failure result of the parser that
  * consumed most of the input.
+ * 
+ * Fatal errors are propagated immediately without trying remaining parsers.
  */
 export const any = <T extends [...Parser<unknown>[]]>(
   ...parsers: [...T]
@@ -102,6 +105,11 @@ export const any = <T extends [...Parser<unknown>[]]>(
     for (const parser of parsers) {
       const res = parser(ctx) as Result<ArrayUnion<UnwrapParsers<T>>>;
       if (res.success) {
+        return res;
+      }
+
+      // Fatal errors propagate immediately - no backtracking
+      if (isFatal(res)) {
         return res;
       }
 
@@ -120,6 +128,8 @@ export const any = <T extends [...Parser<unknown>[]]>(
  * it's a failure. If only one matches, return it's result.
  * If none matches, return the failure result of the parser
  * that consumed the most input.
+ * 
+ * Fatal errors are propagated immediately.
  */
 export const oneOf = <T>(...parsers: Parser<T>[]): Parser<T> => {
   return (ctx) => {
@@ -127,6 +137,12 @@ export const oneOf = <T>(...parsers: Parser<T>[]): Parser<T> => {
     let furthestRes: Result<T> | undefined;
     for (const parser of parsers) {
       const res = parser(ctx);
+      
+      // Fatal errors propagate immediately
+      if (!res.success && isFatal(res)) {
+        return res;
+      }
+      
       if (res.success) {
         if (match) {
           if (match.success) {
@@ -161,12 +177,20 @@ export const oneOf = <T>(...parsers: Parser<T>[]): Parser<T> => {
 /**
  * Try all parsers in sequence and keep track of which one consumed
  * the most input, then return it.
+ * 
+ * Fatal errors are propagated immediately.
  */
 export const furthest = <T>(...parsers: Parser<T>[]): Parser<T> => {
   return (ctx) => {
     let furthestRes: Result<T> | undefined;
     for (const parser of parsers) {
       const res = parser(ctx);
+      
+      // Fatal errors propagate immediately
+      if (!res.success && isFatal(res)) {
+        return res;
+      }
+      
       if (!furthestRes || furthestRes.ctx.index < res.ctx.index) {
         furthestRes = res;
       }
@@ -180,14 +204,30 @@ export const furthest = <T>(...parsers: Parser<T>[]): Parser<T> => {
 /**
  * Try a parser. If it matches, return it, otherwise return a `null`
  * result without consuming any input.
+ * 
+ * Fatal errors are propagated - optional only catches non-fatal failures.
  */
 export const optional = <T>(parser: Parser<T>): Parser<T | null> => {
-  return any(parser, (ctx) => success(ctx, null));
+  return (ctx) => {
+    const res = parser(ctx);
+    if (res.success) {
+      return res;
+    }
+    
+    // Fatal errors propagate - don't swallow them
+    if (isFatal(res)) {
+      return res;
+    }
+    
+    return success(ctx, null);
+  };
 };
 
 /**
  * Match the same parser until it fails. This parser never fails, so even
  * if it doesn't match it's a succes.
+ * 
+ * Fatal errors are propagated immediately.
  */
 export const many = <T>(parser: Parser<T>): Parser<T[]> => {
   return (ctx) => {
@@ -197,6 +237,10 @@ export const many = <T>(parser: Parser<T>): Parser<T[]> => {
     while (true) {
       const res = parser(nextCtx);
       if (!res.success) {
+        // Fatal errors propagate
+        if (isFatal(res)) {
+          return res as unknown as Failure;
+        }
         break;
       }
       values.push(res.value);
@@ -210,10 +254,18 @@ export const many = <T>(parser: Parser<T>): Parser<T[]> => {
 /**
  * Match the same parser until it fails. Needs to match at least
  * once to be a success.
+ * 
+ * Fatal errors are propagated immediately.
  */
 export const many1 = <T>(parser: Parser<T>): Parser<T[]> => {
   return (ctx) => {
     const res = many(parser)(ctx);
+    
+    // Propagate fatal errors
+    if (!res.success) {
+      return res;
+    }
+    
     if (ctx.index === res.ctx.index) {
       return failure(res.ctx, "Expected at least one match");
     }
@@ -226,6 +278,8 @@ export const many1 = <T>(parser: Parser<T>): Parser<T[]> => {
  * Match parser until the second parser matches. The result is a tuple
  * of results for the first parser, with the result of the second parser
  * appended.
+ * 
+ * Fatal errors from either parser are propagated immediately.
  */
 export const manyTill = <A, B>(
   parser: Parser<A>,
@@ -241,9 +295,19 @@ export const manyTill = <A, B>(
       if (maybeEnd.success) {
         return success(maybeEnd.ctx, [...values, maybeEnd.value]);
       }
+      
+      // Fatal errors from end parser propagate
+      if (isFatal(maybeEnd)) {
+        return maybeEnd;
+      }
 
       const res = parser(nextCtx);
       if (!res.success) {
+        // Fatal errors from content parser propagate
+        if (isFatal(res)) {
+          return res;
+        }
+        
         const maybeEnd = end(nextCtx);
         if (maybeEnd.success) {
           return success(maybeEnd.ctx, [...values, maybeEnd.value]);
@@ -260,6 +324,8 @@ export const manyTill = <A, B>(
 
 /**
  * Repeatedly match a parser
+ * 
+ * Fatal errors are propagated immediately.
  */
 export const repeat = <T>(n: number, parser: Parser<T>): Parser<T[]> => {
   return (ctx) => {
@@ -270,7 +336,11 @@ export const repeat = <T>(n: number, parser: Parser<T>): Parser<T[]> => {
     while (idx < n) {
       const res = parser(nextCtx);
       if (!res.success) {
-        return failure(ctx, res.expected);
+        // Propagate fatal errors with their stack
+        if (isFatal(res)) {
+          return res;
+        }
+        return failure(ctx, res.expected, [], res.stack);
       }
       values.push(res.value);
       nextCtx = res.ctx;
@@ -291,6 +361,8 @@ export const repeat = <T>(n: number, parser: Parser<T>): Parser<T[]> => {
  * const fail = p("1,2,3,"); // failure, expecting one more number
  *
  * If no matches are found, it's a success.
+ * 
+ * Fatal errors are propagated immediately.
  */
 export const sepBy = <T, S>(
   parser: Parser<T>,
@@ -302,11 +374,23 @@ export const sepBy = <T, S>(
     // eslint-disable-next-line no-constant-condition
     while (true) {
       const res = parser(nextCtx);
+      
+      // Fatal errors propagate
+      if (!res.success && isFatal(res)) {
+        return res;
+      }
+      
       if (res.success) {
         const sepCtx = res.ctx;
         values.push(res.value);
 
         const sepRes = sep(sepCtx);
+        
+        // Fatal errors from separator propagate
+        if (!sepRes.success && isFatal(sepRes)) {
+          return sepRes;
+        }
+        
         if (!sepRes.success) {
           return success(sepCtx, values);
         }
@@ -323,6 +407,8 @@ export const sepBy = <T, S>(
 
 /**
  * Same as `sepBy`, but at least one match is required.
+ * 
+ * Fatal errors are propagated immediately.
  */
 export const sepBy1 = <T, S>(
   parser: Parser<T>,
@@ -330,6 +416,12 @@ export const sepBy1 = <T, S>(
 ): Parser<(T | S)[]> => {
   return (ctx) => {
     const res = sepBy(parser, sep)(ctx);
+    
+    // Propagate fatal errors
+    if (!res.success) {
+      return res;
+    }
+    
     if (res.ctx.index === ctx.index) {
       const parserTest = parser(ctx);
       if (parserTest.success) {
@@ -346,16 +438,26 @@ export const sepBy1 = <T, S>(
 
 /**
  * Skips matching parsers while consuming input.
+ * 
+ * Fatal errors are propagated immediately.
  */
 export const skipMany = <T>(parser: Parser<T>): Parser<null> => {
   return (ctx) => {
     const res = many(parser)(ctx);
+    
+    // Propagate fatal errors
+    if (!res.success) {
+      return res;
+    }
+    
     return success(res.ctx, null);
   };
 };
 
 /**
  * Skips matching parsers while consuming input. At least one match is required.
+ * 
+ * Fatal errors are propagated immediately.
  */
 export const skipMany1 = <T>(parser: Parser<T>): Parser<null> => {
   return (ctx) => {
@@ -364,7 +466,7 @@ export const skipMany1 = <T>(parser: Parser<T>): Parser<null> => {
       return success(res.ctx, null);
     }
 
-    return failure(res.ctx, "Expected at least a skip");
+    return res;
   };
 };
 
@@ -378,7 +480,7 @@ export const peek = <T>(parser: Parser<T>): Parser<null> => {
       return success(ctx, null);
     }
 
-    return failure(ctx, `lookahead failed, ${res.expected}`);
+    return failure(ctx, `lookahead failed, ${res.expected}`, [], res.stack);
   };
 };
 

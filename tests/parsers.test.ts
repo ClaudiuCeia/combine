@@ -1,4 +1,5 @@
-import { assertObjectMatch } from "https://deno.land/std@0.149.0/testing/asserts.ts";
+
+import { assertObjectMatch } from "@std/assert";
 import {
   seq,
   either,
@@ -604,7 +605,7 @@ Deno.test("skipMany1", () => {
     }),
     {
       success: false,
-      expected: "Expected at least a skip",
+      expected: "Expected at least one match",
       ctx: { text: "ABC123", index: 0 },
     }
   );

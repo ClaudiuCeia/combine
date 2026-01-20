@@ -1,5 +1,5 @@
 import { optional, seq } from "./combinators.ts";
-import { Context, Failure, failure, Parser, success } from "./Parser.ts";
+import { type Context, type Failure, failure, fatalFailure, isFatal, type Parser, pushFrame, success } from "./Parser.ts";
 import { space } from "./parsers.ts";
 
 /**
@@ -107,4 +107,106 @@ export const onFailure = <T>(
 
 export const trim = <T>(p: Parser<T>): Parser<T> => {
   return map(seq(optional(space()), p, optional(space())), ([_, p]) => p);
+};
+
+/**
+ * Add context to a parser's error messages by pushing a frame onto the error stack.
+ * This creates TypeScript-style error traces showing where in the grammar the error occurred:
+ * 
+ * ```
+ * expected '}' at line 5, column 3
+ *   in function body at line 2, column 1
+ *   in function declaration at line 2, column 1
+ *   in program at line 1, column 1
+ * ```
+ * 
+ * @param contextLabel - A human-readable description of the parsing context (e.g., "in function body")
+ * @param parser - The parser to wrap with context
+ * @returns A parser that adds the label to the error stack on failure
+ * 
+ * @example
+ * ```ts
+ * const fnDecl = context("in function declaration",
+ *   seq(str("fn"), identifier, str("("), params, str(")"), block)
+ * );
+ * ```
+ */
+export const context = <T>(contextLabel: string, parser: Parser<T>): Parser<T> => {
+  return (ctx) => {
+    const res = parser(ctx);
+    if (res.success) {
+      return res;
+    }
+    
+    // Add context frame to the error stack
+    return pushFrame(res, contextLabel, ctx);
+  };
+};
+
+/**
+ * Mark a point of no return in parsing. After `cut`, if the inner parser fails,
+ * the failure becomes fatal and will not be caught by alternative parsers like `any` or `either`.
+ * 
+ * This is useful after parsing enough to "commit" to a grammar branch. For example,
+ * after seeing "if", we're committed to parsing an if-expression and shouldn't backtrack.
+ * 
+ * @param parser - The parser that, if it fails, should produce a fatal error
+ * @param expected - Optional custom error message for the fatal failure
+ * @returns A parser that produces fatal failures
+ * 
+ * @example
+ * ```ts
+ * // After seeing "if", we're committed - don't backtrack if "then" is missing
+ * const ifExpr = seq(
+ *   str("if"),
+ *   cut(expr, "condition after 'if'"),
+ *   cut(str("then"), "'then' keyword"),
+ *   cut(expr, "expression after 'then'"),
+ *   cut(str("else"), "'else' keyword"),
+ *   cut(expr, "expression after 'else'")
+ * );
+ * ```
+ */
+export const cut = <T>(parser: Parser<T>, expected?: string): Parser<T> => {
+  return (ctx) => {
+    const res = parser(ctx);
+    if (res.success) {
+      return res;
+    }
+    
+    // If it's already fatal, preserve it
+    if (isFatal(res)) {
+      return res;
+    }
+    
+    // Make this failure fatal
+    return fatalFailure(
+      res.ctx, 
+      expected ?? res.expected,
+      res.stack
+    );
+  };
+};
+
+/**
+ * Attempt a parser, but if it fails with a fatal error, convert it back to a
+ * non-fatal failure. This allows catching committed parse errors in specific contexts.
+ * 
+ * @param parser - The parser whose fatal errors should be caught
+ * @returns A parser that converts fatal failures to non-fatal ones
+ */
+export const attempt = <T>(parser: Parser<T>): Parser<T> => {
+  return (ctx) => {
+    const res = parser(ctx);
+    if (res.success) {
+      return res;
+    }
+    
+    // Convert fatal back to non-fatal
+    if (res.fatal) {
+      return { ...res, fatal: false };
+    }
+    
+    return res;
+  };
 };

@@ -1,6 +1,6 @@
 import { any, furthest } from "../src/combinators.ts";
 import { str, trie } from "../src/parsers.ts";
-import UATS from "https://raw.githubusercontent.com/ClaudiuCeia/geojson-romania/master/generated/uats.json" assert { type: "json" };
+import UATS from "https://raw.githubusercontent.com/ClaudiuCeia/geojson-romania/master/generated/uats.json" with { type: "json" };
 
 const trieParser = trie(UATS.map((c) => c.properties.name));
 const anyParser = any(...UATS.map((c) => str(c.properties.name)));
