@@ -60,14 +60,22 @@ export const success = <T>(ctx: Context, value: T): Success<T> => {
  * Compute line and column from context
  */
 export const getLocation = (ctx: Context): { line: number; column: number } => {
-  const parsedCtx = ctx.text.slice(0, ctx.index);
+  const text = ctx.text;
+  const textLength = text.length;
+
+  let index = Number.isFinite(ctx.index) ? Math.trunc(ctx.index) : 0;
+  if (index < 0) index = 0;
+  if (index > textLength) index = textLength;
+
+  const parsedCtx = text.slice(0, index);
   const parsedLines = parsedCtx.split("\n");
   const line = parsedLines.length;
-  const column = parsedLines.pop()?.length;
-  return {
-    line,
-    column: (column && column + 1) || NaN,
-  };
+
+  // `split` always returns at least one element, but keep a safe fallback.
+  const lastLine = parsedLines[parsedLines.length - 1] ?? "";
+  const column = lastLine.length + 1;
+
+  return { line, column };
 };
 
 export const failure = (

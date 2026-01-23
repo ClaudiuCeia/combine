@@ -8,10 +8,36 @@ import {
   fatalFailure,
   formatErrorCompact,
   formatErrorStack,
+  getLocation,
   isFatal,
   type Parser,
   pushFrame,
 } from "../src/Parser.ts";
+
+Deno.test("getLocation never returns NaN line/column", () => {
+  const cases = [
+    { text: "", index: 0 },
+    { text: "abc", index: 0 },
+    { text: "abc", index: 2 },
+    { text: "a\nb", index: 2 }, // start of line 2
+    { text: "a\n", index: 2 },
+    { text: "abc", index: -5 },
+    { text: "abc", index: 999 },
+    { text: "abc", index: Number.NaN },
+    { text: "abc", index: Number.POSITIVE_INFINITY },
+  ];
+
+  for (const ctx of cases) {
+    const loc = getLocation(ctx);
+    assertEquals(Number.isFinite(loc.line), true);
+    assertEquals(Number.isFinite(loc.column), true);
+  }
+});
+
+Deno.test("getLocation column is 1 at start of line", () => {
+  assertEquals(getLocation({ text: "abc", index: 0 }), { line: 1, column: 1 });
+  assertEquals(getLocation({ text: "a\nb", index: 2 }), { line: 2, column: 1 });
+});
 
 Deno.test("Failure type has stack field", () => {
   const f = failure({ text: "test", index: 0 }, "expected foo");
