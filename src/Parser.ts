@@ -250,3 +250,49 @@ export const formatErrorSnippet = (
 
   return out.join("\n");
 };
+
+export type FormatErrorReportOptions = Readonly<{
+  /** Include N lines before and after the error line. Default: 1 */
+  contextLines?: number;
+  /** Expand tabs to this many spaces. Default: 2 */
+  tabWidth?: number;
+  /** Add ANSI color codes. Default: false */
+  color?: boolean;
+  /** Include the stack trace section. Default: true */
+  stack?: boolean;
+}>;
+
+/**
+ * A single, non-redundant error message:
+ * - one header line (expected + location)
+ * - a snippet with a caret
+ * - optional context stack frames
+ */
+export const formatErrorReport = (
+  f: Failure,
+  opts: FormatErrorReportOptions = {},
+): string => {
+  const color = opts.color ?? false;
+  const header =
+    `expected ${f.expected} at line ${f.location.line}, column ${f.location.column}`;
+
+  const out: string[] = [
+    color ? `${ansi.red}${header}${ansi.reset}` : header,
+    formatErrorSnippet(f, {
+      contextLines: opts.contextLines,
+      tabWidth: opts.tabWidth,
+      color,
+    }).split("\n").slice(1).join("\n"), // omit snippet's header line
+  ];
+
+  const includeStack = opts.stack ?? true;
+  if (includeStack && f.stack.length > 0) {
+    for (const frame of f.stack) {
+      const line =
+        `  ${frame.label} at line ${frame.location.line}, column ${frame.location.column}`;
+      out.push(color ? `${ansi.dim}${line}${ansi.reset}` : line);
+    }
+  }
+
+  return out.join("\n");
+};

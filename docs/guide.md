@@ -164,12 +164,14 @@ avoid both false successes and confusing backtracking.
 ```ts
 import {
   formatErrorCompact,
+  formatErrorReport,
   formatErrorSnippet,
   formatErrorStack,
 } from "@claudiu-ceia/combine";
 
 if (!result.success) {
   console.error(formatErrorCompact(result));
+  console.error(formatErrorReport(result)); // header + snippet + stack frames
   console.error(formatErrorSnippet(result)); // line snippet with caret
   console.error(formatErrorStack(result));
 }

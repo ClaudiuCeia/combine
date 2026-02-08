@@ -7,6 +7,7 @@ import {
   failure,
   fatalFailure,
   formatErrorCompact,
+  formatErrorReport,
   formatErrorSnippet,
   formatErrorStack,
   getLocation,
@@ -128,6 +129,35 @@ Deno.test("formatErrorSnippet handles CRLF and tab expansion", () => {
   // Tab rendered as 2 spaces, caret aligned after them.
   assertEquals(snippet.includes("2 |   b"), true);
   assertEquals(snippet.includes("  |   ^"), true);
+});
+
+Deno.test("formatErrorReport avoids repeating the header", () => {
+  const parser = context(
+    "in program",
+    context(
+      "in statement",
+      seq(str("let"), str(" "), cut(letter(), "identifier")),
+    ),
+  );
+
+  const res = parser({ text: "let 123", index: 0 });
+  assertEquals(res.success, false);
+  if (!res.success) {
+    const report = formatErrorReport(res, { contextLines: 1, tabWidth: 2 });
+    assertEquals(
+      report.includes("expected identifier at line 1, column 5"),
+      true,
+    );
+    // Header should only appear once.
+    assertEquals(
+      report.split("expected identifier at line 1, column 5").length - 1,
+      1,
+    );
+    // Still includes caret + stack frames.
+    assertEquals(report.includes("^"), true);
+    assertEquals(report.includes("in statement"), true);
+    assertEquals(report.includes("in program"), true);
+  }
 });
 
 Deno.test("context combinator adds context on failure", () => {
