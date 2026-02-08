@@ -1,34 +1,46 @@
-import { any, many, seq } from "../src/combinators.ts";
-import { eof, regex, space, str } from "../src/parsers.ts";
+import {
+  any,
+  createLanguageThis,
+  createLexer,
+  eof,
+  many,
+  map,
+  number,
+  regex,
+  seq,
+} from "../mod.ts";
 import P from "parsimmon";
-import { createLanguage, type UntypedLanguage } from "../src/language.ts";
 
 const text = `
     (list 1 2 (cons 1 (list))) (list 1 2 (cons 1 (list))) (list 1 2 (cons 1 (list))) (list 1 2 (cons 1 (list)))
     (list 1 2 (cons 1 (list))) (list 1 2 (cons 1 (list))) (list 1 2 (cons 1 (list))) (list 1 2 (cons 1 (list)))
-    (list 1 2 (cons 1 (list))) (list 1 2 (cons 1 (list))) (list 1 2 (cons 1 (list))) (list 1 2 (cons 1 (list))) 
+    (list 1 2 (cons 1 (list))) (list 1 2 (cons 1 (list))) (list 1 2 (cons 1 (list))) (list 1 2 (cons 1 (list)))
     (list 1 2 (cons 1 (list))) (list 1 2 (cons 1 (list))) (list 1 2 (cons 1 (list)))(list 1 2 (cons 1 (list)))
     (list 1 2 (cons 1 (list))) (list 1 2 (cons 1 (list))) (list 1 2 (cons 1 (list))) (list 1 2 (cons 1 (list)))
     (list 1 2 (cons 1 (list))) (list 1 2 (cons 1 (list))) (list 1 2 (cons 1 (list))) (list 1 2 (cons 1 (list)))
-    (list 1 2 (cons 1 (list))) (list 1 2 (cons 1 (list))) (list 1 2 (cons 1 (list))) (list 1 2 (cons 1 (list))) 
+    (list 1 2 (cons 1 (list))) (list 1 2 (cons 1 (list))) (list 1 2 (cons 1 (list))) (list 1 2 (cons 1 (list)))
     (list 1 2 (cons 1 (list))) (list 1 2 (cons 1 (list))) (list 1 2 (cons 1 (list)))(list 1 2 (cons 1 (list)))
 `;
 
-const combineLisp = createLanguage<UntypedLanguage>({
-  Expression: (s) => {
-    return any(s.Symbol, s.Number, s.List);
+const lx = createLexer();
+const sym = lx.lexeme(regex(/[a-zA-Z_-][a-zA-Z0-9_-]*/, "symbol"));
+const num = lx.lexeme(number());
+
+const combineLisp = createLanguageThis({
+  Expression() {
+    return any(this.List, this.Number, this.Symbol);
   },
-  Symbol: () => {
-    return seq(regex(/[a-zA-Z_-][a-zA-Z0-9_-]*/, "symbol"), space());
+  Symbol() {
+    return sym;
   },
-  Number: () => {
-    return seq(regex(/[0-9]+/, "number"), space());
+  Number() {
+    return num;
   },
-  List: (s) => {
-    return seq(str("("), many(s.Expression), str(")"), space());
+  List() {
+    return lx.parens(many(this.Expression));
   },
-  File: (s) => {
-    return seq(space(), many(s.Expression), eof());
+  File() {
+    return map(seq(lx.trivia, many(this.Expression), eof()), ([, xs]) => xs);
   },
 });
 

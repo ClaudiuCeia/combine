@@ -1,28 +1,29 @@
-import { any, furthest } from "../src/combinators.ts";
-import { str, trie } from "../src/parsers.ts";
-import UATS from "uats" with { type: "json" };
+import { any, furthest, str, trie } from "../mod.ts";
 
-const trieParser = trie(UATS.map((c) => c.properties.name));
-const anyParser = any(...UATS.map((c) => str(c.properties.name)));
-const furthestParser = furthest(...UATS.map((c) => str(c.properties.name)));
+// Synthetic, deterministic dataset (no network). Keep this small enough that
+// `any(...parsers)` doesn't hit argument limits.
+const WORDS = 2048;
+const words: string[] = [];
+for (let i = 0; i < WORDS; i++) {
+  // Common prefix makes `trie(...)` a good fit and reflects real-world token sets.
+  words.push(`keyword_${String(i).padStart(4, "0")}_suffix`);
+}
+
+const trieParser = trie(words);
+const anyParser = any(...words.map((w) => str(w)));
+const furthestParser = furthest(...words.map((w) => str(w)));
+
+const target = words[Math.floor(WORDS * 0.75)]!;
+const text = `${target}, not great, not terrible.`;
 
 Deno.bench("any", { group: "trie_vs_any" }, () => {
-  anyParser({
-    text: "Reșița, not great, not terrible.",
-    index: 0,
-  });
+  anyParser({ text, index: 0 });
 });
 
 Deno.bench("trie", { group: "trie_vs_any", baseline: true }, () => {
-  trieParser({
-    text: "Reșița, not great, not terrible.",
-    index: 0,
-  });
+  trieParser({ text, index: 0 });
 });
 
 Deno.bench("furthest", { group: "trie_vs_any" }, () => {
-  furthestParser({
-    text: "Reșița, not great, not terrible.",
-    index: 0,
-  });
+  furthestParser({ text, index: 0 });
 });

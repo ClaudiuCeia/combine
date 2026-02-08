@@ -1,179 +1,107 @@
-import { either, many, oneOf, seq, surrounded } from "../src/combinators.ts";
-import { createLanguage, type UntypedLanguage } from "../src/language.ts";
-import type { Parser } from "../src/Parser.ts";
-import { number, str } from "../src/parsers.ts";
-import { lazy, map, peekAnd } from "../src/utility.ts";
+import {
+  any,
+  chainl1,
+  createLanguage,
+  createLanguageThis,
+  eof,
+  lazy,
+  map,
+  number,
+  type Parser,
+  seq,
+  str,
+  surrounded,
+} from "../mod.ts";
 
 const text =
   `2+2*3+2/4-1+2+2*3+(2/(4-1+2+2*3+2/4-1+2+2*3+2/4-1+2+2*3+2/4-1+2+2)*3+2/4-1+2+2*3+2/4-1`;
 
-const paren = <T>(parser: Parser<T>): Parser<T> =>
-  surrounded(str("("), parser, str(")"));
+const combineMul = (left: number, op: string, right: number): number => {
+  switch (op) {
+    case "*":
+      return left * right;
+    case "/":
+      return left / right;
+    default:
+      return left;
+  }
+};
+
+const combineAdd = (left: number, op: string, right: number): number => {
+  switch (op) {
+    case "+":
+      return left + right;
+    case "-":
+      return left - right;
+    default:
+      return left;
+  }
+};
+
+type CalcLang = Readonly<{
+  AddOp: Parser<string>;
+  MulOp: Parser<string>;
+  Factor: Parser<number>;
+  Term: Parser<number>;
+  Expression: Parser<number>;
+  File: Parser<number>;
+}>;
 
 Deno.bench("createLanguage", { group: "calculator" }, () => {
-  const C = createLanguage<UntypedLanguage>({
-    AddOp: () => either(str("+"), str("-")),
-    MulOp: () => either(str("*"), str("/")),
-    Factor: (s) => {
-      return map(
-        oneOf(peekAnd(str("("), paren(s.Expression)), number()),
-        (maybeNum) => {
-          if (maybeNum === null) {
-            throw new Error("Panic at the disco");
-          }
-
-          return maybeNum;
-        },
-      );
-    },
-    Term: (s) => {
-      return map(
-        seq(
-          s.Factor as Parser<number>,
-          many(seq(s.MulOp, s.Factor)) as Parser<[string, number][]>,
-        ),
-        ([factor, maybeRest]: [number, [string, number][]]) => {
-          if (!maybeRest) {
-            return factor;
-          }
-
-          let total = factor;
-          for (const pair of maybeRest) {
-            const [op, factor2] = pair;
-            switch (op) {
-              case "*": {
-                total *= factor2;
-                break;
-              }
-              case "/": {
-                total /= factor2;
-                break;
-              }
-              default:
-                throw new Error("Expected multiplication or division");
-            }
-          }
-
-          return total;
-        },
-      );
-    },
-    Expression: (s) => {
-      return map(
-        seq(
-          s.Term as Parser<number>,
-          many(seq(s.AddOp, s.Term)) as Parser<[string, number][]>,
-        ),
-        ([term, maybeRest]) => {
-          if (!maybeRest) {
-            return term;
-          }
-
-          let total = term;
-          for (const pair of maybeRest) {
-            const [op, term2] = pair;
-            switch (op) {
-              case "+": {
-                total += term2;
-                break;
-              }
-              case "-": {
-                total -= term2;
-                break;
-              }
-              default:
-                throw new Error("Expected addition or substraction");
-            }
-          }
-
-          return total;
-        },
-      );
-    },
+  const C = createLanguage<CalcLang>({
+    AddOp: () => any(str("+"), str("-")),
+    MulOp: () => any(str("*"), str("/")),
+    Factor: (s) => any(surrounded(str("("), s.Expression, str(")")), number()),
+    Term: (s) => chainl1(s.Factor, s.MulOp, combineMul),
+    Expression: (s) => chainl1(s.Term, s.AddOp, combineAdd),
+    File: (s) => map(seq(s.Expression, eof()), ([v]) => v),
   });
 
-  C.Expression({ text, index: 0 });
+  C.File({ text, index: 0 });
+});
+
+Deno.bench("createLanguageThis", { group: "calculator" }, () => {
+  const C = createLanguageThis({
+    AddOp() {
+      return any(str("+"), str("-"));
+    },
+    MulOp() {
+      return any(str("*"), str("/"));
+    },
+    Factor() {
+      return any(surrounded(str("("), this.Expression, str(")")), number());
+    },
+    Term() {
+      return chainl1(this.Factor, this.MulOp, combineMul);
+    },
+    Expression() {
+      return chainl1(this.Term, this.AddOp, combineAdd);
+    },
+    File() {
+      return map(seq(this.Expression, eof()), ([v]) => v);
+    },
+  }) as unknown as CalcLang;
+
+  C.File({ text, index: 0 });
 });
 
 Deno.bench("raw", { group: "calculator", baseline: true }, () => {
-  const addop = either(str("+"), str("-"));
-  const mulop = either(str("*"), str("/"));
+  const AddOp = any(str("+"), str("-"));
+  const MulOp = any(str("*"), str("/"));
 
-  function expression(): Parser<number> {
-    return map(seq(term(), many(seq(addop, term()))), ([term, maybeRest]) => {
-      if (!maybeRest) {
-        return term;
-      }
+  const Expression: Parser<number> = chainl1(
+    lazy(() => Term),
+    AddOp,
+    combineAdd,
+  );
 
-      let total = term;
-      for (const pair of maybeRest) {
-        const [op, term2] = pair;
-        switch (op) {
-          case "+": {
-            total += term2;
-            break;
-          }
-          case "-": {
-            total -= term2;
-            break;
-          }
-          default:
-            throw new Error("Expected addition or substraction");
-        }
-      }
+  const Factor: Parser<number> = any(
+    surrounded(str("("), lazy(() => Expression), str(")")),
+    number(),
+  );
 
-      return total;
-    });
-  }
+  const Term: Parser<number> = chainl1(Factor, MulOp, combineMul);
 
-  function term(): Parser<number> {
-    return map(
-      seq(factor(), many(seq(mulop, factor()))),
-      ([factor, maybeRest]) => {
-        if (!maybeRest) {
-          return factor;
-        }
-
-        let total = factor;
-        for (const pair of maybeRest) {
-          const [op, factor2] = pair;
-          switch (op) {
-            case "*": {
-              total *= factor2;
-              break;
-            }
-            case "/": {
-              total /= factor2;
-              break;
-            }
-            default:
-              throw new Error("Expected multiplication or division");
-          }
-        }
-
-        return total;
-      },
-    );
-  }
-
-  function factor(): Parser<number> {
-    return map(
-      oneOf(
-        peekAnd(
-          str("("),
-          lazy(() => paren(expression())),
-        ),
-        number(),
-      ),
-      (maybeNum) => {
-        if (maybeNum === null) {
-          throw new Error("Panic at the disco");
-        }
-
-        return maybeNum;
-      },
-    );
-  }
-
-  expression()({ text, index: 0 });
+  const File = map(seq(Expression, eof()), ([v]) => v);
+  File({ text, index: 0 });
 });

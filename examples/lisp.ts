@@ -1,39 +1,40 @@
-import { any, many, seq, seqNonNull, skip1 } from "../src/combinators.ts";
-import { eof, regex, space, str } from "../src/parsers.ts";
-import { createLanguage } from "../src/language.ts";
-import type { Parser } from "../src/Parser.ts";
+import {
+  any,
+  createLanguageThis,
+  createLexer,
+  eof,
+  formatErrorReport,
+  many,
+  map,
+  number,
+  regex,
+  seq,
+} from "../mod.ts";
 
-type LispLang = {
-  Number: Parser<string[]>;
-  Symbol: Parser<string[]>;
-  Expression: Parser<unknown>;
-  List: Parser<unknown[]>;
-  File: Parser<unknown>;
-};
+const lx = createLexer();
+const symbol = lx.lexeme(regex(/[a-zA-Z_-][a-zA-Z0-9_-]*/, "symbol"));
+const numberLit = lx.lexeme(number());
 
-const L = createLanguage<LispLang>({
-  Expression: (s) => {
-    return any(s.Symbol, s.Number, s.List);
+const L = createLanguageThis({
+  Expression() {
+    return any(this.List, this.Number, this.Symbol);
   },
-  Symbol: () => {
-    return seqNonNull(
-      regex(/[a-zA-Z_-][a-zA-Z0-9_-]*/, "symbol"),
-      skip1(space()),
+  Symbol() {
+    return symbol;
+  },
+  Number() {
+    return numberLit;
+  },
+  List() {
+    // `lexeme(...)` eats trailing trivia so list elements can be separated by
+    // whitespace/comments without handling it in every production.
+    return lx.parens(many(this.Expression));
+  },
+  File() {
+    return map(
+      seq(lx.trivia, many(this.Expression), eof()),
+      ([, exprs]) => exprs,
     );
-  },
-  Number: () => {
-    return seqNonNull(regex(/[0-9]+/, "number"), skip1(space()));
-  },
-  List: (s) => {
-    return seqNonNull<unknown>(
-      str("("),
-      many(s.Expression),
-      str(")"),
-      skip1(space()),
-    );
-  },
-  File: (s) => {
-    return seq(space(), many(s.Expression), eof());
   },
 });
 
@@ -41,4 +42,9 @@ const text = `
   (list 1 2 (cons 1 (list)))
   (print 5 golden rings)`;
 
-console.log(JSON.stringify(L.File({ text, index: 0 }), undefined, 2));
+const res = L.File({ text, index: 0 });
+if (res.success) {
+  console.log(JSON.stringify(res.value, undefined, 2));
+} else {
+  console.error(formatErrorReport(res, { color: true }));
+}
