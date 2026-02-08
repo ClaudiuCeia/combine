@@ -77,6 +77,34 @@ export const success = <T>(ctx: Context, value: T): Success<T> => {
   };
 };
 
+const LINE_CACHE_LIMIT = 8;
+// Cache per input string. `null` means the string has no '\n' (single line).
+const lineStartsCache = new Map<string, number[] | null>();
+
+const getLineStarts = (text: string): number[] | null => {
+  if (lineStartsCache.has(text)) {
+    const cached = lineStartsCache.get(text) ?? null;
+    // Basic LRU bump: preserve small cache without unbounded growth.
+    lineStartsCache.delete(text);
+    lineStartsCache.set(text, cached);
+    return cached;
+  }
+
+  const starts: number[] = [0];
+  for (let i = 0; i < text.length; i++) {
+    if (text.charCodeAt(i) === 10 /* '\n' */) starts.push(i + 1);
+  }
+
+  const value = starts.length === 1 ? null : starts;
+  lineStartsCache.set(text, value);
+  if (lineStartsCache.size > LINE_CACHE_LIMIT) {
+    const oldest = lineStartsCache.keys().next().value as string | undefined;
+    if (oldest !== undefined) lineStartsCache.delete(oldest);
+  }
+
+  return value;
+};
+
 /**
  * Compute line and column from context
  */
@@ -88,14 +116,23 @@ export const getLocation = (ctx: Context): { line: number; column: number } => {
   if (index < 0) index = 0;
   if (index > textLength) index = textLength;
 
-  const parsedCtx = text.slice(0, index);
-  const parsedLines = parsedCtx.split("\n");
-  const line = parsedLines.length;
+  if (index === 0) return { line: 1, column: 1 };
 
-  // `split` always returns at least one element, but keep a safe fallback.
-  const lastLine = parsedLines[parsedLines.length - 1] ?? "";
-  const column = lastLine.length + 1;
+  const starts = getLineStarts(text);
+  if (starts === null) return { line: 1, column: index + 1 };
 
+  // upper bound: number of line starts <= index => 1-based line number
+  let lo = 0;
+  let hi = starts.length;
+  while (lo < hi) {
+    const mid = (lo + hi) >> 1;
+    if (starts[mid]! <= index) lo = mid + 1;
+    else hi = mid;
+  }
+
+  const line = lo;
+  const lineStart = starts[line - 1] ?? 0;
+  const column = index - lineStart + 1;
   return { line, column };
 };
 
