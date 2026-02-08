@@ -1,5 +1,6 @@
 import { assert } from "./internal_assert.ts";
 import {
+  type Context,
   type Failure,
   failure,
   isFatal,
@@ -8,6 +9,19 @@ import {
   success,
 } from "./Parser.ts";
 import { map } from "./utility.ts";
+
+const failedToAdvance = (name: string): string =>
+  `${name}: parser succeeded without consuming input (this would loop forever)`;
+
+const assertAdvanced = (
+  name: string,
+  before: Context,
+  after: Context,
+): Failure | null => {
+  return after.index > before.index
+    ? null
+    : failure(before, failedToAdvance(name));
+};
 
 /**
  * Unwraps a parser's type (result type)
@@ -251,6 +265,12 @@ export const many = <T>(parser: Parser<T>): Parser<T[]> => {
         }
         break;
       }
+
+      const advanceErr = assertAdvanced("many", nextCtx, res.ctx);
+      if (advanceErr) {
+        return advanceErr;
+      }
+
       values.push(res.value);
       nextCtx = res.ctx;
     }
@@ -324,6 +344,11 @@ export const manyTill = <A, B>(
         }
       }
 
+      const advanceErr = assertAdvanced("manyTill", nextCtx, res.ctx);
+      if (advanceErr) {
+        return advanceErr;
+      }
+
       values.push(res.value);
       nextCtx = res.ctx;
     }
@@ -389,6 +414,11 @@ export const sepBy = <T, S>(
       }
 
       if (res.success) {
+        const advanceErr = assertAdvanced("sepBy", nextCtx, res.ctx);
+        if (advanceErr) {
+          return advanceErr;
+        }
+
         const sepCtx = res.ctx;
         values.push(res.value);
 
@@ -401,6 +431,11 @@ export const sepBy = <T, S>(
 
         if (!sepRes.success) {
           return success(sepCtx, values);
+        }
+
+        const sepAdvanceErr = assertAdvanced("sepBy", sepCtx, sepRes.ctx);
+        if (sepAdvanceErr) {
+          return sepAdvanceErr;
         }
 
         nextCtx = sepRes.ctx;
@@ -592,6 +627,11 @@ export const chainl1 = <T, Op>(
       return firstRes;
     }
 
+    const firstAdvanceErr = assertAdvanced("chainl1", ctx, firstRes.ctx);
+    if (firstAdvanceErr) {
+      return firstAdvanceErr;
+    }
+
     let acc = firstRes.value;
     let nextCtx = firstRes.ctx;
 
@@ -605,6 +645,11 @@ export const chainl1 = <T, Op>(
         break;
       }
 
+      const opAdvanceErr = assertAdvanced("chainl1", nextCtx, opRes.ctx);
+      if (opAdvanceErr) {
+        return opAdvanceErr;
+      }
+
       const rightRes = term(opRes.ctx);
       if (!rightRes.success) {
         // Fatal errors propagate
@@ -613,6 +658,15 @@ export const chainl1 = <T, Op>(
         }
         // Operator matched but operand didn't - this is a failure
         return rightRes;
+      }
+
+      const rightAdvanceErr = assertAdvanced(
+        "chainl1",
+        opRes.ctx,
+        rightRes.ctx,
+      );
+      if (rightAdvanceErr) {
+        return rightAdvanceErr;
       }
 
       acc = combine(acc, opRes.value, rightRes.value);
@@ -657,6 +711,11 @@ export const chainr1 = <T, Op>(
       return firstRes;
     }
 
+    const firstAdvanceErr = assertAdvanced("chainr1", ctx, firstRes.ctx);
+    if (firstAdvanceErr) {
+      return firstAdvanceErr;
+    }
+
     // Collect all terms and operators
     const terms: T[] = [firstRes.value];
     const ops: Op[] = [];
@@ -672,6 +731,11 @@ export const chainr1 = <T, Op>(
         break;
       }
 
+      const opAdvanceErr = assertAdvanced("chainr1", nextCtx, opRes.ctx);
+      if (opAdvanceErr) {
+        return opAdvanceErr;
+      }
+
       const rightRes = term(opRes.ctx);
       if (!rightRes.success) {
         // Fatal errors propagate
@@ -680,6 +744,15 @@ export const chainr1 = <T, Op>(
         }
         // Operator matched but operand didn't - this is a failure
         return rightRes;
+      }
+
+      const rightAdvanceErr = assertAdvanced(
+        "chainr1",
+        opRes.ctx,
+        rightRes.ctx,
+      );
+      if (rightAdvanceErr) {
+        return rightAdvanceErr;
       }
 
       ops.push(opRes.value);
