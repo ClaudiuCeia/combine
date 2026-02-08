@@ -29,6 +29,8 @@ export type Recognition<T> = Readonly<{
   ctx: Context;
 }>;
 
+export type StepPolicy = "furthest" | "shortest";
+
 type UnwrapParser<T> = T extends Parser<infer U> ? U : T;
 
 type UnwrapParsers<T extends [...unknown[]]> = T extends [
@@ -90,6 +92,48 @@ export const recognizeAt = <T extends [...Parser<unknown>[]]>(
       .map((x) => x.m);
 
     return success(ctx, sorted);
+  };
+};
+
+/**
+ * Advance a recognizer by choosing an end position from its recognitions.
+ *
+ * Use this to turn `recognizeAt(...)` into something you can safely use in
+ * repetition combinators like `many(...)`.
+ *
+ * - `furthest`: advance to the longest match (max end index)
+ * - `shortest`: advance to the shortest match (min end index)
+ *
+ * This fails if the chosen match does not advance the cursor.
+ */
+export const step = <T>(
+  recognizer: Parser<Recognition<T>[]>,
+  policy: StepPolicy = "furthest",
+): Parser<Recognition<T>[]> => {
+  return (ctx) => {
+    const res = recognizer(ctx);
+    if (!res.success) return res;
+
+    if (res.value.length === 0) {
+      return failure(ctx, "step: expected at least one recognition");
+    }
+
+    let nextIndex = policy === "furthest" ? -1 : Number.POSITIVE_INFINITY;
+    for (const r of res.value) {
+      const idx = r.ctx.index;
+      nextIndex = policy === "furthest"
+        ? Math.max(nextIndex, idx)
+        : Math.min(nextIndex, idx);
+    }
+
+    if (!(nextIndex > ctx.index)) {
+      return failure(
+        ctx,
+        `step(${policy}): recognizer did not advance (index ${ctx.index} -> ${nextIndex})`,
+      );
+    }
+
+    return success({ text: ctx.text, index: nextIndex }, res.value);
   };
 };
 
