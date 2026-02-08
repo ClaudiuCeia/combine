@@ -115,6 +115,9 @@ if (!result.success) console.error(formatErrorStack(result));
 If you want the deeper explanations (recursion patterns, `createLanguage`, error
 handling, `cut` vs `context`, and `any` vs `furthest`), see `docs/guide.md`.
 
+The guide also covers the optional lexer layer (`lexeme`, `symbol`, `keyword`,
+`createLexer`) for trivia/comments.
+
 ## License
 
 MIT © [Claudiu Ceia](https://github.com/ClaudiuCeia)

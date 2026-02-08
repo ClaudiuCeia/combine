@@ -217,3 +217,77 @@ if (res.success) {
   console.log(formatTraceTable(tr.rows()));
 }
 ```
+
+## Lexer layer (optional)
+
+For larger grammars, it's common to separate "lexing" (whitespace/comments and
+token-like units) from higher-level structure, otherwise every rule ends up
+sprinkling `space()`/`regex()`/`optional(...)`.
+
+This repo includes a minimal lexer layer that consumes trailing trivia and drops
+it from the output.
+
+Exports are in `src/lexer.ts`:
+
+- `defaultTrivia()` skips whitespace plus `//` and `/* ... */` comments
+- `lexeme(p, trivia?)` runs `p` and then consumes trailing trivia
+- `symbol("...")` is `lexeme(str("..."))`
+- `keyword("if")` like `symbol`, but enforces an identifier boundary (won't
+  match `ifx`)
+- `createLexer({ trivia? })` builds a small helper object around your trivia
+  policy
+
+Example:
+
+```ts
+import { any, createLexer, map, seq } from "@claudiu-ceia/combine";
+import { eof, int } from "@claudiu-ceia/combine";
+
+const L = createLexer();
+
+const expr = any(
+  L.lexeme(int()),
+  map(seq(L.symbol("("), L.lexeme(int()), L.symbol(")")), ([, n]) => n),
+);
+
+const program = seq(expr, eof());
+```
+
+### With `createLanguageThis`
+
+The lexer layer and `createLanguageThis` are complementary: the lexer keeps
+trivia handling out of your productions, while `createLanguageThis` handles
+mutual recursion without worrying about declaration order.
+
+```ts
+import {
+  any,
+  createLanguageThis,
+  createLexer,
+  map,
+  seq,
+} from "@claudiu-ceia/combine";
+import { eof, int, regex } from "@claudiu-ceia/combine";
+
+const Lx = createLexer();
+
+const Lang = createLanguageThis({
+  Ident() {
+    return Lx.lexeme(regex(/[a-zA-Z_][a-zA-Z0-9_]*/, "identifier"));
+  },
+  Atom() {
+    return any(
+      Lx.lexeme(int()),
+      this.Ident,
+      map(seq(Lx.symbol("("), this.Expr, Lx.symbol(")")), ([, e]) => e),
+    );
+  },
+  Expr() {
+    return this.Atom;
+  },
+  Program() {
+    // Parse leading trivia once at the entry point.
+    return map(seq(Lx.trivia, this.Expr, eof()), ([, e]) => e);
+  },
+});
+```
