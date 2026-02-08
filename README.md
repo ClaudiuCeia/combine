@@ -91,6 +91,9 @@ const expr: Parser<Expr> = any(lit, paren);
 If you're defining a larger mutually-recursive grammar, use `createLanguage`
 (`src/language.ts`) to avoid worrying about declaration order.
 
+If you want better type inference without writing an explicit language type, use
+`createLanguageThis` (see `docs/guide.md`).
+
 ## Better Errors
 
 For user-facing parsers, wrap important nodes with `context(...)`, and commit to
