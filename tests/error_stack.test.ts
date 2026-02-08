@@ -7,6 +7,7 @@ import {
   failure,
   fatalFailure,
   formatErrorCompact,
+  formatErrorSnippet,
   formatErrorStack,
   getLocation,
   isFatal,
@@ -101,6 +102,32 @@ Deno.test("formatErrorCompact produces single-line output", () => {
   assertEquals(compact.includes("in expression"), true);
   // Line 1, column 1
   assertEquals(compact.includes("1:"), true);
+});
+
+Deno.test("formatErrorSnippet shows +/- 1 line context and a caret", () => {
+  const text = ["aaa", "bbb", "ccc"].join("\n");
+  const f = failure({ text, index: 5 }, "'x'"); // line 2, column 2
+
+  const snippet = formatErrorSnippet(f, { contextLines: 1, tabWidth: 2 });
+
+  assertEquals(snippet.includes("expected 'x' at line 2, column 2"), true);
+  assertEquals(snippet.includes("1 | aaa"), true);
+  assertEquals(snippet.includes("2 | bbb"), true);
+  assertEquals(snippet.includes("3 | ccc"), true);
+  assertEquals(snippet.includes("  |  ^"), true);
+});
+
+Deno.test("formatErrorSnippet handles CRLF and tab expansion", () => {
+  const text = "a\r\n\tb\r\nc\r\n";
+  const f = failure({ text, index: 4 }, "boom"); // line 2, column 2 (after '\t')
+
+  const snippet = formatErrorSnippet(f, { contextLines: 1, tabWidth: 2 });
+
+  // No stray '\r' in rendered lines.
+  assertEquals(snippet.includes("\r"), false);
+  // Tab rendered as 2 spaces, caret aligned after them.
+  assertEquals(snippet.includes("2 |   b"), true);
+  assertEquals(snippet.includes("  |   ^"), true);
 });
 
 Deno.test("context combinator adds context on failure", () => {

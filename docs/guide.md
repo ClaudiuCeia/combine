@@ -162,10 +162,15 @@ avoid both false successes and confusing backtracking.
 ### Formatting failures
 
 ```ts
-import { formatErrorCompact, formatErrorStack } from "@claudiu-ceia/combine";
+import {
+  formatErrorCompact,
+  formatErrorSnippet,
+  formatErrorStack,
+} from "@claudiu-ceia/combine";
 
 if (!result.success) {
   console.error(formatErrorCompact(result));
+  console.error(formatErrorSnippet(result)); // line snippet with caret
   console.error(formatErrorStack(result));
 }
 ```
