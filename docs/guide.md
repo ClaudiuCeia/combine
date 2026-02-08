@@ -64,6 +64,38 @@ Notes:
   overhead compared to hand-written parsers.
 - For a typed example that exercises recursion, see `tests/language.test.ts`.
 
+## `createLanguageThis` (recommended for type inference)
+
+TypeScript often struggles to infer the `self` type for mutually-recursive
+grammars. If you want good editor autocomplete without writing
+`createLanguage<MyLang>({ ... })`, use `createLanguageThis`.
+
+Instead of a `self` argument, definitions are methods and you reference other
+productions via `this.*`:
+
+```ts
+import { createLanguageThis, many, surrounded } from "@claudiu-ceia/combine";
+import { number, regex, str } from "@claudiu-ceia/combine";
+
+const L = createLanguageThis({
+  Symbol() {
+    return regex(/[a-zA-Z_-][a-zA-Z0-9_-]*/, "symbol");
+  },
+  Number() {
+    return number();
+  },
+  Expression() {
+    // `this.*` is strongly typed and autocompletes.
+    return many(this.Symbol);
+  },
+  List() {
+    return surrounded(str("("), many(this.Expression), str(")"));
+  },
+});
+```
+
+Type-check coverage for this lives in `tests/language_infer.test.ts`.
+
 ## Error handling (`context`, `cut`, `attempt`)
 
 When you build user-facing parsers, you typically want:
