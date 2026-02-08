@@ -106,6 +106,21 @@ When you build user-facing parsers, you typically want:
 - readable "where in the grammar did this fail?" traces
 - fewer confusing backtracks once you've committed to a branch
 
+### Error selection (`any` vs `furthest`)
+
+Backtracking combinators need a rule for which error to return when multiple
+alternatives fail.
+
+- `any(p1, p2, ...)` tries alternatives in order and returns the first success.
+  - If all alternatives fail, it returns the failure that got the furthest
+    (`ctx.index` is greatest).
+  - Fatal failures (from `cut(...)`) stop immediately; later alternatives are
+    not tried.
+- `furthest(p1, p2, ...)` always tries all alternatives and returns the result
+  (success or failure) that got the furthest.
+  - This often improves error quality, but it may return a failure even if an
+    earlier alternative succeeded.
+
 ### `context(label, parser)`
 
 Wrap a parser so failures get an extra stack frame:
@@ -171,7 +186,8 @@ import {
 
 if (!result.success) {
   console.error(formatErrorCompact(result));
-  console.error(formatErrorReport(result)); // header + snippet + stack frames
+  // Recommended: a single, non-redundant message (header + snippet + stack).
+  console.error(formatErrorReport(result));
   console.error(formatErrorSnippet(result)); // line snippet with caret
   console.error(formatErrorStack(result));
 }
