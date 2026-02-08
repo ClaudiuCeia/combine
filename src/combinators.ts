@@ -541,6 +541,10 @@ export const skip1 = <T>(parser: Parser<T>): Parser<null> => {
   };
 };
 
+/**
+ * Parse something surrounded by an opening and closing parser, returning only
+ * the middle result.
+ */
 export const surrounded = <T>(
   open: Parser<unknown>,
   middle: Parser<T>,
@@ -562,6 +566,9 @@ export const surrounded = <T>(
   return map(seq(open, middle, close), ([_open, middle, _close]) => middle);
 };
 
+/**
+ * Parse `a` only if `b` does not match at the same position.
+ */
 export const minus = <T>(a: Parser<T>, b: Parser<unknown>): Parser<T> => {
   return (ctx) => {
     const excludedRes = b(ctx);
@@ -576,6 +583,10 @@ export const minus = <T>(a: Parser<T>, b: Parser<unknown>): Parser<T> => {
   };
 };
 
+/**
+ * Negative lookahead that succeeds with `null` if `a` does not match, and fails
+ * if it does.
+ */
 export const not = <T>(a: Parser<T>): Parser<null> => {
   return (ctx) => {
     const res = a(ctx);
@@ -587,9 +598,15 @@ export const not = <T>(a: Parser<T>): Parser<null> => {
   };
 };
 
+/**
+ * Remove `null` values from an array parser result.
+ */
 export const keepNonNull = <T>(parser: Parser<(T | null)[]>): Parser<T[]> =>
   map(parser, (matches) => matches.filter((v) => v !== null) as T[]);
 
+/**
+ * Sequence parsers and keep only non-null results.
+ */
 export const seqNonNull = <T>(...parsers: Parser<T | null>[]): Parser<T[]> =>
   keepNonNull(seq(...parsers));
 

@@ -1,5 +1,8 @@
 import type { Parser, Result } from "./Parser.ts";
 
+/**
+ * Aggregated stats for a single wrapped parser.
+ */
 export type TraceRow = Readonly<{
   name: string;
   calls: number;
@@ -11,9 +14,21 @@ export type TraceRow = Readonly<{
   maxTimeMs: number;
 }>;
 
+/**
+ * A lightweight tracer that can wrap parsers and report aggregated stats.
+ */
 export type Tracer = Readonly<{
+  /**
+   * Wrap a parser and attribute its runtime/behavior to `name`.
+   */
   wrap: <T>(name: string, p: Parser<T>) => Parser<T>;
+  /**
+   * Get current rows (sorted by descending total time).
+   */
   rows: () => TraceRow[];
+  /**
+   * Clear all accumulated stats.
+   */
   reset: () => void;
 }>;
 
@@ -54,6 +69,11 @@ const getOrCreateRow = (
   return created;
 };
 
+/**
+ * Create a tracer for profiling parsers.
+ *
+ * Pass `now` for deterministic tests.
+ */
 export const createTracer = (opts?: { now?: () => number }): Tracer => {
   const now = opts?.now ?? nowDefault;
   const m = new Map<string, MutableRow>();
@@ -94,6 +114,9 @@ export const createTracer = (opts?: { now?: () => number }): Tracer => {
   };
 };
 
+/**
+ * Render trace rows as a simple fixed-width table for logs/terminals.
+ */
 export const formatTraceTable = (rows: TraceRow[]): string => {
   const headers = [
     "name",

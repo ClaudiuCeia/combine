@@ -6,14 +6,26 @@ import { lazy } from "./utility.ts";
 // Legacy types (kept stable)
 // ---------------------------------------------------------------------------
 
+/**
+ * Convert an "unbound" language definition (map of functions returning parsers)
+ * into the corresponding bound language type (map of parsers).
+ */
 export type BoundDefinition<T extends UnboundDefinition<any>> = {
   [Key in keyof T]: ReturnType<T[Key]>;
 };
 
+/**
+ * A language definition where each production is a function of `self`.
+ *
+ * `self` is the bound language (a map of parsers), enabling mutual recursion.
+ */
 export type UnboundDefinition<T extends BoundDefinition<any>> = {
   [Key in keyof T]: (self: T) => T[Key];
 };
 
+/**
+ * An untyped language used as the default for `createLanguage`.
+ */
 export type UntypedLanguage = {
   [key: string]: Parser<unknown>;
 };
@@ -29,6 +41,12 @@ export function createLanguage<
   map: UnboundDefinition<T>,
 ): BoundDefinition<UnboundDefinition<T>>;
 
+/**
+ * Create a mutually-recursive language from a set of parser definitions.
+ *
+ * Each key in `map` becomes a lazily-evaluated parser on the returned object.
+ * This avoids declaration-order issues in mutually-recursive grammars.
+ */
 export function createLanguage(
   map: Record<string, (self: any) => Parser<any>>,
 ) {
@@ -50,11 +68,17 @@ export function createLanguage(
 // createLanguageThis (inference-friendly)
 // ---------------------------------------------------------------------------
 
+/**
+ * A language definition where each production is a method using `this`.
+ */
 export type ThisLanguageDefinitions = Record<
   string,
   (this: any) => Parser<any>
 >;
 
+/**
+ * The bound language type for `createLanguageThis` (map of parsers).
+ */
 export type BoundThisLanguage<T extends ThisLanguageDefinitions> = {
   [Key in keyof T]: ReturnType<T[Key]>;
 };

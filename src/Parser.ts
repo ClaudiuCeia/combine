@@ -1,12 +1,25 @@
+/**
+ * A parser consumes input from a `Context` and returns either a `Success<T>` or
+ * `Failure`.
+ */
 export type Parser<T> = (ctx: Context) => Result<T>;
 
+/**
+ * Parsing context (input + current offset).
+ */
 export type Context = Readonly<{
   text: string;
   index: number;
 }>;
 
+/**
+ * Result of running a parser.
+ */
 export type Result<T> = Success<T> | Failure;
 
+/**
+ * Successful parse result (value + updated context).
+ */
 export type Success<T> = Readonly<{
   success: true;
   value: T;
@@ -27,6 +40,14 @@ export type ErrorFrame = Readonly<{
   };
 }>;
 
+/**
+ * Failed parse result.
+ *
+ * - `expected` is the immediate expected token/message.
+ * - `stack` is a causation trace built via `context(...)`.
+ * - `fatal` indicates a committed failure (from `cut(...)`) that should not be
+ *   swallowed by backtracking combinators.
+ */
 export type Failure = Readonly<{
   success: false;
   /** The immediate expected value/token */

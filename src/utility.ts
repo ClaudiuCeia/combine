@@ -53,10 +53,20 @@ export const mapJoin = (parser: Parser<string[]>): Parser<string> => {
   return (ctx) => map(parser, (parts) => parts.join(""))(ctx);
 };
 
+/**
+ * Delay parser construction until parse time.
+ *
+ * Useful to break recursive definitions.
+ */
 export const lazy = <A>(fn: () => Parser<A>): Parser<A> => {
   return (ctx) => fn()(ctx);
 };
 
+/**
+ * Run `peek`. If it succeeds, run `and` without consuming input from the peek.
+ *
+ * If `peek` fails, this fails (does not backtrack like `ifPeek`).
+ */
 export const peekAnd = <A, B>(
   peek: Parser<A>,
   and: Parser<B>,

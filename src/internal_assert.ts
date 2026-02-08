@@ -1,3 +1,8 @@
+/**
+ * Internal assertion helper.
+ *
+ * Intended for library-internal invariants (not user-facing parse errors).
+ */
 export const assert: (
   condition: unknown,
   message?: string,

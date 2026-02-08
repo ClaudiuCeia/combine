@@ -1,3 +1,8 @@
+/**
+ * A node in a trie used for fast multi-string matching.
+ *
+ * This is an internal building block for the `trie(...)` parser.
+ */
 export class TrieNode {
   public children: { [id: string]: TrieNode } = {};
   public isWord: boolean;
@@ -7,9 +12,15 @@ export class TrieNode {
   }
 }
 
+/**
+ * Trie (prefix tree) used to match one of many strings efficiently.
+ */
 export class Trie {
   constructor(private readonly root = new TrieNode()) {}
 
+  /**
+   * Insert a word into the trie.
+   */
   public insert(word: string): void {
     let current = this.root;
     for (const letter of word) {
@@ -22,12 +33,18 @@ export class Trie {
     current.isWord = true;
   }
 
+  /**
+   * Insert many words into the trie.
+   */
   public insertMany(words: string[]): void {
     for (const word of words) {
       this.insert(word);
     }
   }
 
+  /**
+   * Check whether the trie contains `word` exactly.
+   */
   public exists(word: string): boolean {
     let current = this.root;
     for (let i = 0; i < word.length; i++) {
@@ -42,6 +59,10 @@ export class Trie {
     return current.isWord;
   }
 
+  /**
+   * Check whether any prefix of `word` exists in the trie, returning the first
+   * matching prefix if present.
+   */
   public existsSubstring(word: string): [boolean, string | undefined] {
     let current = this.root;
     for (let i = 0; i < word.length; i++) {
