@@ -23,11 +23,18 @@ export const map = <A, B>(
   opts?: { trace: boolean; name: string },
 ): Parser<B> => {
   return (ctx) => {
+    const now = (): number => {
+      // Avoid relying on DOM lib typings; works in Deno and Node.
+      const perf = (globalThis as { performance?: { now?: () => number } })
+        .performance;
+      return typeof perf?.now === "function" ? perf.now() : Date.now();
+    };
+
     let a = 0,
       b = 0;
-    opts?.trace && (a = performance.now());
+    opts?.trace && (a = now());
     const res = parser(ctx);
-    opts?.trace && (b = performance.now());
+    opts?.trace && (b = now());
 
     return res.success
       ? success(

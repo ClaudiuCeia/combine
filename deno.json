@@ -1,17 +1,19 @@
 {
   "name": "@claudiu-ceia/combine",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "exports": "./mod.ts",
   "publish": {
-    "exclude": ["bench/", "tests/"]
+    "exclude": ["bench/", "tests/", "npm/"]
   },
   "tasks": {
-    "check": "deno fmt && deno lint && deno test",
+    "check": "deno fmt && deno lint && deno test --ignore=npm",
+    "build:npm": "deno run -A scripts/build-npm.ts",
     "hooks:install": "ln -sf ../../scripts/pre-commit .git/hooks/pre-commit && chmod +x scripts/pre-commit",
     "hooks:uninstall": "rm -f .git/hooks/pre-commit"
   },
   "imports": {
     "@std/assert": "jsr:@std/assert@^1.0.17",
+    "@deno/dnt": "jsr:@deno/dnt@^0.41.3",
     "parsimmon": "npm:parsimmon@1.18.1",
     "uats": "https://raw.githubusercontent.com/ClaudiuCeia/geojson-romania/master/generated/uats.json"
   }

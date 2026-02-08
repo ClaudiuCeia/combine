@@ -1,4 +1,4 @@
-import { assert } from "@std/assert";
+import { assert } from "./internal_assert.ts";
 import {
   type Failure,
   failure,

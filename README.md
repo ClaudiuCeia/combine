@@ -2,7 +2,7 @@
 
 An implementation of
 [parser combinators](https://en.wikipedia.org/wiki/Parser_combinator) for
-[Deno](https://deno.land/).
+TypeScript.
 
 ## Example
 
@@ -16,7 +16,7 @@ import {
   seq,
   space,
   str,
-} from "https://deno.land/x/combine@v0.0.10/mod.ts";
+} from "@claudiu-ceia/combine";
 
 const helloWorldParser = seq(
   str("Hello,"),
@@ -58,7 +58,7 @@ const nameRes = nameParser({
 ```
 
 For more examples,
-[take a look at tests](https://github.com/ClaudiuCeia/combine/tree/main/src/tests).
+[take a look at tests](https://github.com/ClaudiuCeia/combine/tree/main/tests).
 
 ## About
 
@@ -142,7 +142,7 @@ import {
   Parser, 
   UntypedLanguage, 
   number 
-} from "https://deno.land/x/combine@v0.0.10/mod.ts";
+} from "@claudiu-ceia/combine";
 
 /**
  * Untyped, provide `UntypedLanguage` as a type parameter.

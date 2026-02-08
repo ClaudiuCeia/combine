@@ -1,11 +1,11 @@
 name: Publish
 on:
   push:
-    branches:
-      - main
+    tags:
+      - "v*"
 
 jobs:
-  publish:
+  publish-jsr:
     runs-on: ubuntu-latest
 
     permissions:
@@ -15,5 +15,34 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Publish package
+      - name: Publish to JSR
         run: npx jsr publish
+
+  publish-npm:
+    runs-on: ubuntu-latest
+    needs: publish-jsr
+
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          registry-url: "https://registry.npmjs.org"
+
+      - name: Build npm package
+        run: deno task build:npm
+
+      - name: Publish to npm
+        run: npm publish ./npm --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
