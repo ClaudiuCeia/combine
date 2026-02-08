@@ -176,3 +176,28 @@ if (!result.success) {
   console.error(formatErrorStack(result));
 }
 ```
+
+## Perf tracing (optional)
+
+For larger grammars it can be useful to measure where time goes. `createTracer`
+lets you wrap parsers and collect per-parser call counts, success/failure, input
+consumed, and total/max time.
+
+```ts
+import {
+  createTracer,
+  formatTraceTable,
+  seq,
+  str,
+} from "@claudiu-ceia/combine";
+
+const tr = createTracer();
+
+const word = tr.wrap("word", str("hello"));
+const p = tr.wrap("seq", seq(word, str("!")));
+
+const res = p({ text: "hello!", index: 0 });
+if (res.success) {
+  console.log(formatTraceTable(tr.rows()));
+}
+```
