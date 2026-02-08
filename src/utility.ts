@@ -4,6 +4,7 @@ import {
   type Failure,
   failure,
   fatalFailure,
+  getLocation,
   isFatal,
   type Parser,
   pushFrame,
@@ -132,6 +133,56 @@ export const onFailure = <T>(
 
 export const trim = <T>(p: Parser<T>): Parser<T> => {
   return map(seq(optional(space()), p, optional(space())), ([_, p]) => p);
+};
+
+export type Marked<T> = Readonly<{
+  value: T;
+  startIndex: number;
+  endIndex: number;
+}>;
+
+export type WithSpan<T> = Readonly<{
+  value: T;
+  start: number;
+  end: number;
+  locationStart: { line: number; column: number };
+  locationEnd: { line: number; column: number };
+}>;
+
+/**
+ * Capture the start and end indices for a successful parse.
+ */
+export const mark = <T>(parser: Parser<T>): Parser<Marked<T>> => {
+  return (ctx) => {
+    const res = parser(ctx);
+    if (!res.success) return res;
+
+    return success(res.ctx, {
+      value: res.value,
+      startIndex: ctx.index,
+      endIndex: res.ctx.index,
+    });
+  };
+};
+
+/**
+ * Capture a span (start/end indices + start/end line/column) for a successful parse.
+ */
+export const withSpan = <T>(parser: Parser<T>): Parser<WithSpan<T>> => {
+  return (ctx) => {
+    const res = parser(ctx);
+    if (!res.success) return res;
+
+    const start = ctx.index;
+    const end = res.ctx.index;
+    return success(res.ctx, {
+      value: res.value,
+      start,
+      end,
+      locationStart: getLocation(ctx),
+      locationEnd: getLocation(res.ctx),
+    });
+  };
 };
 
 /**
