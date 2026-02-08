@@ -59,6 +59,14 @@ export type BoundThisLanguage<T extends ThisLanguageDefinitions> = {
   [Key in keyof T]: ReturnType<T[Key]>;
 };
 
+type ThisParserFn = (this: any) => Parser<any>;
+type EnsureThisParserFns<T extends object> = {
+  [Key in keyof T]: T[Key] extends ThisParserFn ? T[Key] : never;
+};
+type BoundFromThisDefs<T extends object> = {
+  [Key in keyof T]: T[Key] extends ThisParserFn ? ReturnType<T[Key]> : never;
+};
+
 /**
  * Like `createLanguage`, but uses `this` instead of a `self` parameter.
  *
@@ -66,13 +74,14 @@ export type BoundThisLanguage<T extends ThisLanguageDefinitions> = {
  * (via `ThisType<...>`), so callers can usually avoid writing
  * `createLanguage<MyLang>({ ... })`.
  */
-export function createLanguageThis<T extends ThisLanguageDefinitions>(
-  map: T & ThisType<BoundThisLanguage<T>>,
-): BoundThisLanguage<T> {
+export function createLanguageThis<const T extends object>(
+  map: EnsureThisParserFns<T> & ThisType<BoundFromThisDefs<T>>,
+): BoundFromThisDefs<T> {
   const wrapped: Record<string, (self: any) => Parser<any>> = {};
-  for (const key of Object.keys(map)) {
-    wrapped[key] = (self) => map[key].call(self);
+  const record = map as unknown as Record<string, (this: any) => Parser<any>>;
+  for (const key of Object.keys(record)) {
+    wrapped[key] = (self) => record[key].call(self);
   }
 
-  return createLanguage(wrapped) as BoundThisLanguage<T>;
+  return createLanguage(wrapped) as BoundFromThisDefs<T>;
 }

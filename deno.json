@@ -7,6 +7,7 @@
   },
   "tasks": {
     "check": "deno fmt && deno lint && deno test --ignore=npm",
+    "coverage": "deno test --ignore=npm --clean --coverage=.coverage && deno coverage --detailed --html .coverage",
     "build:npm": "deno run -A scripts/build-npm.ts",
     "hooks:install": "ln -sf ../../scripts/pre-commit .git/hooks/pre-commit && chmod +x scripts/pre-commit",
     "hooks:uninstall": "rm -f .git/hooks/pre-commit"

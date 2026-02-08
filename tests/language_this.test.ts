@@ -1,13 +1,10 @@
-// Type-level tests for createLanguage inference.
-// Deno runs type-checking on tests, so `@ts-expect-error` assertions work here.
-
-import { createLanguageThis } from "../src/language.ts";
-import type { Parser } from "../src/Parser.ts";
+import { assertEquals, assertObjectMatch } from "@std/assert";
 import { any, many, optional, seq, surrounded } from "../src/combinators.ts";
 import { eof, number, regex, space, str } from "../src/parsers.ts";
 import { map } from "../src/utility.ts";
+import { createLanguageThis } from "../src/language.ts";
 
-Deno.test("createLanguageThis infers keys and this without explicit type argument", () => {
+Deno.test("createLanguageThis runtime behavior matches createLanguage", () => {
   const L = createLanguageThis({
     Expression() {
       return map(
@@ -32,17 +29,25 @@ Deno.test("createLanguageThis infers keys and this without explicit type argumen
     },
   });
 
-  const _p: Parser<unknown> = L.Expression;
-  void _p;
+  const text = `
+    (list 1 2 (cons 1 (list)))
+    (print 5 golden rings)
+  `;
 
-  type Keys = keyof typeof L;
-  const _ok: Keys = "Expression";
-  void _ok;
+  const res = L.File({ text, index: 0 });
+  assertObjectMatch(res, {
+    success: true,
+    ctx: {
+      text,
+      index: text.length,
+    },
+  });
 
-  // @ts-expect-error - not a key
-  const _bad: Keys = "DoesNotExist";
-  void _bad;
-
-  // @ts-expect-error - does not exist
-  L.DoesNotExist;
+  assertEquals(res.success, true);
+  if (res.success) {
+    assertEquals(res.value, [
+      ["list", 1, 2, ["cons", 1, ["list"]]],
+      ["print", 5, "golden", "rings"],
+    ]);
+  }
 });

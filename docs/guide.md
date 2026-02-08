@@ -85,7 +85,10 @@ const L = createLanguageThis({
     return number();
   },
   Expression() {
-    // `this.*` is strongly typed and autocompletes.
+    // The returned language object (`L`) is strongly typed.
+    // Note: TypeScript may treat `this` as `any` inside these methods unless
+    // the object literal is contextually typed; use `createLanguage<T>(...)`
+    // if you want `self` to be fully typed inside definitions.
     return many(this.Symbol);
   },
   List() {
