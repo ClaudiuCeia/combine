@@ -1,7 +1,11 @@
 {
   "name": "@claudiu-ceia/combine",
   "version": "0.2.7",
-  "exports": "./mod.ts",
+  "exports": {
+    ".": "./mod.ts",
+    "./nondeterministic": "./src/nondeterministic.ts",
+    "./perf": "./src/perf.ts"
+  },
   "publish": {
     "exclude": ["bench/", "tests/", "npm/"]
   },

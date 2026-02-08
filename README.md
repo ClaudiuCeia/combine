@@ -15,6 +15,13 @@ compose them into a grammar.
 import { seq, str } from "jsr:@claudiu-ceia/combine@^0.2.6";
 ```
 
+Subpath imports are also supported:
+
+```ts
+import { recognizeAt } from "jsr:@claudiu-ceia/combine/nondeterministic";
+import { createTracer } from "jsr:@claudiu-ceia/combine/perf";
+```
+
 ### Node (npm)
 
 ```sh
@@ -104,6 +111,19 @@ import { formatErrorStack } from "@claudiu-ceia/combine";
 
 if (!result.success) console.error(formatErrorStack(result));
 ```
+
+## Nondeterministic Recognizers
+
+Most combinators are deterministic: they return a single success or failure. For
+tokenizer-like use cases where you want _multiple_ simultaneous matches at the
+same input position, use the nondeterministic/recognizer module:
+
+```ts
+import { recognizeAt } from "jsr:@claudiu-ceia/combine/nondeterministic";
+```
+
+These combinators can return multiple successes; you must decide how (or
+whether) to advance the cursor.
 
 ## More Examples
 
