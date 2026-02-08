@@ -23,25 +23,29 @@ export const map = <A, B>(
   fn: (val: A, before: Context, after: Context, measurement?: string) => B,
   opts?: { trace: boolean; name: string },
 ): Parser<B> => {
-  return (ctx) => {
-    const now = (): number => {
-      // Avoid relying on DOM lib typings; works in Deno and Node.
-      const perf = (globalThis as { performance?: { now?: () => number } })
-        .performance;
-      return typeof perf?.now === "function" ? perf.now() : Date.now();
-    };
+  const trace = opts?.trace ?? false;
+  const now = (() => {
+    if (!trace) return undefined;
+    const perf = (globalThis as { performance?: { now?: () => number } })
+      .performance;
+    const perfNow = perf?.now;
+    if (typeof perfNow === "function") return () => perfNow.call(perf);
+    return Date.now;
+  })();
 
-    let a = 0,
-      b = 0;
-    opts?.trace && (a = now());
+  return (ctx) => {
+    if (!trace) {
+      const res = parser(ctx);
+      return res.success ? success(res.ctx, fn(res.value, ctx, res.ctx)) : res;
+    }
+
+    // `now` exists when trace is enabled (initialized at parser creation time).
+    const t0 = now!();
     const res = parser(ctx);
-    opts?.trace && (b = now());
+    const dt = now!() - t0;
 
     return res.success
-      ? success(
-        res.ctx,
-        fn(res.value, ctx, res.ctx, opts && (b - a).toFixed(5)),
-      )
+      ? success(res.ctx, fn(res.value, ctx, res.ctx, dt.toFixed(5)))
       : res;
   };
 };

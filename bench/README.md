@@ -15,5 +15,7 @@ deno bench --allow-all
   `furthest(...)` on a synthetic keyword set (no network).
 - `stress_large_list_bench.ts`: parses a large list (`[0..4999]`) using
   `createLexer` + `sepBy1`.
+- `map_regex_large_bench.ts`: large generated input (>8k) exercising `map(...)`
+  - `regex(...)` on a repeated clause.
 
 Bench results vary a lot based on CPU, Deno version, and flags.

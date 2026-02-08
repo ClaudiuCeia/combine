@@ -10,7 +10,7 @@ export const str = (match: string): Parser<string> => {
   return (ctx) => {
     const endIdx = ctx.index + match.length;
     if (ctx.text.substring(ctx.index, endIdx) === match) {
-      return success({ ...ctx, index: endIdx }, match);
+      return success({ text: ctx.text, index: endIdx }, match);
     } else {
       return failure(ctx, match);
     }
@@ -37,7 +37,7 @@ export const trie = (matches: string[]): Parser<string> => {
     if (exists && match) {
       return success(
         {
-          ...ctx,
+          text: ctx.text,
           index: ctx.index + match.length,
         },
         match,
@@ -68,7 +68,7 @@ export const anyChar = (): Parser<string> => {
     }
 
     return success(
-      { ...ctx, index: ctx.index + 1 },
+      { text: ctx.text, index: ctx.index + 1 },
       ctx.text.substring(ctx.index, ctx.index + 1),
     );
   };
@@ -84,13 +84,13 @@ export const notChar = (code: number): Parser<string> => {
     if (!res.success) {
       const endIdx = res.ctx.index + matchLength;
       return success(
-        { ...res.ctx, index: endIdx },
+        { text: res.ctx.text, index: endIdx },
         res.ctx.text.substring(res.ctx.index, endIdx),
       );
     }
 
     return failure(
-      { ...res.ctx, index: res.ctx.index - matchLength },
+      { text: res.ctx.text, index: res.ctx.index - matchLength },
       `found char "${res.value}"`,
     );
   };
@@ -171,7 +171,7 @@ export const take = (count: number): Parser<string> => {
     const endIdx = ctx.index + count;
     if (endIdx <= ctx.text.length) {
       return success(
-        { ...ctx, index: endIdx },
+        { text: ctx.text, index: endIdx },
         ctx.text.substring(ctx.index, endIdx),
       );
     } else {
@@ -186,7 +186,7 @@ export const take = (count: number): Parser<string> => {
 export const takeText = (): Parser<string> => {
   return (ctx) => {
     return success(
-      { ...ctx, index: ctx.text.length },
+      { text: ctx.text, index: ctx.text.length },
       ctx.text.substring(ctx.index, ctx.text.length),
     );
   };
@@ -313,19 +313,17 @@ export const signed = (nParser: Parser<number> = number()): Parser<number> => {
  * Matches input for given regex
  */
 export const regex = (re: RegExp, expected: string): Parser<string> => {
-  return (ctx) => {
-    // Non-global regexps don't support `lastIndex`
-    const globalRe = new RegExp(
-      re.source,
-      re.global ? re.flags : `${re.flags}g`,
-    );
+  // Prefer sticky matching to avoid searching ahead from `lastIndex`.
+  // This also lets us compile the regexp once at parser creation time.
+  const flagsWithSticky = re.flags.includes("y") ? re.flags : `${re.flags}y`;
+  const flags = flagsWithSticky.replace("g", "");
+  const stickyRe = new RegExp(re.source, flags);
 
-    globalRe.lastIndex = ctx.index;
-    const res = globalRe.exec(ctx.text);
-    if (res && res.index === ctx.index) {
-      return success({ ...ctx, index: ctx.index + res[0].length }, res[0]);
-    } else {
-      return failure(ctx, expected);
-    }
+  return (ctx) => {
+    stickyRe.lastIndex = ctx.index;
+    const res = stickyRe.exec(ctx.text);
+    return res
+      ? success({ text: ctx.text, index: ctx.index + res[0].length }, res[0])
+      : failure(ctx, expected);
   };
 };
