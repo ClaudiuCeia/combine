@@ -98,6 +98,15 @@ Deno.test("hex rejects 0x lead", () => {
   if (!res.success) assertEquals(res.expected, "unexpected 0x lead");
 });
 
+Deno.test("hex parses contiguous digits without commas", () => {
+  const res = hex()({ text: "FF", index: 0 });
+  assertEquals(res.success, true);
+  if (res.success) {
+    assertEquals(res.value, "FF");
+    assertEquals(res.ctx.index, 2);
+  }
+});
+
 Deno.test("signed parses +/- numbers", () => {
   assertObjectMatch(signed()({ text: "+12", index: 0 }), {
     success: true,

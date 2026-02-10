@@ -283,7 +283,7 @@ export const hex = (): Parser<string> => {
       return failure(ctx, "unexpected 0x lead");
     }
 
-    return map(many1(hexDigit()), (hex) => hex.join())(ctx);
+    return map(many1(hexDigit()), (hex) => hex.join(""))(ctx);
   };
 };
 
