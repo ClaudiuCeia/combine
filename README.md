@@ -28,8 +28,16 @@ import { createTracer } from "jsr:@claudiu-ceia/combine/perf";
 npm i @claudiu-ceia/combine
 ```
 
+Note: the npm package is **ESM-only**.
+
 ```ts
 import { seq, str } from "@claudiu-ceia/combine";
+```
+
+If you're in a CommonJS project, use a dynamic import:
+
+```js
+const { seq, str } = await import("@claudiu-ceia/combine");
 ```
 
 ## Quickstart

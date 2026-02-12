@@ -8,10 +8,21 @@ const denoJson = JSON.parse(await Deno.readTextFile("./deno.json")) as {
 await emptyDir("./npm");
 
 await build({
-  entryPoints: ["./mod.ts"],
+  entryPoints: [
+    "./mod.ts",
+    { name: "./nondeterministic", path: "./src/nondeterministic.ts" },
+    { name: "./perf", path: "./src/perf.ts" },
+  ],
   outDir: "./npm",
   test: false,
-  typeCheck: "both",
+  // ESM-only npm output.
+  esModule: true,
+  scriptModule: false,
+  typeCheck: "single",
+  compilerOptions: {
+    sourceMap: false,
+    inlineSources: false,
+  },
   shims: {
     // This library is runtime-agnostic; avoid injecting Deno polyfills.
     deno: false,
@@ -51,5 +62,19 @@ await build({
   postBuild() {
     Deno.copyFileSync("README.md", "npm/README.md");
     Deno.copyFileSync("LICENSE", "npm/LICENSE");
+
+    // Keep the npm package lean: declaration maps are nice-to-have but add a
+    // surprising amount of weight across ESM+CJS outputs.
+    Deno.writeTextFileSync(
+      "npm/.npmignore",
+      [
+        "/src/",
+        "**/*.d.ts.map",
+        "**/*.js.map",
+        "package-lock.json",
+        "yarn.lock",
+        "pnpm-lock.yaml",
+      ].join("\n") + "\n",
+    );
   },
 });
