@@ -3,7 +3,6 @@ import {
   type Context,
   type Failure,
   failure,
-  fatalFailure,
   getLocation,
   isFatal,
   type Parser,
@@ -262,12 +261,7 @@ export const cut = <T>(parser: Parser<T>, expected?: string): Parser<T> => {
       return res;
     }
 
-    // Make this failure fatal
-    return fatalFailure(
-      res.ctx,
-      expected ?? res.expected,
-      res.stack,
-    );
+    return { ...res, expected: expected ?? res.expected, fatal: true };
   };
 };
 

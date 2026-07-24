@@ -565,7 +565,13 @@ export const peek = <T>(parser: Parser<T>): Parser<null> => {
       return success(ctx, null);
     }
 
-    return failure(ctx, `lookahead failed, ${res.expected}`, [], res.stack);
+    return failure(
+      ctx,
+      `lookahead failed, ${res.expected}`,
+      res.variants,
+      res.stack,
+      res.fatal,
+    );
   };
 };
 

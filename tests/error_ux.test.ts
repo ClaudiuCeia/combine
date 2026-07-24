@@ -1,4 +1,4 @@
-import { assertEquals } from "@std/assert";
+import { assertEquals, assertStrictEquals } from "@std/assert";
 import {
   any,
   chainl1,
@@ -7,6 +7,7 @@ import {
   manyTill,
   oneOf,
   optional,
+  peek,
   sepBy,
   seq,
 } from "../src/combinators.ts";
@@ -140,4 +141,43 @@ Deno.test("optional propagates fatal errors", () => {
   const res = p({ text: "y", index: 0 });
   assertEquals(res.success, false);
   if (!res.success) assertEquals(res.fatal, true);
+});
+
+Deno.test("cut preserves failure variants and stack", () => {
+  const ctx = { text: "x", index: 1 };
+  const source = failure(
+    ctx,
+    "value",
+    [failure(ctx, "alternative")],
+    [{ label: "in value", location: { line: 1, column: 1 } }],
+  );
+  const res = cut(() => source, "expression")({ text: "x", index: 0 });
+
+  assertEquals(res.success, false);
+  if (!res.success) {
+    assertEquals(res.expected, "expression");
+    assertEquals(res.fatal, true);
+    assertStrictEquals(res.variants, source.variants);
+    assertStrictEquals(res.stack, source.stack);
+  }
+});
+
+Deno.test("peek preserves failure metadata without consuming input", () => {
+  const sourceCtx = { text: "x", index: 1 };
+  const source = failure(
+    sourceCtx,
+    "value",
+    [failure(sourceCtx, "alternative")],
+    [{ label: "in value", location: { line: 1, column: 1 } }],
+    true,
+  );
+  const res = peek(() => source)({ text: "x", index: 0 });
+
+  assertEquals(res.success, false);
+  if (!res.success) {
+    assertEquals(res.ctx.index, 0);
+    assertEquals(res.fatal, true);
+    assertStrictEquals(res.variants, source.variants);
+    assertStrictEquals(res.stack, source.stack);
+  }
 });
