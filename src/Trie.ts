@@ -60,25 +60,27 @@ export class Trie {
   }
 
   /**
-   * Check whether any prefix of `word` exists in the trie, returning the first
-   * matching prefix if present.
+   * Check whether any prefix of `word` exists in the trie, returning the
+   * longest matching prefix if present.
    */
   public existsSubstring(word: string): [boolean, string | undefined] {
     let current = this.root;
+    let match: string | undefined;
+
     for (let i = 0; i < word.length; i++) {
       const ch = word.charAt(i);
       const node = current.children[ch];
       if (!node) {
-        return [false, undefined];
+        break;
       }
 
       if (node.isWord) {
-        return [true, word.substring(0, i + 1)];
+        match = word.substring(0, i + 1);
       }
 
       current = node;
     }
 
-    return [current.isWord, word];
+    return match === undefined ? [false, undefined] : [true, match];
   }
 }
