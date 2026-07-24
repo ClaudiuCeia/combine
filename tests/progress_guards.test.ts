@@ -29,6 +29,13 @@ Deno.test("sepBy fails fast on non-advancing element parser", () => {
   if (!res.success) assertEquals(res.expected.includes("sepBy"), true);
 });
 
+Deno.test("sepBy fails fast on non-advancing separator parser", () => {
+  const p = sepBy(str("x"), epsilon(","));
+  const res = p({ text: "x", index: 0 });
+  assertEquals(res.success, false);
+  if (!res.success) assertEquals(res.expected.includes("sepBy"), true);
+});
+
 Deno.test("chainl1 fails fast on non-advancing op/term loop", () => {
   const p = chainl1(epsilon(1), epsilon("+"), (l) => l);
   const res = p({ text: "abc", index: 0 });

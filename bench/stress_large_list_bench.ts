@@ -9,7 +9,7 @@ const comma = lx.symbol(",");
 
 const list = map(
   seq(lx.symbol("["), sepBy1(num, comma), lx.symbol("]"), eof()),
-  ([, items]) => items.filter((v): v is number => typeof v === "number"),
+  ([, items]) => items,
 );
 
 Deno.bench("parse [0..4999] list", { group: "stress" }, () => {

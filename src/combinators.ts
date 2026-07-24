@@ -404,6 +404,36 @@ export const repeat = <T>(n: number, parser: Parser<T>): Parser<T[]> => {
   };
 };
 
+const separatedTail = <T, S>(
+  name: string,
+  parser: Parser<T>,
+  sep: Parser<S>,
+  value: T,
+  ctx: Context,
+): Result<T[]> => {
+  const values = [value];
+  let nextCtx = ctx;
+
+  while (true) {
+    const sepRes = sep(nextCtx);
+    if (!sepRes.success) {
+      return isFatal(sepRes) ? sepRes : success(nextCtx, values);
+    }
+
+    const sepAdvanceErr = assertAdvanced(name, nextCtx, sepRes.ctx);
+    if (sepAdvanceErr) return sepAdvanceErr;
+
+    const valueRes = parser(sepRes.ctx);
+    if (!valueRes.success) return valueRes;
+
+    const valueAdvanceErr = assertAdvanced(name, sepRes.ctx, valueRes.ctx);
+    if (valueAdvanceErr) return valueAdvanceErr;
+
+    values.push(valueRes.value);
+    nextCtx = valueRes.ctx;
+  }
+};
+
 /**
  * Useful for parsing separated lists. Repeatedly match a sequence of both
  * parsers while they both match. Doesn't support trailing separators.
@@ -420,51 +450,17 @@ export const repeat = <T>(n: number, parser: Parser<T>): Parser<T[]> => {
 export const sepBy = <T, S>(
   parser: Parser<T>,
   sep: Parser<S>,
-): Parser<(T | S)[]> => {
+): Parser<T[]> => {
   return (ctx) => {
-    const values: (T | S)[] = [];
-    let nextCtx = ctx;
-    // eslint-disable-next-line no-constant-condition
-    while (true) {
-      const res = parser(nextCtx);
-
-      // Fatal errors propagate
-      if (!res.success && isFatal(res)) {
-        return res;
-      }
-
-      if (res.success) {
-        const advanceErr = assertAdvanced("sepBy", nextCtx, res.ctx);
-        if (advanceErr) {
-          return advanceErr;
-        }
-
-        const sepCtx = res.ctx;
-        values.push(res.value);
-
-        const sepRes = sep(sepCtx);
-
-        // Fatal errors from separator propagate
-        if (!sepRes.success && isFatal(sepRes)) {
-          return sepRes;
-        }
-
-        if (!sepRes.success) {
-          return success(sepCtx, values);
-        }
-
-        const sepAdvanceErr = assertAdvanced("sepBy", sepCtx, sepRes.ctx);
-        if (sepAdvanceErr) {
-          return sepAdvanceErr;
-        }
-
-        nextCtx = sepRes.ctx;
-        values.push(sepRes.value);
-        continue;
-      }
-
-      return success(nextCtx, values);
+    const first = parser(ctx);
+    if (!first.success) {
+      return isFatal(first) ? first : success(ctx, []);
     }
+
+    const advanceErr = assertAdvanced("sepBy", ctx, first.ctx);
+    if (advanceErr) return advanceErr;
+
+    return separatedTail("sepBy", parser, sep, first.value, first.ctx);
   };
 };
 
@@ -476,26 +472,15 @@ export const sepBy = <T, S>(
 export const sepBy1 = <T, S>(
   parser: Parser<T>,
   sep: Parser<S>,
-): Parser<(T | S)[]> => {
+): Parser<T[]> => {
   return (ctx) => {
-    const res = sepBy(parser, sep)(ctx);
+    const first = parser(ctx);
+    if (!first.success) return first;
 
-    // Propagate fatal errors
-    if (!res.success) {
-      return res;
-    }
+    const advanceErr = assertAdvanced("sepBy1", ctx, first.ctx);
+    if (advanceErr) return advanceErr;
 
-    if (res.ctx.index === ctx.index) {
-      const parserTest = parser(ctx);
-      if (parserTest.success) {
-        // This should never happen since `sepBy` didn't match - need to rewrite for statical guarantee
-        return failure(parserTest.ctx, "Unjustified error");
-      } else {
-        return failure(res.ctx, "Expected at least one match", [parserTest]);
-      }
-    }
-
-    return res;
+    return separatedTail("sepBy1", parser, sep, first.value, first.ctx);
   };
 };
 

@@ -514,6 +514,7 @@ Deno.test("sepBy", () => {
     }),
     {
       success: true,
+      value: ["1", "2", "3", "4", "11"],
       ctx: { text: "1,2,3,4,11", index: 10 },
     },
   );
@@ -525,6 +526,7 @@ Deno.test("sepBy", () => {
     }),
     {
       success: true,
+      value: ["1"],
       ctx: { text: "1", index: 1 },
     },
   );
@@ -536,9 +538,16 @@ Deno.test("sepBy", () => {
     }),
     {
       success: true,
+      value: [],
       ctx: { text: "not a list", index: 0 },
     },
   );
+
+  assertObjectMatch(numberList({ text: "1,2,", index: 0 }), {
+    success: false,
+    expected: "expected digit or number",
+    ctx: { index: 4 },
+  });
 });
 
 Deno.test("sepBy1", () => {
@@ -554,6 +563,7 @@ Deno.test("sepBy1", () => {
     }),
     {
       success: true,
+      value: ["1", "2", "3", "4", "11"],
       ctx: { text: "1,2,3,4,11", index: 10 },
     },
   );
@@ -565,6 +575,7 @@ Deno.test("sepBy1", () => {
     }),
     {
       success: true,
+      value: ["1"],
       ctx: { text: "1", index: 1 },
     },
   );
@@ -576,10 +587,16 @@ Deno.test("sepBy1", () => {
     }),
     {
       success: false,
-      expected: "Expected at least one match",
+      expected: "expected digit or number",
       ctx: { text: "not a list", index: 0 },
     },
   );
+
+  assertObjectMatch(numberList({ text: "1,2,", index: 0 }), {
+    success: false,
+    expected: "expected digit or number",
+    ctx: { index: 4 },
+  });
 });
 
 Deno.test("skipMany", () => {

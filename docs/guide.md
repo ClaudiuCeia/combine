@@ -101,6 +101,22 @@ const language = defineLanguage<Grammar>({
 For `createLanguageThis`, replace `this.Production` references with the typed
 `self` parameter or destructure the required productions as shown above.
 
+### Migrating from 0.4
+
+Version 0.5 changes `sepBy` and `sepBy1` to return only parsed elements. The
+separator parser still consumes input, but its value is no longer included in
+the result:
+
+```ts
+const values = sepBy(int(), str(","));
+// 0.4: Parser<(number | string)[]>
+// 0.5: Parser<number[]>
+```
+
+Remove any filtering that discarded separator values. A trailing separator now
+fails at the position where the next element was expected, matching the
+documented contract.
+
 ## Error handling (`context`, `cut`, `attempt`)
 
 When you build user-facing parsers, you typically want:
