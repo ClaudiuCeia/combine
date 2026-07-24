@@ -384,11 +384,7 @@ export const repeat = <T>(n: number, parser: Parser<T>): Parser<T[]> => {
     while (idx < n) {
       const res = parser(nextCtx);
       if (!res.success) {
-        // Propagate fatal errors with their stack
-        if (isFatal(res)) {
-          return res;
-        }
-        return failure(ctx, res.expected, [], res.stack);
+        return res;
       }
       values.push(res.value);
       nextCtx = res.ctx;

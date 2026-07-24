@@ -697,7 +697,7 @@ Deno.test("repeat", () => {
     }),
     {
       success: false,
-      ctx: { text: "12ys", index: 0 },
+      ctx: { text: "12ys", index: 2 },
     },
   );
 });

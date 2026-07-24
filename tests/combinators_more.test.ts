@@ -1,4 +1,4 @@
-import { assertEquals } from "@std/assert";
+import { assertEquals, assertStrictEquals } from "@std/assert";
 import {
   chainl1,
   chainr1,
@@ -6,10 +6,12 @@ import {
   minus,
   oneOf,
   peek,
+  repeat,
   seq,
   seqNonNull,
   skip1,
 } from "../src/combinators.ts";
+import { failure, type Parser } from "../src/Parser.ts";
 import { str } from "../src/parsers.ts";
 import { map } from "../src/utility.ts";
 
@@ -75,4 +77,17 @@ Deno.test("chainr1 fails when operator matches but right operand does not", () =
   const p = chainr1(str("a"), str("+"), (l) => l);
   const res = p({ text: "a+", index: 0 });
   assertEquals(res.success, false);
+});
+
+Deno.test("repeat preserves the inner parser failure", () => {
+  const ctx = { text: "x", index: 1 };
+  const sourceFailure = failure(
+    ctx,
+    "item",
+    [failure(ctx, "variant")],
+    [{ label: "in item", location: { line: 1, column: 1 } }],
+  );
+  const parser: Parser<string> = () => sourceFailure;
+
+  assertStrictEquals(repeat(1, parser)({ text: "x", index: 0 }), sourceFailure);
 });
