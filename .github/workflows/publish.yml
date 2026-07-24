@@ -104,14 +104,13 @@ jobs:
         with:
           node-version: 24
           registry-url: "https://registry.npmjs.org"
+          package-manager-cache: false
 
       - name: Build npm package
         run: deno task build:npm
 
       - name: Publish to npm
-        run: npm publish ./npm --access public --provenance
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish ./npm --access public
 
   github-release:
     runs-on: ubuntu-latest
