@@ -235,23 +235,10 @@ export const int = (): Parser<number> => {
  * Matches a dot-separated double
  */
 export const double = (): Parser<number> => {
-  return (ctx) => {
-    const comma = str(".");
-    const fractional = map(seq(comma, int()), (fraction) => fraction[1]);
-
-    return map(
-      seq(
-        int(),
-        either(
-          fractional,
-          map(str("."), () => 0),
-        ),
-      ),
-      (double) => {
-        return parseFloat(double.join("."));
-      },
-    )(ctx);
-  };
+  return map(
+    regex(/[0-9]+\.[0-9]*/, "decimal number"),
+    (value) => Number(value),
+  );
 };
 
 /**

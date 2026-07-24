@@ -75,6 +75,23 @@ Deno.test("double", () => {
       value: 29,
     },
   );
+
+  for (const [text, value] of [
+    ["1.05", 1.05],
+    ["0.001", 0.001],
+    ["10.00", 10],
+  ] as const) {
+    assertObjectMatch(double()({ text, index: 0 }), {
+      success: true,
+      value,
+      ctx: { index: text.length },
+    });
+  }
+
+  assertObjectMatch(double()({ text: ".", index: 0 }), {
+    success: false,
+    ctx: { index: 0 },
+  });
 });
 
 Deno.test("number", () => {
@@ -101,6 +118,12 @@ Deno.test("number", () => {
       value: 29,
     },
   );
+
+  assertObjectMatch(number()({ text: "1.05", index: 0 }), {
+    success: true,
+    ctx: { index: 4 },
+    value: 1.05,
+  });
 });
 
 Deno.test("regex", () => {
