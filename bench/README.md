@@ -8,8 +8,7 @@ deno bench --allow-all
 
 ## Notes
 
-- `createLanguage_bench.ts`: compares `createLanguage` vs `createLanguageThis`
-  vs raw combinators.
+- `language_bench.ts`: compares `defineLanguage` with raw combinators.
 - `lisp_bench.ts`: compares a small S-expression grammar with Parsimmon.
 - `trie_vs_any_bench.ts`: compares `trie(...)` vs `any(str(...), ...)` vs
   `furthest(...)` on a synthetic keyword set (no network).

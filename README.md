@@ -12,7 +12,7 @@ compose them into a grammar.
 ### Deno (JSR)
 
 ```ts
-import { seq, str } from "jsr:@claudiu-ceia/combine@^0.3.0";
+import { seq, str } from "jsr:@claudiu-ceia/combine@^0.4.0";
 ```
 
 Subpath imports are also supported:
@@ -106,11 +106,9 @@ const paren: Parser<Expr> = map(
 const expr: Parser<Expr> = any(lit, paren);
 ```
 
-If you're defining a larger mutually-recursive grammar, use `createLanguage`
-(`src/language.ts`) to avoid worrying about declaration order.
-
-If you want better type inference without writing an explicit language type, use
-`createLanguageThis` (see `docs/guide.md`).
+If you're defining a larger mutually-recursive grammar, use `defineLanguage`
+with a map of production output types. It provides fully typed sibling parsers
+without making declaration order significant. See `docs/guide.md`.
 
 ## Better Errors
 
@@ -143,7 +141,7 @@ whether) to advance the cursor.
 
 ## Guides
 
-If you want the deeper explanations (recursion patterns, `createLanguage`, error
+If you want the deeper explanations (recursion patterns, `defineLanguage`, error
 handling, `cut` vs `context`, and `any` vs `furthest`), see `docs/guide.md`.
 
 The guide also covers the optional lexer layer (`lexeme`, `symbol`, `keyword`,

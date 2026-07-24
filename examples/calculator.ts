@@ -1,8 +1,8 @@
 import {
   any,
   chainl1,
-  createLanguageThis,
   createLexer,
+  defineLanguage,
   eof,
   formatErrorReport,
   map,
@@ -29,10 +29,17 @@ const NumExpr = map(mark(lx.lexeme(Num)), ({ value, startIndex, endIndex }) => {
   return { kind: "num", value, start: startIndex, end: endIndex } as const;
 });
 
-const Calc = createLanguageThis({
-  Factor() {
+type Grammar = {
+  Factor: Expr;
+  Term: Expr;
+  Expression: Expr;
+  File: Expr;
+};
+
+const Calc = defineLanguage<Grammar>({
+  Factor: ({ Expression }) => {
     const paren = map(
-      mark(seq(lx.symbol("("), this.Expression, lx.symbol(")"))),
+      mark(seq(lx.symbol("("), Expression, lx.symbol(")"))),
       ({ value: [, expr], startIndex, endIndex }) => {
         // Extend the inner expression span to include the parentheses.
         return { ...expr, start: startIndex, end: endIndex };
@@ -40,9 +47,9 @@ const Calc = createLanguageThis({
     );
     return any(paren, NumExpr);
   },
-  Term() {
+  Term: ({ Factor }) => {
     const op = any(lx.symbol("*"), lx.symbol("/"));
-    return chainl1(this.Factor, op, (left, op, right) => {
+    return chainl1(Factor, op, (left, op, right) => {
       const bop = op as "*" | "/";
       return {
         kind: "bin",
@@ -54,9 +61,9 @@ const Calc = createLanguageThis({
       };
     });
   },
-  Expression() {
+  Expression: ({ Term }) => {
     const op = any(lx.symbol("+"), lx.symbol("-"));
-    return chainl1(this.Term, op, (left, op, right) => {
+    return chainl1(Term, op, (left, op, right) => {
       const bop = op as "+" | "-";
       return {
         kind: "bin",
@@ -68,9 +75,8 @@ const Calc = createLanguageThis({
       };
     });
   },
-  File() {
-    return map(seq(lx.trivia, this.Expression, eof()), ([, expr]) => expr);
-  },
+  File: ({ Expression }) =>
+    map(seq(lx.trivia, Expression, eof()), ([, expr]) => expr),
 });
 
 const ok = `1 + 2*3 + (4 - 5) / 6`;

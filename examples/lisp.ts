@@ -1,7 +1,7 @@
 import {
   any,
-  createLanguageThis,
   createLexer,
+  defineLanguage,
   eof,
   formatErrorReport,
   many,
@@ -15,24 +15,27 @@ const lx = createLexer();
 const symbol = lx.lexeme(regex(/[a-zA-Z_-][a-zA-Z0-9_-]*/, "symbol"));
 const numberLit = lx.lexeme(number());
 
-const L = createLanguageThis({
-  Expression() {
-    return any(this.List, this.Number, this.Symbol);
-  },
-  Symbol() {
-    return symbol;
-  },
-  Number() {
-    return numberLit;
-  },
-  List() {
+type Expression = string | number | Expression[];
+type Grammar = {
+  Expression: Expression;
+  Symbol: string;
+  Number: number;
+  List: Expression[];
+  File: Expression[];
+};
+
+const L = defineLanguage<Grammar>({
+  Expression: ({ List, Number, Symbol }) => any(List, Number, Symbol),
+  Symbol: () => symbol,
+  Number: () => numberLit,
+  List: ({ Expression }) => {
     // `lexeme(...)` eats trailing trivia so list elements can be separated by
     // whitespace/comments without handling it in every production.
-    return lx.parens(many(this.Expression));
+    return lx.parens(many(Expression));
   },
-  File() {
+  File: ({ Expression }) => {
     return map(
-      seq(lx.trivia, many(this.Expression), eof()),
+      seq(lx.trivia, many(Expression), eof()),
       ([, exprs]) => exprs,
     );
   },

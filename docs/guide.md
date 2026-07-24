@@ -38,71 +38,68 @@ const expr: Parser<Expr> = any(
 
 For a full example, see `tests/calculator.test.ts`.
 
-## `createLanguage` (mutual recursion without worrying about order)
+## `defineLanguage` (recommended for larger grammars)
 
 If you have a mutually-recursive grammar, manually threading `lazy()` everywhere
-gets noisy. `createLanguage` lets you define a "language object" where every
-production can refer to `self.*` without caring about declaration order.
+gets noisy. `defineLanguage` uses a compact map of production output types and
+gives every definition a fully typed view of the complete language.
 
 ```ts
-import {
-  createLanguage,
-  type Parser,
-  str,
-  surrounded,
-} from "@claudiu-ceia/combine";
+import { defineLanguage, str, surrounded } from "@claudiu-ceia/combine";
 
-type Lang = {
-  Atom: Parser<string>;
-  Paren: Parser<string>;
+type Grammar = {
+  Atom: string;
+  Paren: string;
 };
 
-const L = createLanguage<Lang>({
+const L = defineLanguage<Grammar>({
   Atom: () => str("x"),
-  Paren: (s) => surrounded(str("("), s.Atom, str(")")),
+  Paren: ({ Atom }) => surrounded(str("("), Atom, str(")")),
 });
 ```
 
 Notes:
 
-- `createLanguage` wraps definitions in `lazy()` internally, so there is a small
-  overhead compared to hand-written parsers.
-- For a typed example that exercises recursion, see `tests/language.test.ts`.
+- `defineLanguage` wraps definitions in `lazy()` internally, so declaration
+  order does not matter.
+- The schema contains parsed output types, not `Parser<...>` types.
+- Wrong production return types are reported against the corresponding schema
+  entry.
+- For typed examples that exercise recursion, see
+  `tests/define_language.test.ts`.
 
-## `createLanguageThis` (recommended for type inference)
+### Migrating from 0.3
 
-TypeScript often struggles to infer the `self` type for mutually-recursive
-grammars. If you want good editor autocomplete without writing
-`createLanguage<MyLang>({ ... })`, use `createLanguageThis`.
-
-Instead of a `self` argument, definitions are methods and you reference other
-productions via `this.*`:
+Version 0.4 replaces `createLanguage` and `createLanguageThis` with the single
+`defineLanguage` API. Schemas now describe parsed output values rather than
+bound parser functions:
 
 ```ts
-import { createLanguageThis, many, surrounded } from "@claudiu-ceia/combine";
-import { number, regex, str } from "@claudiu-ceia/combine";
+// 0.3
+type OldGrammar = {
+  Atom: Parser<string>;
+  Paren: Parser<string>;
+};
 
-const L = createLanguageThis({
-  Symbol() {
-    return regex(/[a-zA-Z_-][a-zA-Z0-9_-]*/, "symbol");
-  },
-  Number() {
-    return number();
-  },
-  Expression() {
-    // The returned language object (`L`) is strongly typed.
-    // Note: TypeScript may treat `this` as `any` inside these methods unless
-    // the object literal is contextually typed; use `createLanguage<T>(...)`
-    // if you want `self` to be fully typed inside definitions.
-    return many(this.Symbol);
-  },
-  List() {
-    return surrounded(str("("), many(this.Expression), str(")"));
-  },
+const old = createLanguage<OldGrammar>({
+  Atom: () => str("x"),
+  Paren: (self) => surrounded(str("("), self.Atom, str(")")),
+});
+
+// 0.4
+type Grammar = {
+  Atom: string;
+  Paren: string;
+};
+
+const language = defineLanguage<Grammar>({
+  Atom: () => str("x"),
+  Paren: ({ Atom }) => surrounded(str("("), Atom, str(")")),
 });
 ```
 
-Type-check coverage for this lives in `tests/language_infer.test.ts`.
+For `createLanguageThis`, replace `this.Production` references with the typed
+`self` parameter or destructure the required productions as shown above.
 
 ## Error handling (`context`, `cut`, `attempt`)
 
@@ -258,17 +255,17 @@ const expr = any(
 const program = seq(expr, eof());
 ```
 
-### With `createLanguageThis`
+### With `defineLanguage`
 
-The lexer layer and `createLanguageThis` are complementary: the lexer keeps
-trivia handling out of your productions, while `createLanguageThis` handles
-mutual recursion without worrying about declaration order.
+The lexer layer and `defineLanguage` are complementary: the lexer keeps trivia
+handling out of your productions, while `defineLanguage` handles mutual
+recursion without worrying about declaration order.
 
 ```ts
 import {
   any,
-  createLanguageThis,
   createLexer,
+  defineLanguage,
   map,
   seq,
 } from "@claudiu-ceia/combine";
@@ -276,23 +273,27 @@ import { eof, int, regex } from "@claudiu-ceia/combine";
 
 const Lx = createLexer();
 
-const Lang = createLanguageThis({
-  Ident() {
-    return Lx.lexeme(regex(/[a-zA-Z_][a-zA-Z0-9_]*/, "identifier"));
-  },
-  Atom() {
+type Expression = number | string;
+type Grammar = {
+  Ident: string;
+  Atom: Expression;
+  Expr: Expression;
+  Program: Expression;
+};
+
+const Lang = defineLanguage<Grammar>({
+  Ident: () => Lx.lexeme(regex(/[a-zA-Z_][a-zA-Z0-9_]*/, "identifier")),
+  Atom: ({ Ident, Expr }) => {
     return any(
       Lx.lexeme(int()),
-      this.Ident,
-      map(seq(Lx.symbol("("), this.Expr, Lx.symbol(")")), ([, e]) => e),
+      Ident,
+      map(seq(Lx.symbol("("), Expr, Lx.symbol(")")), ([, e]) => e),
     );
   },
-  Expr() {
-    return this.Atom;
-  },
-  Program() {
+  Expr: ({ Atom }) => Atom,
+  Program: ({ Expr }) => {
     // Parse leading trivia once at the entry point.
-    return map(seq(Lx.trivia, this.Expr, eof()), ([, e]) => e);
+    return map(seq(Lx.trivia, Expr, eof()), ([, e]) => e);
   },
 });
 ```

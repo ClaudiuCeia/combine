@@ -1,8 +1,7 @@
 import {
   any,
   chainl1,
-  createLanguage,
-  createLanguageThis,
+  defineLanguage,
   eof,
   lazy,
   map,
@@ -38,49 +37,25 @@ const combineAdd = (left: number, op: string, right: number): number => {
   }
 };
 
-type CalcLang = Readonly<{
-  AddOp: Parser<string>;
-  MulOp: Parser<string>;
-  Factor: Parser<number>;
-  Term: Parser<number>;
-  Expression: Parser<number>;
-  File: Parser<number>;
+type CalcGrammar = Readonly<{
+  AddOp: string;
+  MulOp: string;
+  Factor: number;
+  Term: number;
+  Expression: number;
+  File: number;
 }>;
 
-Deno.bench("createLanguage", { group: "calculator" }, () => {
-  const C = createLanguage<CalcLang>({
+Deno.bench("defineLanguage", { group: "calculator" }, () => {
+  const C = defineLanguage<CalcGrammar>({
     AddOp: () => any(str("+"), str("-")),
     MulOp: () => any(str("*"), str("/")),
-    Factor: (s) => any(surrounded(str("("), s.Expression, str(")")), number()),
-    Term: (s) => chainl1(s.Factor, s.MulOp, combineMul),
-    Expression: (s) => chainl1(s.Term, s.AddOp, combineAdd),
-    File: (s) => map(seq(s.Expression, eof()), ([v]) => v),
+    Factor: ({ Expression }) =>
+      any(surrounded(str("("), Expression, str(")")), number()),
+    Term: ({ Factor, MulOp }) => chainl1(Factor, MulOp, combineMul),
+    Expression: ({ Term, AddOp }) => chainl1(Term, AddOp, combineAdd),
+    File: ({ Expression }) => map(seq(Expression, eof()), ([v]) => v),
   });
-
-  C.File({ text, index: 0 });
-});
-
-Deno.bench("createLanguageThis", { group: "calculator" }, () => {
-  const C = createLanguageThis({
-    AddOp() {
-      return any(str("+"), str("-"));
-    },
-    MulOp() {
-      return any(str("*"), str("/"));
-    },
-    Factor() {
-      return any(surrounded(str("("), this.Expression, str(")")), number());
-    },
-    Term() {
-      return chainl1(this.Factor, this.MulOp, combineMul);
-    },
-    Expression() {
-      return chainl1(this.Term, this.AddOp, combineAdd);
-    },
-    File() {
-      return map(seq(this.Expression, eof()), ([v]) => v);
-    },
-  }) as unknown as CalcLang;
 
   C.File({ text, index: 0 });
 });

@@ -1,7 +1,7 @@
 import {
   any,
-  createLanguageThis,
   createLexer,
+  defineLanguage,
   eof,
   many,
   map,
@@ -26,22 +26,22 @@ const lx = createLexer();
 const sym = lx.lexeme(regex(/[a-zA-Z_-][a-zA-Z0-9_-]*/, "symbol"));
 const num = lx.lexeme(number());
 
-const combineLisp = createLanguageThis({
-  Expression() {
-    return any(this.List, this.Number, this.Symbol);
-  },
-  Symbol() {
-    return sym;
-  },
-  Number() {
-    return num;
-  },
-  List() {
-    return lx.parens(many(this.Expression));
-  },
-  File() {
-    return map(seq(lx.trivia, many(this.Expression), eof()), ([, xs]) => xs);
-  },
+type Expression = string | number | Expression[];
+type LispGrammar = {
+  Expression: Expression;
+  Symbol: string;
+  Number: number;
+  List: Expression[];
+  File: Expression[];
+};
+
+const combineLisp = defineLanguage<LispGrammar>({
+  Expression: ({ List, Number, Symbol }) => any(List, Number, Symbol),
+  Symbol: () => sym,
+  Number: () => num,
+  List: ({ Expression }) => lx.parens(many(Expression)),
+  File: ({ Expression }) =>
+    map(seq(lx.trivia, many(Expression), eof()), ([, xs]) => xs),
 });
 
 const ParsimmonLisp = P.createLanguage({
