@@ -45,7 +45,20 @@ await build({
   package: {
     name: denoJson.name,
     version: denoJson.version,
+    description: "Typed parser combinators for TypeScript",
+    keywords: [
+      "parser",
+      "parser-combinators",
+      "typescript",
+      "deno",
+    ],
     license: "MIT",
+    homepage: "https://github.com/ClaudiuCeia/combine#readme",
+    sideEffects: false,
+    engines: {
+      node: ">=20",
+    },
+    types: "./esm/mod.d.ts",
     repository: {
       type: "git",
       url: "git+https://github.com/ClaudiuCeia/combine.git",
@@ -60,6 +73,21 @@ await build({
     return diagnostic;
   },
   postBuild() {
+    const packagePath = "npm/package.json";
+    const npmPackage = JSON.parse(Deno.readTextFileSync(packagePath)) as {
+      exports: Record<string, { import: string; types?: string }>;
+    };
+    for (const [name, entry] of Object.entries(npmPackage.exports)) {
+      npmPackage.exports[name] = {
+        types: entry.import.replace(/\.js$/, ".d.ts"),
+        ...entry,
+      };
+    }
+    Deno.writeTextFileSync(
+      packagePath,
+      `${JSON.stringify(npmPackage, null, 2)}\n`,
+    );
+
     Deno.copyFileSync("README.md", "npm/README.md");
     Deno.copyFileSync("LICENSE", "npm/LICENSE");
 
