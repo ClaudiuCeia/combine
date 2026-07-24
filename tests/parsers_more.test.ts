@@ -1,17 +1,21 @@
 import { assertEquals, assertObjectMatch } from "@std/assert";
 import { many, repeat } from "../src/combinators.ts";
+import { formatErrorCompact } from "../src/Parser.ts";
 import {
   anyChar,
   charWhere,
+  digit,
   eof,
   eol,
   hex,
   hexDigit,
   horizontalSpace,
+  letter,
   notChar,
   regex,
   signed,
   skipCharWhere,
+  space,
   take,
   takeText,
 } from "../src/parsers.ts";
@@ -175,4 +179,17 @@ Deno.test("regex does not search ahead from index", () => {
   const res = p({ text: "a1", index: 0 });
   assertEquals(res.success, false);
   if (!res.success) assertEquals(res.ctx.index, 0);
+});
+
+Deno.test("primitive expectations format without duplicate prefixes", () => {
+  for (const parser of [digit(), letter(), space()]) {
+    const res = parser({ text: "!", index: 0 });
+    assertEquals(res.success, false);
+    if (!res.success) {
+      assertEquals(
+        formatErrorCompact(res).startsWith("expected expected"),
+        false,
+      );
+    }
+  }
 });

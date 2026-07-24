@@ -44,7 +44,7 @@ export const trie = (matches: string[]): Parser<string> => {
       );
     }
 
-    return failure(ctx, `Expected one of ${matches.join(", ")}`);
+    return failure(ctx, `one of ${matches.join(", ")}`);
   };
 };
 
@@ -132,7 +132,7 @@ export const skipCharWhere = (
  */
 export const digit = (): Parser<number> => {
   return (ctx) => {
-    const isDigit = regex(/[0-9]/, "expected digit");
+    const isDigit = regex(/[0-9]/, "digit");
 
     return map(isDigit, (digit) => {
       return parseInt(digit, 10);
@@ -145,7 +145,7 @@ export const digit = (): Parser<number> => {
  */
 export const letter = (): Parser<string> => {
   return (ctx) => {
-    return regex(/[a-zA-Z]/, "expected letter")(ctx);
+    return regex(/[a-zA-Z]/, "letter")(ctx);
   };
 };
 
@@ -154,7 +154,7 @@ export const letter = (): Parser<string> => {
  */
 export const space = (): Parser<string> => {
   return (ctx) => {
-    return regex(/\s+/, "expected whitespace")(ctx);
+    return regex(/\s+/, "whitespace")(ctx);
   };
 };
 
