@@ -227,7 +227,8 @@ export const furthest = <T>(...parsers: Parser<T>[]): Parser<T> => {
       }
     }
 
-    return furthestRes ?? failure(ctx, "furthest: expected at least one parser");
+    return furthestRes ??
+      failure(ctx, "furthest: expected at least one parser");
   };
 };
 

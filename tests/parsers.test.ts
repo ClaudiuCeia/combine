@@ -76,11 +76,13 @@ Deno.test("double", () => {
     },
   );
 
-  for (const [text, value] of [
-    ["1.05", 1.05],
-    ["0.001", 0.001],
-    ["10.00", 10],
-  ] as const) {
+  for (
+    const [text, value] of [
+      ["1.05", 1.05],
+      ["0.001", 0.001],
+      ["10.00", 10],
+    ] as const
+  ) {
     assertObjectMatch(double()({ text, index: 0 }), {
       success: true,
       value,

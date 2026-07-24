@@ -81,7 +81,10 @@ Deno.test("take and repeat reject invalid counts", () => {
     const takeRes = take(count)({ text: "abc", index: 0 });
     assertEquals(takeRes.success, false);
     if (!takeRes.success) {
-      assertEquals(takeRes.expected.includes("non-negative safe integer"), true);
+      assertEquals(
+        takeRes.expected.includes("non-negative safe integer"),
+        true,
+      );
     }
 
     const repeatRes = repeat(count, anyChar())({ text: "abc", index: 0 });
