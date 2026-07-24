@@ -1,5 +1,5 @@
 import { assertEquals, assertObjectMatch } from "@std/assert";
-import { many } from "../src/combinators.ts";
+import { many, repeat } from "../src/combinators.ts";
 import {
   anyChar,
   charWhere,
@@ -74,6 +74,31 @@ Deno.test("take fails when count exceeds remaining input", () => {
   const res = take(3)({ text: "ab", index: 0 });
   assertEquals(res.success, false);
   if (!res.success) assertEquals(res.expected, "unexpected end of input");
+});
+
+Deno.test("take and repeat reject invalid counts", () => {
+  for (const count of [-1, 1.5, Number.NaN, Number.POSITIVE_INFINITY]) {
+    const takeRes = take(count)({ text: "abc", index: 0 });
+    assertEquals(takeRes.success, false);
+    if (!takeRes.success) {
+      assertEquals(takeRes.expected.includes("non-negative safe integer"), true);
+    }
+
+    const repeatRes = repeat(count, anyChar())({ text: "abc", index: 0 });
+    assertEquals(repeatRes.success, false);
+    if (!repeatRes.success) {
+      assertEquals(
+        repeatRes.expected.includes("non-negative safe integer"),
+        true,
+      );
+    }
+  }
+
+  assertObjectMatch(repeat(0, anyChar())({ text: "abc", index: 0 }), {
+    success: true,
+    value: [],
+    ctx: { index: 0 },
+  });
 });
 
 Deno.test("takeText consumes remainder", () => {

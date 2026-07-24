@@ -164,6 +164,10 @@ export const space = (): Parser<string> => {
  */
 export const take = (count: number): Parser<string> => {
   return (ctx) => {
+    if (!Number.isSafeInteger(count) || count < 0) {
+      return failure(ctx, "take: count must be a non-negative safe integer");
+    }
+
     const endIdx = ctx.index + count;
     if (endIdx <= ctx.text.length) {
       return success(

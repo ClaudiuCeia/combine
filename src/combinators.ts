@@ -373,6 +373,10 @@ export const manyTill = <A, B>(
  */
 export const repeat = <T>(n: number, parser: Parser<T>): Parser<T[]> => {
   return (ctx) => {
+    if (!Number.isSafeInteger(n) || n < 0) {
+      return failure(ctx, "repeat: count must be a non-negative safe integer");
+    }
+
     const values: T[] = [];
     let nextCtx = ctx;
     let idx = 0;
