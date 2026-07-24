@@ -1,4 +1,3 @@
-import { assert } from "./internal_assert.ts";
 import {
   type Context,
   type Failure,
@@ -121,6 +120,10 @@ export const any = <T extends [...Parser<unknown>[]]>(
   ...parsers: [...T]
 ): UnionParser<UnwrapParsers<T>> => {
   return (ctx) => {
+    if (parsers.length === 0) {
+      return failure(ctx, "any: expected at least one parser");
+    }
+
     let furthestRes: Result<ArrayUnion<UnwrapParsers<T>>> | undefined;
     for (const parser of parsers) {
       const res = parser(ctx) as Result<ArrayUnion<UnwrapParsers<T>>>;
@@ -138,8 +141,7 @@ export const any = <T extends [...Parser<unknown>[]]>(
       }
     }
 
-    assert(furthestRes);
-    return furthestRes;
+    return furthestRes ?? failure(ctx, "any: expected at least one parser");
   };
 };
 
@@ -153,6 +155,10 @@ export const any = <T extends [...Parser<unknown>[]]>(
  */
 export const oneOf = <T>(...parsers: Parser<T>[]): Parser<T> => {
   return (ctx) => {
+    if (parsers.length === 0) {
+      return failure(ctx, "oneOf: expected at least one parser");
+    }
+
     let match: Result<T> | undefined;
     let furthestRes: Result<T> | undefined;
     for (const parser of parsers) {
@@ -191,8 +197,7 @@ export const oneOf = <T>(...parsers: Parser<T>[]): Parser<T> => {
       return match;
     }
 
-    assert(furthestRes);
-    return furthestRes;
+    return furthestRes ?? failure(ctx, "oneOf: expected at least one parser");
   };
 };
 
@@ -204,6 +209,10 @@ export const oneOf = <T>(...parsers: Parser<T>[]): Parser<T> => {
  */
 export const furthest = <T>(...parsers: Parser<T>[]): Parser<T> => {
   return (ctx) => {
+    if (parsers.length === 0) {
+      return failure(ctx, "furthest: expected at least one parser");
+    }
+
     let furthestRes: Result<T> | undefined;
     for (const parser of parsers) {
       const res = parser(ctx);
@@ -218,8 +227,7 @@ export const furthest = <T>(...parsers: Parser<T>[]): Parser<T> => {
       }
     }
 
-    assert(furthestRes);
-    return furthestRes;
+    return furthestRes ?? failure(ctx, "furthest: expected at least one parser");
   };
 };
 

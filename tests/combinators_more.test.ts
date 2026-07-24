@@ -1,7 +1,9 @@
 import { assertEquals, assertStrictEquals } from "@std/assert";
 import {
+  any,
   chainl1,
   chainr1,
+  furthest,
   keepNonNull,
   minus,
   oneOf,
@@ -32,6 +34,22 @@ Deno.test("oneOf fails when multiple alternatives match", () => {
   const p = oneOf(str("a"), str("a"));
   const res = p({ text: "a", index: 0 });
   assertEquals(res.success, false);
+});
+
+Deno.test("choice combinators fail when called without parsers", () => {
+  const choices: [string, Parser<unknown>][] = [
+    ["any", any()],
+    ["oneOf", oneOf()],
+    ["furthest", furthest()],
+  ];
+
+  for (const [name, parser] of choices) {
+    const res = parser({ text: "x", index: 0 });
+    assertEquals(res.success, false);
+    if (!res.success) {
+      assertEquals(res.expected, `${name}: expected at least one parser`);
+    }
+  }
 });
 
 Deno.test("peek fails without consuming input", () => {
