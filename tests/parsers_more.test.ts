@@ -1,4 +1,5 @@
 import { assertEquals, assertObjectMatch } from "@std/assert";
+import { many } from "../src/combinators.ts";
 import {
   anyChar,
   charWhere,
@@ -7,6 +8,7 @@ import {
   hex,
   hexDigit,
   horizontalSpace,
+  notChar,
   regex,
   signed,
   skipCharWhere,
@@ -15,12 +17,30 @@ import {
 } from "../src/parsers.ts";
 
 Deno.test("anyChar fails at end of input", () => {
-  const res = anyChar()({ text: "a", index: 1 });
-  assertEquals(res.success, false);
-  if (!res.success) {
-    assertEquals(res.expected, "reached end of input");
-    assertEquals(res.ctx.index, 1);
+  for (const index of [1, 2]) {
+    const res = anyChar()({ text: "a", index });
+    assertEquals(res.success, false);
+    if (!res.success) {
+      assertEquals(res.expected, "reached end of input");
+      assertEquals(res.ctx.index, index);
+    }
   }
+});
+
+Deno.test("notChar fails at and beyond end of input", () => {
+  for (const index of [1, 2]) {
+    const res = notChar(34)({ text: "a", index });
+    assertEquals(res.success, false);
+    if (!res.success) assertEquals(res.ctx.index, index);
+  }
+});
+
+Deno.test("many notChar terminates at end of input", () => {
+  assertObjectMatch(many(notChar(34))({ text: "abc", index: 0 }), {
+    success: true,
+    value: ["a", "b", "c"],
+    ctx: { index: 3 },
+  });
 });
 
 Deno.test("charWhere succeeds/fails based on predicate", () => {
@@ -35,8 +55,10 @@ Deno.test("charWhere succeeds/fails based on predicate", () => {
   assertEquals(bad.success, false);
   if (!bad.success) {
     assertEquals(bad.expected.includes("failed the predicate"), true);
-    assertEquals(bad.ctx.index, 1);
+    assertEquals(bad.ctx.index, 0);
   }
+
+  assertEquals(charWhere(() => true)({ text: "\n", index: 0 }).success, true);
 });
 
 Deno.test("skipCharWhere returns null when underlying charWhere matches", () => {

@@ -63,7 +63,7 @@ export const char = (code: number): Parser<string> => {
  */
 export const anyChar = (): Parser<string> => {
   return (ctx) => {
-    if (ctx.index === ctx.text.length) {
+    if (ctx.index >= ctx.text.length) {
       return failure(ctx, "reached end of input");
     }
 
@@ -79,20 +79,16 @@ export const anyChar = (): Parser<string> => {
  */
 export const notChar = (code: number): Parser<string> => {
   return (ctx) => {
-    const res = char(code)(ctx);
-    const matchLength = String.fromCharCode(code).length;
-    if (!res.success) {
-      const endIdx = res.ctx.index + matchLength;
-      return success(
-        { text: res.ctx.text, index: endIdx },
-        res.ctx.text.substring(res.ctx.index, endIdx),
-      );
+    if (ctx.index >= ctx.text.length) {
+      return failure(ctx, "reached end of input");
     }
 
-    return failure(
-      { text: res.ctx.text, index: res.ctx.index - matchLength },
-      `found char "${res.value}"`,
-    );
+    const value = ctx.text.substring(ctx.index, ctx.index + 1);
+    if (value === String.fromCharCode(code)) {
+      return failure(ctx, `found char "${value}"`);
+    }
+
+    return success({ text: ctx.text, index: ctx.index + 1 }, value);
   };
 };
 
@@ -101,7 +97,7 @@ export const notChar = (code: number): Parser<string> => {
  */
 export const charWhere = (pred: (code: number) => boolean): Parser<string> => {
   return (ctx) => {
-    const res = regex(/./, "expected any single char")(ctx);
+    const res = anyChar()(ctx);
     if (!res.success) {
       return res;
     }
@@ -111,7 +107,7 @@ export const charWhere = (pred: (code: number) => boolean): Parser<string> => {
       return res;
     }
 
-    return failure(res.ctx, `char ${res.value} failed the predicate`);
+    return failure(ctx, `char ${res.value} failed the predicate`);
   };
 };
 
