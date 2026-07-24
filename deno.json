@@ -7,17 +7,25 @@
     "./perf": "./src/perf.ts"
   },
   "publish": {
-    "exclude": ["bench/", "tests/", "npm/"]
+    "exclude": [
+      ".github/",
+      "AGENTS.md",
+      "bench/",
+      "deno.lock",
+      "npm/",
+      "scripts/",
+      "tests/"
+    ]
   },
   "tasks": {
-    "check": "deno fmt && deno lint && deno test --ignore=npm",
+    "check": "deno fmt --check && deno lint && deno test --ignore=npm",
     "coverage": "deno test --ignore=npm --clean --coverage=.coverage && deno coverage --detailed --html .coverage",
     "build:npm": "deno run -A scripts/build-npm.ts",
     "hooks:install": "ln -sf ../../scripts/pre-commit .git/hooks/pre-commit && chmod +x scripts/pre-commit",
     "hooks:uninstall": "rm -f .git/hooks/pre-commit"
   },
   "imports": {
-    "@std/assert": "jsr:@std/assert@^1.0.17",
+    "@std/assert": "jsr:@std/assert@^1.0.19",
     "@deno/dnt": "jsr:@deno/dnt@^0.41.3",
     "parsimmon": "npm:parsimmon@1.18.1"
   }

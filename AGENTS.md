@@ -16,8 +16,8 @@
 
 Run these from the repo root:
 
-- `deno task check`: Formats, lints, and runs tests
-  (`deno fmt && deno lint && deno test --ignore=npm`).
+- `deno task check`: Checks formatting, lints, and runs tests
+  (`deno fmt --check && deno lint && deno test --ignore=npm`).
 - `deno test`: Run the test suite.
 - `deno fmt`: Auto-format code and Markdown.
 - `deno lint`: Static analysis for TS/JS.

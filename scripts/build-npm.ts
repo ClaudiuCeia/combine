@@ -43,7 +43,7 @@ await build({
     urlSearchParams: false,
   },
   package: {
-    name: "@claudiu-ceia/combine",
+    name: denoJson.name,
     version: denoJson.version,
     license: "MIT",
     repository: {
@@ -63,13 +63,10 @@ await build({
     Deno.copyFileSync("README.md", "npm/README.md");
     Deno.copyFileSync("LICENSE", "npm/LICENSE");
 
-    // Keep the npm package lean: declaration maps are nice-to-have but add a
-    // surprising amount of weight across ESM+CJS outputs.
     Deno.writeTextFileSync(
       "npm/.npmignore",
       [
         "/src/",
-        "**/*.d.ts.map",
         "**/*.js.map",
         "package-lock.json",
         "yarn.lock",

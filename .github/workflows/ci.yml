@@ -6,24 +6,41 @@ on:
   pull_request:
     branches: [main]
 
+permissions:
+  contents: read
+
 jobs:
   test:
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
       - name: Setup Deno
-        uses: denoland/setup-deno@v2
+        uses: denoland/setup-deno@22d081ff2d3a40755e97629de92e3bcbfa7cf2ed # v2
         with:
-          deno-version: v2.x
+          deno-version: v2.6.8
 
-      - name: Verify formatting
-        run: deno fmt --check
+      - name: Setup Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 24
 
-      - name: Run linter
-        run: deno lint
+      - name: Run checks
+        run: deno task check
 
-      - name: Run tests
-        run: deno test
+      - name: Build npm package
+        run: deno task build:npm
+
+      - name: Smoke test npm entry points
+        run: >-
+          node --input-type=module -e
+          'await Promise.all([
+            import("./npm/esm/mod.js"),
+            import("./npm/esm/src/nondeterministic.js"),
+            import("./npm/esm/src/perf.js")
+          ])'
+
+      - name: Verify npm package contents
+        run: npm pack ./npm --dry-run

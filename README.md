@@ -12,7 +12,7 @@ compose them into a grammar.
 ### Deno (JSR)
 
 ```ts
-import { seq, str } from "jsr:@claudiu-ceia/combine@^0.2.6";
+import { seq, str } from "jsr:@claudiu-ceia/combine@^0.3.0";
 ```
 
 Subpath imports are also supported:
@@ -37,7 +37,10 @@ import { seq, str } from "@claudiu-ceia/combine";
 If you're in a CommonJS project, use a dynamic import:
 
 ```js
-const { seq, str } = await import("@claudiu-ceia/combine");
+(async () => {
+  const { seq, str } = await import("@claudiu-ceia/combine");
+  // Use seq and str here.
+})();
 ```
 
 ## Quickstart

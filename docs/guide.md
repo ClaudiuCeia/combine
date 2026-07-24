@@ -45,7 +45,12 @@ gets noisy. `createLanguage` lets you define a "language object" where every
 production can refer to `self.*` without caring about declaration order.
 
 ```ts
-import { createLanguage, type Parser, seq, str } from "@claudiu-ceia/combine";
+import {
+  createLanguage,
+  type Parser,
+  str,
+  surrounded,
+} from "@claudiu-ceia/combine";
 
 type Lang = {
   Atom: Parser<string>;
@@ -54,7 +59,7 @@ type Lang = {
 
 const L = createLanguage<Lang>({
   Atom: () => str("x"),
-  Paren: (s) => seq(str("("), s.Atom, str(")")),
+  Paren: (s) => surrounded(str("("), s.Atom, str(")")),
 });
 ```
 
