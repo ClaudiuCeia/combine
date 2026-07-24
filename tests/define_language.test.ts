@@ -131,6 +131,7 @@ Deno.test("defineLanguage initializes production parsers lazily", () => {
 
   assertEquals(calls, 0);
   Lang.Value({ text: "value", index: 0 });
+  Lang.Value({ text: "value", index: 0 });
   assertEquals(calls, 1);
 });
 

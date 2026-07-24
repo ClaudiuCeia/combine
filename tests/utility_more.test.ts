@@ -2,7 +2,7 @@ import { assertEquals, assertObjectMatch } from "@std/assert";
 import { failure, type Parser } from "../src/Parser.ts";
 import { seq } from "../src/combinators.ts";
 import { str } from "../src/parsers.ts";
-import { map, onFailure, peekAnd, trim } from "../src/utility.ts";
+import { lazy, map, onFailure, peekAnd, trim } from "../src/utility.ts";
 
 Deno.test("map trace passes a measurement string when enabled", () => {
   let gotMeasurement: string | undefined;
@@ -53,4 +53,16 @@ Deno.test("trim consumes optional surrounding whitespace", () => {
     value: "a",
     ctx: { index: 4 },
   });
+});
+
+Deno.test("lazy constructs its parser once", () => {
+  let calls = 0;
+  const parser = lazy(() => {
+    calls++;
+    return str("value");
+  });
+
+  assertEquals(parser({ text: "value", index: 0 }).success, true);
+  assertEquals(parser({ text: "value", index: 0 }).success, true);
+  assertEquals(calls, 1);
 });

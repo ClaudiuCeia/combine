@@ -63,7 +63,11 @@ export const mapJoin = (parser: Parser<string[]>): Parser<string> => {
  * Useful to break recursive definitions.
  */
 export const lazy = <A>(fn: () => Parser<A>): Parser<A> => {
-  return (ctx) => fn()(ctx);
+  let parser: Parser<A> | undefined;
+  return (ctx) => {
+    parser ??= fn();
+    return parser(ctx);
+  };
 };
 
 /**
