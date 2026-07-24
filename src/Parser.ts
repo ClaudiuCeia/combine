@@ -213,24 +213,6 @@ export const pushFrame = (
  */
 export const isFatal = (f: Failure): boolean => f.fatal;
 
-const formatExpected = (f: Failure): string => {
-  const expected: string[] = [];
-  const seen = new Set<string>();
-  const pending = [f];
-
-  while (pending.length > 0) {
-    const current = pending.shift();
-    if (!current) break;
-    if (!seen.has(current.expected)) {
-      seen.add(current.expected);
-      expected.push(current.expected);
-    }
-    pending.push(...current.variants);
-  }
-
-  return expected.length > 1 ? `one of ${expected.join(", ")}` : expected[0];
-};
-
 /**
  * Format an error stack into a human-readable string.
  * Produces output similar to TypeScript's type error traces.
@@ -247,9 +229,7 @@ export const formatErrorStack = (f: Failure): string => {
 
   // Primary error message
   lines.push(
-    `expected ${
-      formatExpected(f)
-    } at line ${f.location.line}, column ${f.location.column}`,
+    `expected ${f.expected} at line ${f.location.line}, column ${f.location.column}`,
   );
 
   // Stack frames (indented)
@@ -267,9 +247,7 @@ export const formatErrorStack = (f: Failure): string => {
  */
 export const formatErrorCompact = (f: Failure): string => {
   const context = f.stack.length > 0 ? ` (${f.stack[0].label})` : "";
-  return `expected ${
-    formatExpected(f)
-  }${context} at ${f.location.line}:${f.location.column}`;
+  return `expected ${f.expected}${context} at ${f.location.line}:${f.location.column}`;
 };
 
 const expandTabs = (s: string, tabWidth: number): string => {
@@ -315,9 +293,8 @@ export const formatErrorSnippet = (
   const maxLineNo = endLine + 1;
   const lineNoWidth = String(maxLineNo).length;
 
-  const header = `expected ${
-    formatExpected(f)
-  } at line ${f.location.line}, column ${f.location.column}`;
+  const header =
+    `expected ${f.expected} at line ${f.location.line}, column ${f.location.column}`;
   const out: string[] = [
     color ? `${ansi.red}${header}${ansi.reset}` : header,
   ];
@@ -373,9 +350,8 @@ export const formatErrorReport = (
   opts: FormatErrorReportOptions = {},
 ): string => {
   const color = opts.color ?? false;
-  const header = `expected ${
-    formatExpected(f)
-  } at line ${f.location.line}, column ${f.location.column}`;
+  const header =
+    `expected ${f.expected} at line ${f.location.line}, column ${f.location.column}`;
 
   const out: string[] = [
     color ? `${ansi.red}${header}${ansi.reset}` : header,

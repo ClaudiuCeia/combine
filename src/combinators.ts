@@ -31,10 +31,13 @@ const mergeFailures = (
 
   const seen = new Set<string>();
   const alternatives = [
-    current,
-    ...current.variants,
-    candidate,
-    ...candidate.variants,
+    ...(current.expected.startsWith("one of ") && current.variants.length > 0
+      ? current.variants
+      : [current, ...current.variants]),
+    ...(candidate.expected.startsWith("one of ") &&
+        candidate.variants.length > 0
+      ? candidate.variants
+      : [candidate, ...candidate.variants]),
   ].filter((item) => {
     if (seen.has(item.expected)) return false;
     seen.add(item.expected);
@@ -42,7 +45,13 @@ const mergeFailures = (
   });
 
   const [primary, ...variants] = alternatives;
-  return { ...primary, variants };
+  if (variants.length === 0) return primary;
+
+  return {
+    ...primary,
+    expected: `one of ${alternatives.map((item) => item.expected).join(", ")}`,
+    variants: alternatives,
+  };
 };
 
 /**

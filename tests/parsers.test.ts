@@ -226,7 +226,7 @@ Deno.test("either", () => {
     }),
     {
       success: false,
-      expected: "fox",
+      expected: "one of fox, bear",
       ctx: { text: "The brown polar bear jumps over the lazy dog", index: 10 },
     },
   );
@@ -264,7 +264,7 @@ Deno.test("any", () => {
     }),
     {
       success: false,
-      expected: "haskell",
+      expected: "one of haskell, typescript, clojure",
       ctx: { text: "clojure is okay", index: 10 },
     },
   );

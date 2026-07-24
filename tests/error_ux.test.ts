@@ -44,8 +44,11 @@ Deno.test("choice combinators aggregate tied failures", () => {
     const res = parser({ text: "match", index: 0 });
     assertEquals(res.success, false);
     if (!res.success) {
-      assertEquals(res.expected, "if");
-      assertEquals(res.variants.map((variant) => variant.expected), ["while"]);
+      assertEquals(res.expected, "one of if, while");
+      assertEquals(res.variants.map((variant) => variant.expected), [
+        "if",
+        "while",
+      ]);
       assertEquals(
         formatErrorCompact(res),
         "expected one of if, while at 1:1",
