@@ -14,7 +14,13 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        deno-version: [v2.6.8, v2.x]
+        include:
+          - deno-version: v2.6.8
+            node-version: 20
+          - deno-version: v2.x
+            node-version: 22
+          - deno-version: v2.x
+            node-version: 24
 
     steps:
       - name: Checkout repository
@@ -28,7 +34,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
-          node-version: 24
+          node-version: ${{ matrix.node-version }}
 
       - name: Run checks
         run: deno task check
@@ -36,14 +42,5 @@ jobs:
       - name: Build npm package
         run: deno task build:npm
 
-      - name: Smoke test npm entry points
-        run: >-
-          node --input-type=module -e
-          'await Promise.all([
-            import("./npm/esm/mod.js"),
-            import("./npm/esm/src/nondeterministic.js"),
-            import("./npm/esm/src/perf.js")
-          ])'
-
-      - name: Verify npm package contents
-        run: npm pack ./npm --dry-run
+      - name: Verify packed npm consumer
+        run: bash scripts/verify-npm-package.sh
