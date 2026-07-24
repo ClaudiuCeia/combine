@@ -12,7 +12,7 @@ compose them into a grammar.
 ### Deno (JSR)
 
 ```ts
-import { seq, str } from "jsr:@claudiu-ceia/combine@^0.4.0";
+import { seq, str } from "jsr:@claudiu-ceia/combine@^0.4.1";
 ```
 
 Subpath imports are also supported:
