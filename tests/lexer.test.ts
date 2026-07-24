@@ -1,5 +1,6 @@
 import { assertEquals } from "@std/assert";
 import {
+  blockComment,
   createLexer,
   defaultTrivia,
   keyword,
@@ -24,6 +25,28 @@ Deno.test("defaultTrivia consumes line and block comments", () => {
   );
   const res = p({ text: "a // hi\n /* ok */ b", index: 0 });
   assertEquals(res.success, true);
+});
+
+Deno.test("blockComment consumes empty and multiline comments", () => {
+  for (const text of ["/**/", "/* first\nsecond */"]) {
+    const res = blockComment()({ text, index: 0 });
+    assertEquals(res.success, true);
+    if (res.success) {
+      assertEquals(res.value, null);
+      assertEquals(res.ctx.index, text.length);
+    }
+  }
+});
+
+Deno.test("defaultTrivia commits unterminated block comments", () => {
+  const text = "/* no closing delimiter";
+  const res = seq(defaultTrivia(), eof())({ text, index: 0 });
+  assertEquals(res.success, false);
+  if (!res.success) {
+    assertEquals(res.fatal, true);
+    assertEquals(res.expected, "*/");
+    assertEquals(res.ctx.index, text.length);
+  }
 });
 
 Deno.test("keyword enforces identifier boundary", () => {

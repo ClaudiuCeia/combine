@@ -1,5 +1,5 @@
 import { any, not, seq, skipMany, surrounded } from "./combinators.ts";
-import type { Parser } from "./Parser.ts";
+import { failure, fatalFailure, type Parser, success } from "./Parser.ts";
 import { regex, space, str } from "./parsers.ts";
 import { map } from "./utility.ts";
 
@@ -16,7 +16,18 @@ export const lineComment = (): Parser<null> => {
  * Match and skip a block comment (non-greedy).
  */
 export const blockComment = (): Parser<null> => {
-  return map(regex(/\/\*[\s\S]*?\*\//, "block comment"), () => null);
+  return (ctx) => {
+    if (!ctx.text.startsWith("/*", ctx.index)) {
+      return failure(ctx, "block comment");
+    }
+
+    const end = ctx.text.indexOf("*/", ctx.index + 2);
+    if (end === -1) {
+      return fatalFailure({ text: ctx.text, index: ctx.text.length }, "*/");
+    }
+
+    return success({ text: ctx.text, index: end + 2 }, null);
+  };
 };
 
 /**
