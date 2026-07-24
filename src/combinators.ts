@@ -22,6 +22,29 @@ const assertAdvanced = (
     : failure(before, failedToAdvance(name));
 };
 
+const mergeFailures = (
+  current: Failure | undefined,
+  candidate: Failure,
+): Failure => {
+  if (!current || candidate.ctx.index > current.ctx.index) return candidate;
+  if (candidate.ctx.index < current.ctx.index) return current;
+
+  const seen = new Set<string>();
+  const alternatives = [
+    current,
+    ...current.variants,
+    candidate,
+    ...candidate.variants,
+  ].filter((item) => {
+    if (seen.has(item.expected)) return false;
+    seen.add(item.expected);
+    return true;
+  });
+
+  const [primary, ...variants] = alternatives;
+  return { ...primary, variants };
+};
+
 /**
  * Unwraps a parser's type (result type)
  *
@@ -124,7 +147,7 @@ export const any = <T extends [...Parser<unknown>[]]>(
       return failure(ctx, "any: expected at least one parser");
     }
 
-    let furthestRes: Result<ArrayUnion<UnwrapParsers<T>>> | undefined;
+    let furthestFailure: Failure | undefined;
     for (const parser of parsers) {
       const res = parser(ctx) as Result<ArrayUnion<UnwrapParsers<T>>>;
       if (res.success) {
@@ -136,12 +159,10 @@ export const any = <T extends [...Parser<unknown>[]]>(
         return res;
       }
 
-      if (!furthestRes || furthestRes.ctx.index < res.ctx.index) {
-        furthestRes = res;
-      }
+      furthestFailure = mergeFailures(furthestFailure, res);
     }
 
-    return furthestRes ?? failure(ctx, "any: expected at least one parser");
+    return furthestFailure ?? failure(ctx, "any: expected at least one parser");
   };
 };
 
@@ -160,7 +181,7 @@ export const oneOf = <T>(...parsers: Parser<T>[]): Parser<T> => {
     }
 
     let match: Result<T> | undefined;
-    let furthestRes: Result<T> | undefined;
+    let furthestFailure: Failure | undefined;
     for (const parser of parsers) {
       const res = parser(ctx);
 
@@ -188,8 +209,8 @@ export const oneOf = <T>(...parsers: Parser<T>[]): Parser<T> => {
         match = res;
       }
 
-      if (!furthestRes || furthestRes.ctx.index < res.ctx.index) {
-        furthestRes = res;
+      if (!res.success) {
+        furthestFailure = mergeFailures(furthestFailure, res);
       }
     }
 
@@ -197,7 +218,8 @@ export const oneOf = <T>(...parsers: Parser<T>[]): Parser<T> => {
       return match;
     }
 
-    return furthestRes ?? failure(ctx, "oneOf: expected at least one parser");
+    return furthestFailure ??
+      failure(ctx, "oneOf: expected at least one parser");
   };
 };
 
@@ -224,6 +246,12 @@ export const furthest = <T>(...parsers: Parser<T>[]): Parser<T> => {
 
       if (!furthestRes || furthestRes.ctx.index < res.ctx.index) {
         furthestRes = res;
+      } else if (
+        furthestRes.ctx.index === res.ctx.index &&
+        !furthestRes.success &&
+        !res.success
+      ) {
+        furthestRes = mergeFailures(furthestRes, res);
       }
     }
 

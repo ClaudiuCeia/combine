@@ -3,13 +3,16 @@ import {
   any,
   chainl1,
   chainr1,
+  furthest,
   manyTill,
+  oneOf,
   optional,
   sepBy,
   seq,
 } from "../src/combinators.ts";
 import {
   failure,
+  formatErrorCompact,
   formatErrorReport,
   formatErrorSnippet,
   type Parser,
@@ -26,6 +29,28 @@ Deno.test("any returns the failure that got furthest when all alternatives fail"
   if (!res.success) {
     assertEquals(res.expected, "Y");
     assertEquals(res.ctx.index, 2);
+    assertEquals(res.variants, []);
+  }
+});
+
+Deno.test("choice combinators aggregate tied failures", () => {
+  const parsers = [
+    any(str("if"), str("if"), str("while")),
+    oneOf(str("if"), str("if"), str("while")),
+    furthest(str("if"), str("if"), str("while")),
+  ];
+
+  for (const parser of parsers) {
+    const res = parser({ text: "match", index: 0 });
+    assertEquals(res.success, false);
+    if (!res.success) {
+      assertEquals(res.expected, "if");
+      assertEquals(res.variants.map((variant) => variant.expected), ["while"]);
+      assertEquals(
+        formatErrorCompact(res),
+        "expected one of if, while at 1:1",
+      );
+    }
   }
 });
 
