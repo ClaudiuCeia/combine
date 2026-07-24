@@ -146,7 +146,7 @@ If you want the deeper explanations (recursion patterns, `defineLanguage`, error
 handling, `cut` vs `context`, and `any` vs `furthest`), see `docs/guide.md`.
 
 The guide also covers the optional lexer layer (`lexeme`, `symbol`, `keyword`,
-`createLexer`) for trivia/comments.
+`createLexer`) for trivia/comments, plus the library's UTF-16 offset policy.
 
 ## License
 

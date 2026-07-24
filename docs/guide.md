@@ -3,6 +3,19 @@
 This page collects the "deep dive" topics that are useful once you've built a
 small parser and want to scale it to a real grammar.
 
+## Text and offsets
+
+`Context.index`, `runParser` start offsets, and captured spans use UTF-16 code
+unit offsets, matching JavaScript string APIs. The `char`, `anyChar`, `notChar`,
+and `charWhere` primitives consume one UTF-16 code unit, so an astral character
+such as an emoji occupies two positions.
+
+Use a Unicode regular expression such as `regex(/./u, "Unicode code point")`
+when a parser should consume a complete Unicode code point. Its matched string
+may advance the context by two UTF-16 positions. The default `keyword` boundary
+recognizes ASCII letters, digits, and underscores; grammars with Unicode
+identifiers should define their own boundary parser.
+
 ## Order and recursion
 
 Parser combinators are functions, so order and recursion rules apply.
