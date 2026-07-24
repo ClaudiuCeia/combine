@@ -45,14 +45,15 @@ If you're in a CommonJS project, use a dynamic import:
 
 ## Quickstart
 
-Parsers are plain functions: `(ctx) => Result<T>`. The context tracks where you
-are in the input: `{ text, index }`.
+Parsers are plain functions: `(ctx) => Result<T>`. Use `parseAll` when the
+parser must consume the complete input, or `runParser` for partial parsing and
+custom start offsets.
 
 ```ts
 import {
-  eof,
   map,
   optional,
+  parseAll,
   regex,
   seq,
   space,
@@ -62,11 +63,11 @@ import {
 
 const name = trim(regex(/[^!]+/, "name"));
 const hello = map(
-  seq(str("Hello,"), optional(space()), name, str("!"), eof()),
+  seq(str("Hello,"), optional(space()), name, str("!")),
   ([, , who]) => who,
 );
 
-const result = hello({ text: "Hello, World!", index: 0 });
+const result = parseAll(hello, "Hello, World!");
 
 if (result.success) {
   console.log(result.value); // "World"

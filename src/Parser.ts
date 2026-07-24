@@ -77,6 +77,25 @@ export const success = <T>(ctx: Context, value: T): Success<T> => {
   };
 };
 
+/**
+ * Run a parser against text from the given UTF-16 offset.
+ */
+export const runParser = <T>(
+  parser: Parser<T>,
+  text: string,
+  index = 0,
+): Result<T> => parser({ text, index });
+
+/**
+ * Run a parser and require it to consume all input.
+ */
+export const parseAll = <T>(parser: Parser<T>, text: string): Result<T> => {
+  const res = runParser(parser, text);
+  if (!res.success || res.ctx.index === text.length) return res;
+
+  return failure(res.ctx, "end of input");
+};
+
 const LINE_CACHE_LIMIT = 8;
 // Cache per input string. `null` means the string has no '\n' (single line).
 const lineStartsCache = new Map<string, number[] | null>();
