@@ -20,9 +20,11 @@ import {
   manyTill,
   minus,
   not,
+  oneOf,
   optional,
   peek,
   sepBy,
+  furthest,
 } from "../src/combinators.ts";
 import {
   anyChar,
@@ -393,6 +395,40 @@ describe("streaming utility wrappers", () => {
       fatal: true,
       expected: "complete token",
     });
+  });
+});
+
+describe("streaming alternative selection", () => {
+  test("waits while oneOf alternatives remain unresolved", () => {
+    const stream = createStreamingParser(oneOf(str("a"), str("ab")));
+
+    expect(stream.feed("a")).toMatchObject({ success: false, pending: true });
+    expect(stream.feed("x")).toMatchObject({ success: true, value: "a" });
+  });
+
+  test("preserves pending oneOf results after earlier failures", () => {
+    expect(
+      createStreamingParser(oneOf(str("x"), str("ab"))).feed("a"),
+    ).toMatchObject({ success: false, pending: true, expected: "ab" });
+  });
+
+  test("fails oneOf as soon as two alternatives match", () => {
+    const result = createStreamingParser(
+      oneOf(str("a"), str("a"), str("ab")),
+    ).feed("a");
+
+    expect(result).toMatchObject({
+      success: false,
+      expected: expect.stringContaining("expected single parser to match"),
+    });
+    expect(isPending(result)).toBe(false);
+  });
+
+  test("waits while a furthest alternative may grow", () => {
+    const stream = createStreamingParser(furthest(str("a"), str("ab")));
+
+    expect(stream.feed("a")).toMatchObject({ success: false, pending: true });
+    expect(stream.feed("x")).toMatchObject({ success: true, value: "a" });
   });
 });
 

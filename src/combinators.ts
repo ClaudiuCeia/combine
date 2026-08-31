@@ -4,6 +4,7 @@ import {
   failure,
   isFatal,
   isPending,
+  type Pending,
   type Parser,
   type Result,
   type Success,
@@ -225,8 +226,16 @@ export const oneOf = <T>(...parsers: Parser<T>[]): Parser<T> => {
 
     let match: Success<T> | undefined;
     let furthestFailure: Failure | undefined;
+    let unresolved: Pending | undefined;
     for (const parser of parsers) {
       const res = parser(ctx);
+
+      if (isPending(res)) {
+        if (!unresolved || unresolved.ctx.index < res.ctx.index) {
+          unresolved = res;
+        }
+        continue;
+      }
 
       // Fatal errors propagate immediately
       if (!res.success && isFatal(res)) {
@@ -249,6 +258,10 @@ export const oneOf = <T>(...parsers: Parser<T>[]): Parser<T> => {
       if (!res.success) {
         furthestFailure = mergeFailures(furthestFailure, res);
       }
+    }
+
+    if (unresolved) {
+      return unresolved;
     }
 
     if (match) {
@@ -274,8 +287,16 @@ export const furthest = <T>(...parsers: Parser<T>[]): Parser<T> => {
     }
 
     let furthestRes: Result<T> | undefined;
+    let unresolved: Pending | undefined;
     for (const parser of parsers) {
       const res = parser(ctx);
+
+      if (isPending(res)) {
+        if (!unresolved || unresolved.ctx.index < res.ctx.index) {
+          unresolved = res;
+        }
+        continue;
+      }
 
       // Fatal errors propagate immediately
       if (!res.success && isFatal(res)) {
@@ -291,6 +312,10 @@ export const furthest = <T>(...parsers: Parser<T>[]): Parser<T> => {
       ) {
         furthestRes = mergeFailures(furthestRes, res);
       }
+    }
+
+    if (unresolved) {
+      return unresolved;
     }
 
     return (
