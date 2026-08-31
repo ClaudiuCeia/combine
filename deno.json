@@ -4,7 +4,8 @@
   "exports": {
     ".": "./mod.ts",
     "./nondeterministic": "./src/nondeterministic.ts",
-    "./perf": "./src/perf.ts"
+    "./perf": "./src/perf.ts",
+    "./streaming": "./src/streaming.ts"
   },
   "publish": {
     "exclude": [

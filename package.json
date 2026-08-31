@@ -38,6 +38,10 @@
     "./perf": {
       "types": "./dist/src/perf.d.ts",
       "import": "./dist/src/perf.js"
+    },
+    "./streaming": {
+      "types": "./dist/src/streaming.d.ts",
+      "import": "./dist/src/streaming.js"
     }
   },
   "scripts": {
