@@ -248,6 +248,10 @@ export const eof = (): Parser<null> => {
       return failure(ctx, "eof not reached");
     }
 
+    if (ctx.final === false) {
+      return pending(ctx, "end of input");
+    }
+
     return success(ctx, null);
   };
 };

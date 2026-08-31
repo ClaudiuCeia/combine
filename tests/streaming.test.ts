@@ -8,7 +8,7 @@ import {
   type Result,
 } from "../src/Parser.ts";
 import { createStreamingParser } from "../src/streaming.ts";
-import { anyChar, notChar, str, take, takeText } from "../src/parsers.ts";
+import { anyChar, eof, notChar, str, take, takeText } from "../src/parsers.ts";
 
 describe("pending parser results", () => {
   test("are distinguishable from definitive failures", () => {
@@ -204,5 +204,23 @@ describe("streaming remaining input", () => {
     expect(stream.feed("hel")).toMatchObject({ success: false, pending: true });
     expect(stream.feed("lo")).toMatchObject({ success: false, pending: true });
     expect(stream.finish()).toMatchObject({ success: true, value: "hello" });
+  });
+});
+
+describe("streaming end of input", () => {
+  test("eof waits for explicit finalization", () => {
+    const stream = createStreamingParser(eof());
+
+    expect(stream.feed("")).toMatchObject({ success: false, pending: true });
+    expect(stream.finish()).toMatchObject({ success: true, value: null });
+  });
+
+  test("eof fails definitively when input remains", () => {
+    const result = createStreamingParser(eof()).feed("x");
+    expect(result).toMatchObject({
+      success: false,
+      expected: "eof not reached",
+    });
+    expect(isPending(result)).toBe(false);
   });
 });
