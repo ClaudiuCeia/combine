@@ -1,4 +1,5 @@
 import { failure, isPending, type Parser, type Result } from "./Parser.ts";
+import { eof } from "./parsers.ts";
 
 /** A single-use parser over append-only string chunks. */
 export type StreamingParser<T> = Readonly<{
@@ -74,4 +75,79 @@ export async function* parseStream<T>(
   }
 
   yield stream.finish();
+}
+
+export type ParseStreamEachOptions = Readonly<{
+  /** Parser that marks a clean end between values. Default: `eof()`. */
+  until?: Parser<unknown>;
+}>;
+
+/** Parse and yield consecutive values from one async chunk source. */
+export async function* parseStreamEach<T>(
+  parser: Parser<T>,
+  chunks: AsyncIterable<string>,
+  options: ParseStreamEachOptions = {},
+): AsyncGenerator<Result<T>, void, undefined> {
+  const until = options.until ?? eof();
+  let text = "";
+  let index = 0;
+
+  const parseAvailable = (
+    final: boolean,
+  ): { results: Result<T>[]; done: boolean } => {
+    const results: Result<T>[] = [];
+
+    while (true) {
+      if (!final && index >= text.length) return { results, done: false };
+
+      const ctx = { text, index, final };
+      const end = until(ctx);
+      if (end.success) return { results, done: true };
+      if (isPending(end)) {
+        results.push(end);
+        return { results, done: final };
+      }
+      if (end.fatal) {
+        results.push(end);
+        return { results, done: true };
+      }
+
+      const result = parser(ctx);
+      if (!result.success) {
+        if (final && isPending(result)) {
+          results.push(
+            failure(result.ctx, result.expected, result.variants, result.stack),
+          );
+        } else {
+          results.push(result);
+        }
+        return { results, done: !isPending(result) || final };
+      }
+
+      if (result.ctx.index <= index) {
+        results.push(
+          failure(
+            ctx,
+            "parseStreamEach: parser succeeded without consuming input",
+          ),
+        );
+        return { results, done: true };
+      }
+
+      results.push(result);
+      index = result.ctx.index;
+    }
+  };
+
+  for await (const chunk of chunks) {
+    if (chunk.length === 0) continue;
+    text += chunk;
+
+    const batch = parseAvailable(false);
+    for (const result of batch.results) yield result;
+    if (batch.done) return;
+  }
+
+  const batch = parseAvailable(true);
+  for (const result of batch.results) yield result;
 }

@@ -7,7 +7,11 @@ import {
   success,
   type Result,
 } from "../src/Parser.ts";
-import { createStreamingParser, parseStream } from "../src/streaming.ts";
+import {
+  createStreamingParser,
+  parseStream,
+  parseStreamEach,
+} from "../src/streaming.ts";
 import { any, many, manyTill, optional } from "../src/combinators.ts";
 import {
   anyChar,
@@ -139,6 +143,42 @@ describe("async parser streams", () => {
     expect(results).toHaveLength(2);
     expect(results[1]).toMatchObject({ success: false, expected: "hello" });
     expect(isPending(results[1]!)).toBe(false);
+  });
+
+  test("yield consecutive values from the same source", async () => {
+    async function* chunks(): AsyncGenerator<string> {
+      yield "a";
+      yield "ba";
+      yield "b";
+    }
+
+    const results: Result<string>[] = [];
+    for await (const result of parseStreamEach(str("ab"), chunks())) {
+      results.push(result);
+    }
+
+    expect(
+      results
+        .filter((result) => result.success)
+        .map((result) => (result.success ? result.value : null)),
+    ).toEqual(["ab", "ab"]);
+    expect(results.filter(isPending)).toHaveLength(2);
+  });
+
+  test("reject non-advancing repeated parsers", async () => {
+    async function* chunks(): AsyncGenerator<string> {
+      yield "x";
+    }
+
+    const results: Result<string>[] = [];
+    for await (const result of parseStreamEach(str(""), chunks())) {
+      results.push(result);
+    }
+
+    expect(results.at(-1)).toMatchObject({
+      success: false,
+      expected: "parseStreamEach: parser succeeded without consuming input",
+    });
   });
 });
 
