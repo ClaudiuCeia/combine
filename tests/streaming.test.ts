@@ -25,6 +25,7 @@ import {
   peek,
   sepBy,
   furthest,
+  seq,
 } from "../src/combinators.ts";
 import {
   anyChar,
@@ -42,6 +43,7 @@ import {
   trie,
 } from "../src/parsers.ts";
 import { cut, ifPeek, onFailure, peekAnd } from "../src/utility.ts";
+import { blockComment, keyword, lineComment } from "../src/lexer.ts";
 
 describe("pending parser results", () => {
   test("are distinguishable from definitive failures", () => {
@@ -437,6 +439,68 @@ describe("streaming alternative selection", () => {
 
     expect(stream.feed("a")).toMatchObject({ success: false, pending: true });
     expect(stream.feed("x")).toMatchObject({ success: true, value: "a" });
+  });
+});
+
+describe("streaming lexer", () => {
+  test("waits for line-comment prefixes and content", () => {
+    const stream = createStreamingParser(lineComment());
+
+    expect(stream.feed("/")).toMatchObject({ success: false, pending: true });
+    expect(stream.feed("/ note")).toMatchObject({
+      success: false,
+      pending: true,
+    });
+    expect(stream.finish()).toMatchObject({ success: true, value: null });
+  });
+
+  test("finishes a line comment when a newline arrives", () => {
+    expect(
+      createStreamingParser(lineComment()).feed("// note\n"),
+    ).toMatchObject({
+      success: true,
+      value: null,
+      ctx: { index: 7, final: false },
+    });
+  });
+
+  test("waits for a complete block comment", () => {
+    const stream = createStreamingParser(blockComment());
+
+    expect(stream.feed("/")).toMatchObject({ success: false, pending: true });
+    expect(stream.feed("* note")).toMatchObject({
+      success: false,
+      pending: true,
+    });
+    expect(stream.feed("*/")).toMatchObject({ success: true, value: null });
+  });
+
+  test("makes an unterminated final block comment fatal", () => {
+    const stream = createStreamingParser(blockComment());
+    expect(stream.feed("/* note")).toMatchObject({ pending: true });
+    expect(stream.finish()).toMatchObject({
+      success: false,
+      expected: "*/",
+      fatal: true,
+    });
+  });
+
+  test("preserves open input after a closed block comment", () => {
+    const stream = createStreamingParser(seq(blockComment(), eof()));
+
+    expect(stream.feed("/* note */")).toMatchObject({
+      success: false,
+      pending: true,
+    });
+    expect(stream.finish()).toMatchObject({ success: true });
+  });
+
+  test("waits for a keyword identifier boundary", () => {
+    const noTrivia: Parser<null> = (ctx) => success(ctx, null);
+    const stream = createStreamingParser(keyword("let", noTrivia));
+
+    expect(stream.feed("let")).toMatchObject({ success: false, pending: true });
+    expect(stream.feed(" ")).toMatchObject({ success: true, value: "let" });
   });
 });
 
