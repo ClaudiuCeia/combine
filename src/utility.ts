@@ -103,7 +103,13 @@ export const peekAnd = <A, B>(
       return and(ctx);
     }
 
-    return failure(ctx, `Peek unsuccesful: expected ${res.expected}`);
+    return failure(
+      ctx,
+      `Peek unsuccesful: expected ${res.expected}`,
+      res.variants,
+      res.stack,
+      res.fatal,
+    );
   };
 };
 
@@ -123,6 +129,8 @@ export const ifPeek = <A, B>(
     if (res.success) {
       return continueWith(res.ctx);
     }
+
+    if (isFatal(res)) return res;
 
     return success(ctx, null);
   };
@@ -145,13 +153,13 @@ export const onFailure = <T>(
     }
 
     const rewritten = onFail(res);
+    if (rewritten === res) return res;
+
     return {
       ...rewritten,
-      variants: [
-        ...rewritten.variants,
-        ...res.variants,
-        failure(res.ctx, res.expected),
-      ],
+      variants: rewritten.variants.includes(res)
+        ? rewritten.variants
+        : [...rewritten.variants, res],
     };
   };
 };

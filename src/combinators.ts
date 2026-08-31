@@ -13,6 +13,21 @@ import { map } from "./utility.ts";
 const failedToAdvance = (name: string): string =>
   `${name}: parser succeeded without consuming input (this would loop forever)`;
 
+const formatValue = (value: unknown): string => {
+  try {
+    const serialized = JSON.stringify(value);
+    if (serialized !== undefined) return serialized;
+  } catch {
+    // Fall through to a non-JSON representation.
+  }
+
+  try {
+    return String(value);
+  } catch {
+    return "<unprintable>";
+  }
+};
+
 const assertAdvanced = (
   name: string,
   before: Context,
@@ -216,9 +231,9 @@ export const oneOf = <T>(...parsers: Parser<T>[]): Parser<T> => {
         if (match) {
           return failure(
             ctx,
-            `expected single parser to match, already matched "${JSON.stringify(
+            `expected single parser to match, already matched "${formatValue(
               match.value,
-            )}", now matched ${JSON.stringify(res.value)}`,
+            )}", now matched ${formatValue(res.value)}`,
           );
         }
 
@@ -404,7 +419,7 @@ export const manyTill = <A, B>(
           return res;
         }
 
-        return maybeEnd;
+        return res.ctx.index > maybeEnd.ctx.index ? res : maybeEnd;
       }
 
       const advanceErr = assertAdvanced("manyTill", nextCtx, res.ctx);
@@ -626,9 +641,11 @@ export const minus = <T>(a: Parser<T>, b: Parser<unknown>): Parser<T> => {
     if (excludedRes.success) {
       return failure(
         ctx,
-        `Matched excluded "${JSON.stringify(excludedRes.value)}"`,
+        `Matched excluded "${formatValue(excludedRes.value)}"`,
       );
     }
+
+    if (isFatal(excludedRes)) return excludedRes;
 
     return a(ctx);
   };
@@ -642,8 +659,10 @@ export const not = <T>(a: Parser<T>): Parser<null> => {
   return (ctx) => {
     const res = a(ctx);
     if (res.success) {
-      return failure(ctx, `Matched "${JSON.stringify(res.value)}"`);
+      return failure(ctx, `Matched "${formatValue(res.value)}"`);
     }
+
+    if (isFatal(res)) return res;
 
     return success(ctx, null);
   };
