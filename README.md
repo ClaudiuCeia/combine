@@ -203,10 +203,12 @@ covers successful parsing, late failures, and grammar construction. Run it with:
 ```sh
 bun run bench:verify
 bun run bench:comparison
+bun run bench:streaming
 ```
 
 See `bench/comparison/README.md` for methodology, package-selection criteria,
-and limitations.
+and limitations. The streaming benchmark is Combine-only because the comparison
+libraries do not expose equivalent append-only parser lifecycles.
 
 ## Development
 
