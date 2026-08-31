@@ -322,6 +322,10 @@ export const optional = <T>(parser: Parser<T>): Parser<T | null> => {
       return res;
     }
 
+    if (isPending(res)) {
+      return res;
+    }
+
     // Fatal errors propagate - don't swallow them
     if (isFatal(res)) {
       return res;

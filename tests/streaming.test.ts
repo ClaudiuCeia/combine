@@ -8,7 +8,7 @@ import {
   type Result,
 } from "../src/Parser.ts";
 import { createStreamingParser } from "../src/streaming.ts";
-import { any } from "../src/combinators.ts";
+import { any, optional } from "../src/combinators.ts";
 import {
   anyChar,
   eof,
@@ -296,5 +296,21 @@ describe("streaming ordered choice", () => {
     expect(
       createStreamingParser(any(str("x"), str("ab"))).feed("ab"),
     ).toMatchObject({ success: true, value: "ab" });
+  });
+});
+
+describe("streaming optional values", () => {
+  test("do not treat incomplete input as absence", () => {
+    const stream = createStreamingParser(optional(str("ab")));
+
+    expect(stream.feed("a")).toMatchObject({ success: false, pending: true });
+    expect(stream.feed("b")).toMatchObject({ success: true, value: "ab" });
+  });
+
+  test("remain absent after a definitive mismatch", () => {
+    expect(createStreamingParser(optional(str("ab"))).feed("x")).toMatchObject({
+      success: true,
+      value: null,
+    });
   });
 });
