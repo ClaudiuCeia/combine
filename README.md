@@ -82,7 +82,8 @@ The library exports a lot of small pieces; these are the ones you'll likely
 reach for first:
 
 - Parsers: `str`, `regex`, `digit`, `letter`, `int`, `double`, `space`, `eof`
-- Composition: `seq`, `any`, `either`, `oneOf`, `many`, `many1`, `optional`
+- Composition: `seq`, `choice`/`any`, `either`, `oneOf`, `many`, `many1`,
+  `optional`
 - Transform: `map`, `chain`/`flatMap`, `mapJoin`, `trim`
 
 If you like learning by examples, start with `tests/`.

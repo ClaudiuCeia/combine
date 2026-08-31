@@ -183,6 +183,9 @@ export const any = <T extends [...Parser<unknown>[]]>(
   };
 };
 
+/** Conventional alias for the ordered-choice `any` combinator. */
+export const choice: typeof any = any;
+
 /**
  * Try all parsers in order. If more than one match is found,
  * it's a failure. If only one matches, return it's result.

@@ -3,6 +3,7 @@ import {
   any,
   chainl1,
   chainr1,
+  choice,
   furthest,
   keepNonNull,
   minus,
@@ -16,6 +17,12 @@ import {
 import { failure, type Parser } from "../src/Parser.ts";
 import { str } from "../src/parsers.ts";
 import { map } from "../src/utility.ts";
+
+Deno.test("choice aliases ordered any", () => {
+  assertStrictEquals(choice, any);
+  const parser: Parser<"a" | "b"> = choice(str("a"), str("b"));
+  assertStrictEquals(parser({ text: "b", index: 0 }).success, true);
+});
 
 Deno.test("seq fails when called with no parsers", () => {
   // `seq()` is valid at runtime but should fail (and is hard to type safely).
