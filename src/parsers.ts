@@ -374,6 +374,10 @@ export const regex = (re: RegExp, expected: string): Parser<string> => {
   const stickyRe = new RegExp(re.source, flags);
 
   return (ctx) => {
+    if (ctx.final === false) {
+      return pending(ctx, expected);
+    }
+
     stickyRe.lastIndex = ctx.index;
     const res = stickyRe.exec(ctx.text);
     return res && res.index === ctx.index

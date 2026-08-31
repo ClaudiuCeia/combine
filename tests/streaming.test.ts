@@ -12,6 +12,7 @@ import {
   anyChar,
   eof,
   notChar,
+  regex,
   str,
   take,
   takeText,
@@ -254,6 +255,30 @@ describe("streaming tries", () => {
     expect(stream.finish()).toMatchObject({
       success: false,
       expected: "one of ```",
+    });
+  });
+});
+
+describe("streaming regular expressions", () => {
+  test("generic regex waits for final input", () => {
+    const stream = createStreamingParser(regex(/[a-z]+/, "identifier"));
+
+    expect(stream.feed("name ")).toMatchObject({
+      success: false,
+      pending: true,
+      expected: "identifier",
+    });
+    expect(stream.finish()).toMatchObject({ success: true, value: "name" });
+  });
+
+  test("end-sensitive expressions cannot succeed prematurely", () => {
+    const stream = createStreamingParser(regex(/a(?=b$)/, "a before final b"));
+
+    expect(stream.feed("ab")).toMatchObject({ success: false, pending: true });
+    expect(stream.feed("c")).toMatchObject({ success: false, pending: true });
+    expect(stream.finish()).toMatchObject({
+      success: false,
+      expected: "a before final b",
     });
   });
 });
