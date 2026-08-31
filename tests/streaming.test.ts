@@ -8,7 +8,7 @@ import {
   type Result,
 } from "../src/Parser.ts";
 import { createStreamingParser } from "../src/streaming.ts";
-import { anyChar, notChar, str } from "../src/parsers.ts";
+import { anyChar, notChar, str, take } from "../src/parsers.ts";
 
 describe("pending parser results", () => {
   test("are distinguishable from definitive failures", () => {
@@ -168,5 +168,31 @@ describe("streaming characters", () => {
       expected: 'found char "\n"',
     });
     expect(isPending(result)).toBe(false);
+  });
+});
+
+describe("streaming fixed-width input", () => {
+  test("take suspends until enough input is buffered", () => {
+    const stream = createStreamingParser(take(5));
+
+    expect(stream.feed("hel")).toMatchObject({
+      success: false,
+      pending: true,
+      expected: "5 characters",
+    });
+    expect(stream.feed("lo!")).toMatchObject({
+      success: true,
+      value: "hello",
+      ctx: { index: 5 },
+    });
+  });
+
+  test("take preserves final EOF diagnostics", () => {
+    const stream = createStreamingParser(take(5));
+    expect(stream.feed("hel")).toMatchObject({ pending: true });
+    expect(stream.finish()).toMatchObject({
+      success: false,
+      expected: "unexpected end of input",
+    });
   });
 });

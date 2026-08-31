@@ -201,12 +201,16 @@ export const take = (count: number): Parser<string> => {
     const endIdx = ctx.index + count;
     if (endIdx <= ctx.text.length) {
       return success(
-        { text: ctx.text, index: endIdx },
+        ctx.final === false
+          ? { text: ctx.text, index: endIdx, final: false }
+          : { text: ctx.text, index: endIdx },
         ctx.text.substring(ctx.index, endIdx),
       );
-    } else {
-      return failure(ctx, "unexpected end of input");
     }
+
+    return ctx.final === false
+      ? pending(ctx, `${count} characters`)
+      : failure(ctx, "unexpected end of input");
   };
 };
 
