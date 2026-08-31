@@ -31,6 +31,7 @@ import {
   digit,
   double,
   eof,
+  letter,
   notChar,
   number,
   regex,
@@ -277,6 +278,13 @@ describe("streaming characters", () => {
 
     expect(stream.feed("")).toMatchObject({ success: false, pending: true });
     expect(stream.feed("7")).toMatchObject({ success: true, value: 7 });
+  });
+
+  test("letter reads incrementally without generic regex", () => {
+    const stream = createStreamingParser(letter());
+
+    expect(stream.feed("")).toMatchObject({ success: false, pending: true });
+    expect(stream.feed("Q")).toMatchObject({ success: true, value: "Q" });
   });
 });
 

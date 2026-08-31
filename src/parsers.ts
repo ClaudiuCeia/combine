@@ -200,7 +200,16 @@ export const digit = (): Parser<number> => {
  * Matches any single letter (case insesitive A-Z)
  */
 export const letter = (): Parser<string> => {
-  return regex(/[a-zA-Z]/, "letter");
+  const read = anyChar();
+  return (ctx) => {
+    const res = read(ctx);
+    if (!res.success) return res;
+
+    const code = res.value.charCodeAt(0);
+    return (code >= 65 && code <= 90) || (code >= 97 && code <= 122)
+      ? res
+      : failure(ctx, "letter");
+  };
 };
 
 /**
