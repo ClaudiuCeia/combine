@@ -1,3 +1,4 @@
+import { bench, group, run, summary } from "mitata";
 import { any, furthest, str, trie } from "../mod.ts";
 
 // Synthetic, deterministic dataset (no network). Keep this small enough that
@@ -16,14 +17,20 @@ const furthestParser = furthest(...words.map((w) => str(w)));
 const target = words[Math.floor(WORDS * 0.75)]!;
 const text = `${target}, not great, not terrible.`;
 
-Deno.bench("any", { group: "trie_vs_any" }, () => {
-  anyParser({ text, index: 0 });
+group("trie_vs_any", () => {
+  summary(() => {
+    bench("any", () => {
+      anyParser({ text, index: 0 });
+    });
+
+    bench("trie", () => {
+      trieParser({ text, index: 0 });
+    }).baseline();
+
+    bench("furthest", () => {
+      furthestParser({ text, index: 0 });
+    });
+  });
 });
 
-Deno.bench("trie", { group: "trie_vs_any", baseline: true }, () => {
-  trieParser({ text, index: 0 });
-});
-
-Deno.bench("furthest", { group: "trie_vs_any" }, () => {
-  furthestParser({ text, index: 0 });
-});
+await run({ throw: true });

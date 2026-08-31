@@ -4,15 +4,12 @@ export type ValidCase<T> = Readonly<{
   expected: T;
 }>;
 
-const makeExpressionCase = (
-  name: string,
-  count: number,
-): ValidCase<number> => {
+const makeExpressionCase = (name: string, count: number): ValidCase<number> => {
   const parts: string[] = [];
   let expected = 0;
 
   for (let index = 0; index < count; index++) {
-    const first = index % 10 + 1;
+    const first = (index % 10) + 1;
     parts.push(`(${first} + 2 * 3 - 4 / (2 + 2))`);
     expected += first + 5;
   }

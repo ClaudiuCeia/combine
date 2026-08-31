@@ -279,9 +279,9 @@ export const formatErrorSnippet = (
   const tabWidth = opts.tabWidth ?? 2;
   const color = opts.color ?? false;
 
-  const lines = f.ctx.text.split("\n").map((l) =>
-    l.endsWith("\r") ? l.slice(0, -1) : l
-  );
+  const lines = f.ctx.text
+    .split("\n")
+    .map((l) => (l.endsWith("\r") ? l.slice(0, -1) : l));
   const lineIdx = Math.max(0, Math.min(lines.length - 1, f.location.line - 1));
 
   const startLine = Math.max(0, lineIdx - contextLines);
@@ -289,11 +289,8 @@ export const formatErrorSnippet = (
   const maxLineNo = endLine + 1;
   const lineNoWidth = String(maxLineNo).length;
 
-  const header =
-    `expected ${f.expected} at line ${f.location.line}, column ${f.location.column}`;
-  const out: string[] = [
-    color ? `${ansi.red}${header}${ansi.reset}` : header,
-  ];
+  const header = `expected ${f.expected} at line ${f.location.line}, column ${f.location.column}`;
+  const out: string[] = [color ? `${ansi.red}${header}${ansi.reset}` : header];
 
   for (let i = startLine; i <= endLine; i++) {
     const rawLine = lines[i] ?? "";
@@ -346,8 +343,7 @@ export const formatErrorReport = (
   opts: FormatErrorReportOptions = {},
 ): string => {
   const color = opts.color ?? false;
-  const header =
-    `expected ${f.expected} at line ${f.location.line}, column ${f.location.column}`;
+  const header = `expected ${f.expected} at line ${f.location.line}, column ${f.location.column}`;
 
   const out: string[] = [
     color ? `${ansi.red}${header}${ansi.reset}` : header,
@@ -355,14 +351,16 @@ export const formatErrorReport = (
       contextLines: opts.contextLines,
       tabWidth: opts.tabWidth,
       color,
-    }).split("\n").slice(1).join("\n"), // omit snippet's header line
+    })
+      .split("\n")
+      .slice(1)
+      .join("\n"), // omit snippet's header line
   ];
 
   const includeStack = opts.stack ?? true;
   if (includeStack && f.stack.length > 0) {
     for (const frame of f.stack) {
-      const line =
-        `  ${frame.label} at line ${frame.location.line}, column ${frame.location.column}`;
+      const line = `  ${frame.label} at line ${frame.location.line}, column ${frame.location.column}`;
       out.push(color ? `${ansi.dim}${line}${ansi.reset}` : line);
     }
   }

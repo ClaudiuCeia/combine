@@ -2,6 +2,6 @@
 
 echo "Running pre-commit checks..."
 
-deno task check || exit 1
+bun run check || exit 1
 
 echo "All checks passed!"

@@ -1,3 +1,4 @@
+import { bench, group, run, summary } from "mitata";
 import {
   any,
   chainl1,
@@ -12,8 +13,7 @@ import {
   surrounded,
 } from "../mod.ts";
 
-const text =
-  `2+2*3+2/4-1+2+2*3+(2/(4-1+2+2*3+2/4-1+2+2*3+2/4-1+2+2*3+2/4-1+2+2)*3+2/4-1+2+2*3+2/4-1`;
+const text = `2+2*3+2/4-1+2+2*3+(2/(4-1+2+2*3+2/4-1+2+2*3+2/4-1+2+2*3+2/4-1+2+2)*3+2/4-1+2+2*3+2/4-1`;
 
 const combineMul = (left: number, op: string, right: number): number => {
   switch (op) {
@@ -46,37 +46,47 @@ type CalcGrammar = Readonly<{
   File: number;
 }>;
 
-Deno.bench("defineLanguage", { group: "calculator" }, () => {
-  const C = defineLanguage<CalcGrammar>({
-    AddOp: () => any(str("+"), str("-")),
-    MulOp: () => any(str("*"), str("/")),
-    Factor: ({ Expression }) =>
-      any(surrounded(str("("), Expression, str(")")), number()),
-    Term: ({ Factor, MulOp }) => chainl1(Factor, MulOp, combineMul),
-    Expression: ({ Term, AddOp }) => chainl1(Term, AddOp, combineAdd),
-    File: ({ Expression }) => map(seq(Expression, eof()), ([v]) => v),
+group("calculator", () => {
+  summary(() => {
+    bench("defineLanguage", () => {
+      const C = defineLanguage<CalcGrammar>({
+        AddOp: () => any(str("+"), str("-")),
+        MulOp: () => any(str("*"), str("/")),
+        Factor: ({ Expression }) =>
+          any(surrounded(str("("), Expression, str(")")), number()),
+        Term: ({ Factor, MulOp }) => chainl1(Factor, MulOp, combineMul),
+        Expression: ({ Term, AddOp }) => chainl1(Term, AddOp, combineAdd),
+        File: ({ Expression }) => map(seq(Expression, eof()), ([v]) => v),
+      });
+
+      C.File({ text, index: 0 });
+    });
+
+    bench("raw", () => {
+      const AddOp = any(str("+"), str("-"));
+      const MulOp = any(str("*"), str("/"));
+
+      const Expression: Parser<number> = chainl1(
+        lazy(() => Term),
+        AddOp,
+        combineAdd,
+      );
+
+      const Factor: Parser<number> = any(
+        surrounded(
+          str("("),
+          lazy(() => Expression),
+          str(")"),
+        ),
+        number(),
+      );
+
+      const Term: Parser<number> = chainl1(Factor, MulOp, combineMul);
+
+      const File = map(seq(Expression, eof()), ([v]) => v);
+      File({ text, index: 0 });
+    }).baseline();
   });
-
-  C.File({ text, index: 0 });
 });
 
-Deno.bench("raw", { group: "calculator", baseline: true }, () => {
-  const AddOp = any(str("+"), str("-"));
-  const MulOp = any(str("*"), str("/"));
-
-  const Expression: Parser<number> = chainl1(
-    lazy(() => Term),
-    AddOp,
-    combineAdd,
-  );
-
-  const Factor: Parser<number> = any(
-    surrounded(str("("), lazy(() => Expression), str(")")),
-    number(),
-  );
-
-  const Term: Parser<number> = chainl1(Factor, MulOp, combineMul);
-
-  const File = map(seq(Expression, eof()), ([v]) => v);
-  File({ text, index: 0 });
-});
+await run({ throw: true });

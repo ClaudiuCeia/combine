@@ -37,26 +37,30 @@ const createExpressionParser = (): Parjser<number> => {
   );
   const product = factor.pipe(
     then(
-      symbol("*").pipe(or(symbol("/")), then(factor)).pipe(many()),
+      symbol("*")
+        .pipe(or(symbol("/")), then(factor))
+        .pipe(many()),
     ),
     map(([head, tail]) =>
       tail.reduce(
         (left, [operator, right]) =>
           operator === "*" ? left * right : left / right,
         head,
-      )
+      ),
     ),
   );
   const sum = product.pipe(
     then(
-      symbol("+").pipe(or(symbol("-")), then(product)).pipe(many()),
+      symbol("+")
+        .pipe(or(symbol("-")), then(product))
+        .pipe(many()),
     ),
     map(([head, tail]) =>
       tail.reduce(
         (left, [operator, right]) =>
           operator === "+" ? left + right : left - right,
         head,
-      )
+      ),
     ),
   );
   expression.init(sum);

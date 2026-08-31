@@ -1,8 +1,9 @@
-import { assertEquals, assertStrictEquals } from "@std/assert";
+import { assertEquals, assertStrictEquals } from "./assert.ts";
+import { test } from "bun:test";
 import { failure, parseAll, runParser } from "../src/Parser.ts";
 import { str } from "../src/parsers.ts";
 
-Deno.test("runParser starts at the requested index", () => {
+test("runParser starts at the requested index", () => {
   const res = runParser(str("value"), "skip value", 5);
   assertEquals(res.success, true);
   if (res.success) {
@@ -11,7 +12,7 @@ Deno.test("runParser starts at the requested index", () => {
   }
 });
 
-Deno.test("parseAll requires complete input consumption", () => {
+test("parseAll requires complete input consumption", () => {
   assertEquals(parseAll(str("value"), "value").success, true);
 
   const trailing = parseAll(str("value"), "value!");
@@ -22,11 +23,14 @@ Deno.test("parseAll requires complete input consumption", () => {
   }
 });
 
-Deno.test("parseAll preserves parser failures", () => {
+test("parseAll preserves parser failures", () => {
   const sourceFailure = failure({ text: "bad", index: 2 }, "value");
-  assertStrictEquals(parseAll(() => sourceFailure, "bad"), sourceFailure);
+  assertStrictEquals(
+    parseAll(() => sourceFailure, "bad"),
+    sourceFailure,
+  );
 });
 
-Deno.test("parseAll supports empty input", () => {
+test("parseAll supports empty input", () => {
   assertEquals(parseAll(str(""), "").success, true);
 });

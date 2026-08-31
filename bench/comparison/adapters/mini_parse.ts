@@ -69,7 +69,7 @@ const createExpressionParser = (): MiniParser<number> => {
       (left, [operator, right]) =>
         operator === "*" ? left * right : left / right,
       head,
-    )
+    ),
   );
   grammar.expression = seq(
     product,
@@ -79,7 +79,7 @@ const createExpressionParser = (): MiniParser<number> => {
       (left, [operator, right]) =>
         operator === "+" ? left + right : left - right,
       head,
-    )
+    ),
   );
 
   return seq(whitespace, terminated(grammar.expression, eof())).map(

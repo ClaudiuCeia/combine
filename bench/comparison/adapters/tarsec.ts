@@ -19,9 +19,8 @@ const createExpressionParser = (): Parser<number> => {
   const lexeme = <T>(parser: Parser<T>): Parser<T> =>
     map(seqR(parser, whitespace), (parts) => parts[0] as T);
   const symbol = (value: string): Parser<string> => lexeme(str(value));
-  const integer = map(
-    lexeme(many1(digit)),
-    (digits) => Number(digits.join("")),
+  const integer = map(lexeme(many1(digit)), (digits) =>
+    Number(digits.join("")),
   );
 
   const grammar: { expression?: Parser<number> } = {};
@@ -37,27 +36,23 @@ const createExpressionParser = (): Parser<number> => {
     seqR(or(symbol("*"), symbol("/")), factor),
     (parts) => [parts[0] as string, parts[1] as number] as const,
   );
-  const product = map(
-    seqR(factor, many(productTail)),
-    (parts) =>
-      (parts[1] as (readonly [string, number])[]).reduce(
-        (left, [operator, right]) =>
-          operator === "*" ? left * right : left / right,
-        parts[0] as number,
-      ),
+  const product = map(seqR(factor, many(productTail)), (parts) =>
+    (parts[1] as (readonly [string, number])[]).reduce(
+      (left, [operator, right]) =>
+        operator === "*" ? left * right : left / right,
+      parts[0] as number,
+    ),
   );
   const sumTail = map(
     seqR(or(symbol("+"), symbol("-")), product),
     (parts) => [parts[0] as string, parts[1] as number] as const,
   );
-  grammar.expression = map(
-    seqR(product, many(sumTail)),
-    (parts) =>
-      (parts[1] as (readonly [string, number])[]).reduce(
-        (left, [operator, right]) =>
-          operator === "+" ? left + right : left - right,
-        parts[0] as number,
-      ),
+  grammar.expression = map(seqR(product, many(sumTail)), (parts) =>
+    (parts[1] as (readonly [string, number])[]).reduce(
+      (left, [operator, right]) =>
+        operator === "+" ? left + right : left - right,
+      parts[0] as number,
+    ),
   );
 
   return seq(

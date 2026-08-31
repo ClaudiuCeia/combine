@@ -212,9 +212,7 @@ export const eof = (): Parser<null> => {
  */
 export const horizontalSpace = (): Parser<null> => {
   return (ctx) => {
-    return skipMany1(
-      charWhere((code) => code === 0x20 || code === 0x09),
-    )(ctx);
+    return skipMany1(charWhere((code) => code === 0x20 || code === 0x09))(ctx);
   };
 };
 
@@ -231,9 +229,8 @@ export const int = (): Parser<number> => {
  * Matches a dot-separated double
  */
 export const double = (): Parser<number> => {
-  return map(
-    regex(/[0-9]+\.[0-9]*/, "decimal number"),
-    (value) => Number(value),
+  return map(regex(/[0-9]+\.[0-9]*/, "decimal number"), (value) =>
+    Number(value),
   );
 };
 

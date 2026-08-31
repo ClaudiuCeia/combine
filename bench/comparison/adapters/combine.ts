@@ -20,9 +20,8 @@ const createExpressionParser = (): Parser<number> => {
   const lexeme = <T>(parser: Parser<T>): Parser<T> =>
     map(seq(parser, whitespace), ([value]) => value);
   const symbol = (value: string): Parser<string> => lexeme(str(value));
-  const integer = map(
-    lexeme(many1(digit())),
-    (digits) => digits.reduce((value, next) => value * 10 + next, 0),
+  const integer = map(lexeme(many1(digit())), (digits) =>
+    digits.reduce((value, next) => value * 10 + next, 0),
   );
 
   const grammar: { expression?: Parser<number> } = {};
@@ -34,12 +33,12 @@ const createExpressionParser = (): Parser<number> => {
   const product = chainl1(
     factor,
     either(symbol("*"), symbol("/")),
-    (left, operator, right) => operator === "*" ? left * right : left / right,
+    (left, operator, right) => (operator === "*" ? left * right : left / right),
   );
   grammar.expression = chainl1(
     product,
     either(symbol("+"), symbol("-")),
-    (left, operator, right) => operator === "+" ? left + right : left - right,
+    (left, operator, right) => (operator === "+" ? left + right : left - right),
   );
 
   return map(

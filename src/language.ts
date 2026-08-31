@@ -1,10 +1,7 @@
-// deno-lint-ignore-file no-explicit-any
 import type { Parser } from "./Parser.ts";
 import { lazy } from "./utility.ts";
 
-const bindLanguage = (
-  map: Record<PropertyKey, (self: any) => Parser<any>>,
-) => {
+const bindLanguage = (map: Record<PropertyKey, (self: any) => Parser<any>>) => {
   const LanguageDefinition = class LanguageDefinitionClass {
     constructor() {
       for (const key of Reflect.ownKeys(map)) {
@@ -32,9 +29,7 @@ export type Language<Outputs extends object> = {
  * Parser definitions for an output-schema language.
  */
 export type LanguageDefinitions<Outputs extends object> = {
-  [Key in keyof Outputs]-?: (
-    self: Language<Outputs>,
-  ) => Parser<Outputs[Key]>;
+  [Key in keyof Outputs]-?: (self: Language<Outputs>) => Parser<Outputs[Key]>;
 };
 
 /**

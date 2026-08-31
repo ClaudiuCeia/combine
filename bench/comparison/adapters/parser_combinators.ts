@@ -22,26 +22,20 @@ const createExpressionParser = (): Parser<number> => {
   const expressionRef = lazy(() => grammar.expression!);
   const factor: Parser<number> = choice(
     integer,
-    map(
-      seq(symbol("("), expressionRef, symbol(")")),
-      ([, value]) => value,
-    ),
+    map(seq(symbol("("), expressionRef, symbol(")")), ([, value]) => value),
   );
   const product = oneOrManyRed(
     factor,
     choice(symbol("*"), symbol("/")),
-    (left, right, operator) => operator === "*" ? left * right : left / right,
+    (left, right, operator) => (operator === "*" ? left * right : left / right),
   );
   grammar.expression = oneOrManyRed(
     product,
     choice(symbol("+"), symbol("-")),
-    (left, right, operator) => operator === "+" ? left + right : left - right,
+    (left, right, operator) => (operator === "+" ? left + right : left - right),
   );
 
-  return map(
-    seq(wspaces, grammar.expression, eof),
-    ([, output]) => output,
-  );
+  return map(seq(wspaces, grammar.expression, eof), ([, output]) => output);
 };
 
 const run = <T>(parser: Parser<T>, input: string): T | typeof parseFailure => {

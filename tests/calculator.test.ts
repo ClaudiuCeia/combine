@@ -1,4 +1,5 @@
-import { assertObjectMatch } from "@std/assert";
+import { assertObjectMatch } from "./assert.ts";
+import { test } from "bun:test";
 import { any, chainl1, oneOf, surrounded } from "../src/combinators.ts";
 import type { Parser } from "../src/Parser.ts";
 import { number, str } from "../src/parsers.ts";
@@ -64,7 +65,7 @@ const testExpr = (expr: string, value: number): void => {
   });
 };
 
-Deno.test("simple expressions", () => {
+test("simple expressions", () => {
   testExpr("123", 123);
   testExpr("2+2", 4);
   testExpr("2+2+3-1", 6);
@@ -77,13 +78,13 @@ Deno.test("simple expressions", () => {
   testExpr("(2-2)", 0);
 });
 
-Deno.test("operator precedence", () => {
+test("operator precedence", () => {
   testExpr("2+2*3", 8);
   testExpr("2+2*3+2/4-1", 7.5);
   testExpr("2+4/2", 4);
 });
 
-Deno.test("parenthesis precedence", () => {
+test("parenthesis precedence", () => {
   testExpr("2+(4/2-2)", 2);
   testExpr("(2+2)*3", 12);
 });

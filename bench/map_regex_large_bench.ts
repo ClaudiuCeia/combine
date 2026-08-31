@@ -1,3 +1,4 @@
+import { bench, group, run } from "mitata";
 import { many, optional, seq, str } from "../mod.ts";
 import { regex } from "../src/parsers.ts";
 import { map } from "../src/utility.ts";
@@ -28,10 +29,10 @@ const makeText = (targetLen: number): string => {
 
 const text = makeText(16 * 1024); // > 8k chars
 
-Deno.bench(
-  "map+regex large generated input",
-  { group: "large_generated" },
-  () => {
+group("large_generated", () => {
+  bench("map+regex large generated input", () => {
     doc({ text, index: 0 });
-  },
-);
+  });
+});
+
+await run({ throw: true });

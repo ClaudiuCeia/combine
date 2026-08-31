@@ -5,42 +5,39 @@
 - `mod.ts`: Public entrypoint (re-exports the library surface).
 - `src/`: Library implementation (TypeScript). Core modules include `Parser.ts`,
   `combinators.ts`, and `parsers.ts`.
-- `tests/`: Deno tests (`*.test.ts`) using `Deno.test` and `@std/assert`.
+- `tests/`: Bun tests (`*.test.ts`) using `bun:test`.
 - `examples/`: Small runnable examples.
 - `bench/`: Benchmarks (excluded from publishing).
-- `scripts/`: Repo tooling (notably npm build tooling).
-- `npm/`: Generated npm publish artifact (do not edit by hand; do not commit
+- `dist/`: Generated npm publish artifact (do not edit by hand; do not commit
   changes).
 
 ## Build, Test, and Development Commands
 
 Run these from the repo root:
 
-- `deno task check`: Checks formatting, lints, and runs tests
-  (`deno fmt --check && deno lint && deno test --ignore=npm`).
-- `deno test`: Run the test suite.
-- `deno fmt`: Auto-format code and Markdown.
-- `deno lint`: Static analysis for TS/JS.
-- `deno task build:npm`: Generates the npm package into `npm/` using
-  `@deno/dnt`.
+- `bun run check`: Checks formatting, lint, types, tests, and benchmark adapters.
+- `bun test`: Run the test suite.
+- `bun run format`: Format code and Markdown with Oxfmt.
+- `bun run lint`: Run Oxlint.
+- `bun run typecheck`: Type-check source, tests, benchmarks, and scripts.
+- `bun run build`: Generates the Node 20+ ESM package into `dist/`.
+- `bun run package:check`: Validates the npm package with publint and attw.
 
-Tip: install the local git hook with `deno task hooks:install` (runs the same
-checks on commit).
+Install the local pre-commit hook with `bun run hooks:install`; it runs
+`bun run check`.
 
 ## Coding Style & Naming Conventions
 
-- Use `deno fmt` as the source of truth for formatting.
+- Use Oxfmt (`bun run format`) as the source of truth for formatting.
 - Prefer explicit types for exported functions/types.
 - File naming follows existing patterns: core types in `PascalCase.ts` (ex:
   `Parser.ts`), utilities in `camelCase.ts` (ex: `combinators.ts`).
-- Keep runtime code dependency-free and Node-compatible (tests may use
-  Deno/JSR-only deps).
+- Keep runtime code dependency-free and compatible with Bun, Deno, and Node 20+.
 
 ## Testing Guidelines
 
 - Tests live in `tests/` and should be named `*.test.ts`.
-- Use `@std/assert` assertions and deterministic inputs (no network/time
-  dependencies).
+- Use `bun:test` and deterministic inputs (no network/time dependencies).
 
 ## Commit & Pull Request Guidelines
 
@@ -51,6 +48,6 @@ checks on commit).
 
 ## Release / Publishing
 
-- `deno.json` is the version source of truth.
+- `package.json` is the version source of truth; `deno.json` mirrors it for JSR.
 - Tag releases as `vX.Y.Z` (example: `v0.2.4`). The GitHub workflow publishes to
-  JSR, then builds and publishes `./npm` to npm (requires `NPM_TOKEN` secret).
+  JSR, then builds and publishes the root package to npm using trusted publishing.

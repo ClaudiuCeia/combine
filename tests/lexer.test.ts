@@ -1,4 +1,5 @@
-import { assertEquals } from "@std/assert";
+import { assertEquals } from "./assert.ts";
+import { test } from "bun:test";
 import {
   blockComment,
   createLexer,
@@ -12,7 +13,7 @@ import { seq } from "../src/combinators.ts";
 import { map } from "../src/utility.ts";
 import type { Parser } from "../src/Parser.ts";
 
-Deno.test("symbol and keyword preserve literal result types", () => {
+test("symbol and keyword preserve literal result types", () => {
   const symbolParser: Parser<"("> = symbol("(");
   const keywordParser: Parser<"if"> = keyword("if");
   const lexer = createLexer();
@@ -25,13 +26,13 @@ Deno.test("symbol and keyword preserve literal result types", () => {
   assertEquals(lexerKeyword({ text: "else", index: 0 }).success, true);
 });
 
-Deno.test("lexeme consumes trailing whitespace", () => {
+test("lexeme consumes trailing whitespace", () => {
   const p = seq(lexeme(str("a")), str("b"), eof());
   const res = p({ text: "a   b", index: 0 });
   assertEquals(res.success, true);
 });
 
-Deno.test("defaultTrivia consumes line and block comments", () => {
+test("defaultTrivia consumes line and block comments", () => {
   const p = seq(
     symbol("a", defaultTrivia()),
     symbol("b", defaultTrivia()),
@@ -41,7 +42,7 @@ Deno.test("defaultTrivia consumes line and block comments", () => {
   assertEquals(res.success, true);
 });
 
-Deno.test("blockComment consumes empty and multiline comments", () => {
+test("blockComment consumes empty and multiline comments", () => {
   for (const text of ["/**/", "/* first\nsecond */"]) {
     const res = blockComment()({ text, index: 0 });
     assertEquals(res.success, true);
@@ -52,7 +53,7 @@ Deno.test("blockComment consumes empty and multiline comments", () => {
   }
 });
 
-Deno.test("defaultTrivia commits unterminated block comments", () => {
+test("defaultTrivia commits unterminated block comments", () => {
   const text = "/* no closing delimiter";
   const res = seq(defaultTrivia(), eof())({ text, index: 0 });
   assertEquals(res.success, false);
@@ -63,13 +64,13 @@ Deno.test("defaultTrivia commits unterminated block comments", () => {
   }
 });
 
-Deno.test("keyword enforces identifier boundary", () => {
+test("keyword enforces identifier boundary", () => {
   const p = seq(keyword("if"), eof());
   assertEquals(p({ text: "if", index: 0 }).success, true);
   assertEquals(p({ text: "ifx", index: 0 }).success, false);
 });
 
-Deno.test("createLexer provides a consistent trivia policy", () => {
+test("createLexer provides a consistent trivia policy", () => {
   const L = createLexer();
   const p = map(
     seq(L.symbol("("), L.lexeme(int()), L.symbol(")"), eof()),

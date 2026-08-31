@@ -1,8 +1,9 @@
-import { assertEquals, assertObjectMatch } from "@std/assert";
+import { assertEquals, assertObjectMatch } from "./assert.ts";
+import { test } from "bun:test";
 import { trie } from "../src/parsers.ts";
 import { Trie } from "../src/Trie.ts";
 
-Deno.test("trie", () => {
+test("trie", () => {
   const trie = new Trie();
   trie.insertMany(["Romania", "Germany", "Ronaldo", "Germanic"]);
 
@@ -10,7 +11,7 @@ Deno.test("trie", () => {
   assertEquals(trie.exists("Roman"), false);
 });
 
-Deno.test("trie returns the longest matching prefix", () => {
+test("trie returns the longest matching prefix", () => {
   const operators = new Trie();
   operators.insertMany(["=", "==", "=>"]);
 
@@ -20,7 +21,7 @@ Deno.test("trie returns the longest matching prefix", () => {
   assertEquals(operators.existsSubstring("!value"), [false, undefined]);
 });
 
-Deno.test("trie matches astral characters with UTF-16 offsets", () => {
+test("trie matches astral characters with UTF-16 offsets", () => {
   const words = new Trie();
   words.insertMany(["😀", "😀ok", "🚀"]);
 
@@ -34,7 +35,7 @@ Deno.test("trie matches astral characters with UTF-16 offsets", () => {
   });
 });
 
-Deno.test("trie parser", () => {
+test("trie parser", () => {
   assertObjectMatch(
     trie(["Romania", "Germany", "Ronaldo", "Germanic"])({
       text: "Ronaldo, not a bad footballer",
@@ -47,8 +48,11 @@ Deno.test("trie parser", () => {
   );
 });
 
-Deno.test("trie parser uses maximal munch regardless of input order", () => {
-  for (const matches of [["=", "==", "=>"], ["=>", "==", "="]]) {
+test("trie parser uses maximal munch regardless of input order", () => {
+  for (const matches of [
+    ["=", "==", "=>"],
+    ["=>", "==", "="],
+  ]) {
     assertObjectMatch(trie(matches)({ text: "==value", index: 0 }), {
       success: true,
       value: "==",

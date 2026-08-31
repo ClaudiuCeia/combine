@@ -1,0 +1,79 @@
+{
+  "name": "@claudiu-ceia/combine",
+  "version": "0.8.1",
+  "description": "Typed parser combinators for TypeScript",
+  "keywords": [
+    "bun",
+    "deno",
+    "parser",
+    "parser-combinators",
+    "typescript"
+  ],
+  "homepage": "https://github.com/ClaudiuCeia/combine#readme",
+  "bugs": {
+    "url": "https://github.com/ClaudiuCeia/combine/issues"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ClaudiuCeia/combine.git"
+  },
+  "files": [
+    "dist",
+    "LICENSE",
+    "README.md"
+  ],
+  "type": "module",
+  "sideEffects": false,
+  "types": "./dist/mod.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/mod.d.ts",
+      "import": "./dist/mod.js"
+    },
+    "./nondeterministic": {
+      "types": "./dist/src/nondeterministic.d.ts",
+      "import": "./dist/src/nondeterministic.js"
+    },
+    "./perf": {
+      "types": "./dist/src/perf.d.ts",
+      "import": "./dist/src/perf.js"
+    }
+  },
+  "scripts": {
+    "check": "bun run format:check && bun run lint && bun run typecheck && bun test ./tests && bun run bench:verify",
+    "format": "oxfmt",
+    "format:check": "oxfmt --check",
+    "lint": "oxlint --deny-warnings .",
+    "typecheck": "tsc --noEmit",
+    "test": "bun test ./tests",
+    "coverage": "bun test --coverage ./tests",
+    "build": "rm -rf dist && tsc --project tsconfig.build.json",
+    "package:check": "bun run build && publint && attw --pack . --profile esm-only",
+    "prepack": "bun run build",
+    "bench": "bun run bench/comparison_bench.ts",
+    "bench:comparison": "bun run bench/comparison_bench.ts",
+    "bench:comparison:json": "bun run bench/comparison_bench.ts --json",
+    "bench:verify": "bun run bench/comparison_verify.ts",
+    "hooks:install": "ln -sf ../../scripts/pre-commit .git/hooks/pre-commit && chmod +x scripts/pre-commit",
+    "hooks:uninstall": "rm -f .git/hooks/pre-commit"
+  },
+  "devDependencies": {
+    "@arethetypeswrong/cli": "0.18.5",
+    "@types/bun": "1.4.0",
+    "mini-parse": "0.6.41",
+    "mitata": "1.0.34",
+    "oxfmt": "0.65.0",
+    "oxlint": "1.80.0",
+    "parjs": "1.3.9",
+    "parser-combinators": "1.2.7",
+    "peberminta": "0.10.0",
+    "publint": "0.3.24",
+    "tarsec": "0.5.3",
+    "typescript": "~5.9.0"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "packageManager": "bun@1.4.0"
+}

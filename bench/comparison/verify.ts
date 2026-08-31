@@ -1,4 +1,5 @@
-import { assert, assertAlmostEquals, assertStrictEquals } from "@std/assert";
+import assert from "node:assert/strict";
+import { strictEqual } from "node:assert/strict";
 import {
   expressionCases,
   invalidExpressionExamples,
@@ -14,23 +15,21 @@ export const verifyAdapter = (adapter: BenchmarkAdapter): void => {
       result !== parseFailure,
       `${adapter.name} rejected expression case ${testCase.name}`,
     );
-    assertAlmostEquals(
-      result,
-      testCase.expected,
-      1e-9,
+    assert(
+      Math.abs(result - testCase.expected) <= 1e-9,
       `${adapter.name} returned the wrong value for ${testCase.name}`,
     );
   }
 
   for (const input of invalidExpressionExamples) {
-    assertStrictEquals(
+    strictEqual(
       adapter.parseExpression(input),
       parseFailure,
       `${adapter.name} accepted invalid expression: ${JSON.stringify(input)}`,
     );
   }
 
-  assertStrictEquals(
+  strictEqual(
     adapter.parseExpression(lateInvalidExpression),
     parseFailure,
     `${adapter.name} accepted the late-invalid benchmark input`,

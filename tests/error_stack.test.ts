@@ -1,4 +1,5 @@
-import { assertEquals } from "@std/assert";
+import { assertEquals } from "./assert.ts";
+import { test } from "bun:test";
 import { any, either, many, many1, optional, seq } from "../src/combinators.ts";
 import { digit, letter, space, str } from "../src/parsers.ts";
 import { attempt, context, cut, lazy, map } from "../src/utility.ts";
@@ -16,7 +17,7 @@ import {
   pushFrame,
 } from "../src/Parser.ts";
 
-Deno.test("getLocation never returns NaN line/column", () => {
+test("getLocation never returns NaN line/column", () => {
   const cases = [
     { text: "", index: 0 },
     { text: "abc", index: 0 },
@@ -36,24 +37,24 @@ Deno.test("getLocation never returns NaN line/column", () => {
   }
 });
 
-Deno.test("getLocation column is 1 at start of line", () => {
+test("getLocation column is 1 at start of line", () => {
   assertEquals(getLocation({ text: "abc", index: 0 }), { line: 1, column: 1 });
   assertEquals(getLocation({ text: "a\nb", index: 2 }), { line: 2, column: 1 });
 });
 
-Deno.test("Failure type has stack field", () => {
+test("Failure type has stack field", () => {
   const f = failure({ text: "test", index: 0 }, "expected foo");
   assertEquals(f.stack, []);
   assertEquals(f.fatal, false);
 });
 
-Deno.test("fatalFailure creates fatal error", () => {
+test("fatalFailure creates fatal error", () => {
   const f = fatalFailure({ text: "test", index: 0 }, "expected foo");
   assertEquals(f.fatal, true);
   assertEquals(isFatal(f), true);
 });
 
-Deno.test("pushFrame adds context to error stack", () => {
+test("pushFrame adds context to error stack", () => {
   const ctx = { text: "hello world", index: 5 };
   const f = failure(ctx, "expected 'x'");
 
@@ -63,7 +64,7 @@ Deno.test("pushFrame adds context to error stack", () => {
   assertEquals(withFrame.stack[0].label, "in greeting parser");
 });
 
-Deno.test("multiple pushFrame calls build a stack", () => {
+test("multiple pushFrame calls build a stack", () => {
   const ctx = { text: "test", index: 0 };
   let f = failure(ctx, "expected digit");
 
@@ -77,7 +78,7 @@ Deno.test("multiple pushFrame calls build a stack", () => {
   assertEquals(f.stack[2].label, "in program");
 });
 
-Deno.test("formatErrorStack produces readable output", () => {
+test("formatErrorStack produces readable output", () => {
   const ctx = { text: "hello\nworld", index: 6 }; // "world" starts at line 2
   let f = failure(ctx, "'}'");
   f = pushFrame(f, "in block");
@@ -91,7 +92,7 @@ Deno.test("formatErrorStack produces readable output", () => {
   assertEquals(formatted.includes("in function declaration"), true);
 });
 
-Deno.test("formatErrorCompact produces single-line output", () => {
+test("formatErrorCompact produces single-line output", () => {
   const ctx = { text: "test", index: 0 };
   let f = failure(ctx, "'if'");
   f = pushFrame(f, "in expression");
@@ -105,7 +106,7 @@ Deno.test("formatErrorCompact produces single-line output", () => {
   assertEquals(compact.includes("1:"), true);
 });
 
-Deno.test("formatErrorSnippet shows +/- 1 line context and a caret", () => {
+test("formatErrorSnippet shows +/- 1 line context and a caret", () => {
   const text = ["aaa", "bbb", "ccc"].join("\n");
   const f = failure({ text, index: 5 }, "'x'"); // line 2, column 2
 
@@ -118,7 +119,7 @@ Deno.test("formatErrorSnippet shows +/- 1 line context and a caret", () => {
   assertEquals(snippet.includes("  |  ^"), true);
 });
 
-Deno.test("formatErrorSnippet handles CRLF and tab expansion", () => {
+test("formatErrorSnippet handles CRLF and tab expansion", () => {
   const text = "a\r\n\tb\r\nc\r\n";
   const f = failure({ text, index: 4 }, "boom"); // line 2, column 2 (after '\t')
 
@@ -131,7 +132,7 @@ Deno.test("formatErrorSnippet handles CRLF and tab expansion", () => {
   assertEquals(snippet.includes("  |   ^"), true);
 });
 
-Deno.test("formatErrorReport avoids repeating the header", () => {
+test("formatErrorReport avoids repeating the header", () => {
   const parser = context(
     "in program",
     context(
@@ -160,7 +161,7 @@ Deno.test("formatErrorReport avoids repeating the header", () => {
   }
 });
 
-Deno.test("context combinator adds context on failure", () => {
+test("context combinator adds context on failure", () => {
   const parser = context("in greeting", str("hello"));
   const result = parser({ text: "world", index: 0 });
 
@@ -171,7 +172,7 @@ Deno.test("context combinator adds context on failure", () => {
   }
 });
 
-Deno.test("nested context calls build up stack", () => {
+test("nested context calls build up stack", () => {
   const inner = context("in identifier", letter());
   const outer = context("in declaration", seq(str("let"), str(" "), inner));
 
@@ -184,7 +185,7 @@ Deno.test("nested context calls build up stack", () => {
   }
 });
 
-Deno.test("cut makes failure fatal", () => {
+test("cut makes failure fatal", () => {
   const parser = seq(str("if"), cut(str(" "), "space after 'if'"));
 
   // First test success case
@@ -200,7 +201,7 @@ Deno.test("cut makes failure fatal", () => {
   }
 });
 
-Deno.test("cut preserves existing fatal errors", () => {
+test("cut preserves existing fatal errors", () => {
   const inner = cut(str("x"), "inner error");
   const outer = cut(inner, "outer error");
 
@@ -213,7 +214,7 @@ Deno.test("cut preserves existing fatal errors", () => {
   }
 });
 
-Deno.test("any propagates fatal errors immediately", () => {
+test("any propagates fatal errors immediately", () => {
   let secondParsed = false;
 
   const fatalParser = (ctx: { text: string; index: number }) => {
@@ -237,7 +238,7 @@ Deno.test("any propagates fatal errors immediately", () => {
   assertEquals(secondParsed, false);
 });
 
-Deno.test("either propagates fatal errors", () => {
+test("either propagates fatal errors", () => {
   const fatalParser = (ctx: { text: string; index: number }) => {
     return fatalFailure(ctx, "fatal");
   };
@@ -251,7 +252,7 @@ Deno.test("either propagates fatal errors", () => {
   }
 });
 
-Deno.test("optional propagates fatal errors", () => {
+test("optional propagates fatal errors", () => {
   const fatalParser = (ctx: { text: string; index: number }) => {
     return fatalFailure(ctx, "fatal");
   };
@@ -265,7 +266,7 @@ Deno.test("optional propagates fatal errors", () => {
   }
 });
 
-Deno.test("optional swallows non-fatal errors", () => {
+test("optional swallows non-fatal errors", () => {
   const parser = optional(str("hello"));
   const result = parser({ text: "world", index: 0 });
 
@@ -275,7 +276,7 @@ Deno.test("optional swallows non-fatal errors", () => {
   }
 });
 
-Deno.test("many propagates fatal errors", () => {
+test("many propagates fatal errors", () => {
   let callCount = 0;
   const conditionalFatal = (ctx: { text: string; index: number }) => {
     callCount++;
@@ -301,7 +302,7 @@ Deno.test("many propagates fatal errors", () => {
   }
 });
 
-Deno.test("many1 propagates fatal errors", () => {
+test("many1 propagates fatal errors", () => {
   const fatalParser = (ctx: { text: string; index: number }) => {
     return fatalFailure(ctx, "fatal");
   };
@@ -315,7 +316,7 @@ Deno.test("many1 propagates fatal errors", () => {
   }
 });
 
-Deno.test("attempt converts fatal to non-fatal", () => {
+test("attempt converts fatal to non-fatal", () => {
   const fatalParser = (ctx: { text: string; index: number }) => {
     return fatalFailure(ctx, "was fatal");
   };
@@ -330,7 +331,7 @@ Deno.test("attempt converts fatal to non-fatal", () => {
   }
 });
 
-Deno.test("attempt allows alternatives after fatal", () => {
+test("attempt allows alternatives after fatal", () => {
   const fatalParser = (ctx: { text: string; index: number }) => {
     return fatalFailure(ctx, "was fatal");
   };
@@ -341,7 +342,7 @@ Deno.test("attempt allows alternatives after fatal", () => {
   assertEquals(result.success, true);
 });
 
-Deno.test("real world example: if-then-else with cuts", () => {
+test("real world example: if-then-else with cuts", () => {
   // Simulates parsing: if <cond> then <expr> else <expr>
   const identifier = map(many1(letter()), (letters) => letters.join(""));
   const ws = optional(space());
@@ -405,7 +406,7 @@ Deno.test("real world example: if-then-else with cuts", () => {
   }
 });
 
-Deno.test("nested context calls produce proper trace", () => {
+test("nested context calls produce proper trace", () => {
   const number = context(
     "in number literal",
     map(many1(digit()), (digits) => parseInt(digits.join(""), 10)),
@@ -446,7 +447,7 @@ Deno.test("nested context calls produce proper trace", () => {
   }
 });
 
-Deno.test("error location is preserved through stack", () => {
+test("error location is preserved through stack", () => {
   const parser = context(
     "in program",
     context(
@@ -484,7 +485,7 @@ Deno.test("error location is preserved through stack", () => {
  *   statement  = "return" expr | "let" identifier "=" expr
  *   expr       = identifier | number
  */
-Deno.test("comprehensive multiline error test with mini-language", () => {
+test("comprehensive multiline error test with mini-language", () => {
   // Whitespace handling
   const ws = optional(many(any(str(" "), str("\n"), str("\t"))));
   const tok = <T>(p: Parser<T>): Parser<T> => map(seq(p, ws), ([v]) => v);

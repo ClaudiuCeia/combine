@@ -1,4 +1,5 @@
-import { assertEquals } from "@std/assert";
+import { assertEquals } from "./assert.ts";
+import { test } from "bun:test";
 import {
   any,
   chainl1,
@@ -12,12 +13,13 @@ import type { Parser } from "../src/Parser.ts";
 import { eof, number, regex, str } from "../src/parsers.ts";
 import { map } from "../src/utility.ts";
 
-type Equal<A, B> = (<T>() => T extends A ? 1 : 2) extends
-  (<T>() => T extends B ? 1 : 2) ? true
-  : false;
+type Equal<A, B> =
+  (<T>() => T extends A ? 1 : 2) extends <T>() => T extends B ? 1 : 2
+    ? true
+    : false;
 type Assert<T extends true> = T;
 
-Deno.test("defineLanguage types sibling productions from an output schema", () => {
+test("defineLanguage types sibling productions from an output schema", () => {
   type Grammar = {
     Literal: number;
     ShortLiteral: number;
@@ -29,19 +31,16 @@ Deno.test("defineLanguage types sibling productions from an output schema", () =
     Literal: () => map(regex(/k/i, "k"), () => 1000),
     ShortLiteral: () => map(regex(/m/i, "m"), () => 1_000_000),
     Inner: ({ Literal, ShortLiteral }) =>
-      map(
-        seq(number(), either(Literal, ShortLiteral)),
-        ([num, lit]) => {
-          const numeric: number = lit;
-          void numeric;
+      map(seq(number(), either(Literal, ShortLiteral)), ([num, lit]) => {
+        const numeric: number = lit;
+        void numeric;
 
-          // @ts-expect-error - lit must not degrade to unknown or any
-          const text: string = lit;
-          void text;
+        // @ts-expect-error - lit must not degrade to unknown or any
+        const text: string = lit;
+        void text;
 
-          return num * lit;
-        },
-      ),
+        return num * lit;
+      }),
     parser: ({ Inner }) => Inner,
   });
 
@@ -57,7 +56,7 @@ Deno.test("defineLanguage types sibling productions from an output schema", () =
   }
 });
 
-Deno.test("defineLanguage supports forward and mutually-recursive productions", () => {
+test("defineLanguage supports forward and mutually-recursive productions", () => {
   type Expression = number | Expression[];
   type Grammar = {
     Expression: Expression;
@@ -79,7 +78,7 @@ Deno.test("defineLanguage supports forward and mutually-recursive productions", 
   }
 });
 
-Deno.test("defineLanguage builds a complete recursive expression grammar", () => {
+test("defineLanguage builds a complete recursive expression grammar", () => {
   type Grammar = {
     File: number;
     Expression: number;
@@ -120,7 +119,7 @@ Deno.test("defineLanguage builds a complete recursive expression grammar", () =>
   assertEquals(failure.success, false);
 });
 
-Deno.test("defineLanguage initializes production parsers lazily", () => {
+test("defineLanguage initializes production parsers lazily", () => {
   let calls = 0;
   const Lang = defineLanguage<{ Value: string }>({
     Value: () => {
@@ -135,14 +134,14 @@ Deno.test("defineLanguage initializes production parsers lazily", () => {
   assertEquals(calls, 1);
 });
 
-Deno.test("defineLanguage rejects definitions with the wrong output type", () => {
+test("defineLanguage rejects definitions with the wrong output type", () => {
   defineLanguage<{ Invalid: number }>({
     // @ts-expect-error - the schema requires Parser<number>
     Invalid: () => str("invalid"),
   });
 });
 
-Deno.test("defineLanguage requires the complete output schema", () => {
+test("defineLanguage requires the complete output schema", () => {
   // @ts-expect-error - Number is missing
   defineLanguage<{ Text: string; Number: number }>({
     Text: () => str("text"),
@@ -151,7 +150,7 @@ Deno.test("defineLanguage requires the complete output schema", () => {
   defineLanguage<{ Text: string }>({
     Text: (self) => {
       // @ts-expect-error - unknown productions are not available
-      self.Missing;
+      void self.Missing;
       return str("text");
     },
     // @ts-expect-error - Extra is not part of the schema
@@ -163,7 +162,7 @@ Deno.test("defineLanguage requires the complete output schema", () => {
   defineLanguage<{ Value?: string }>({});
 });
 
-Deno.test("defineLanguage binds symbol productions", () => {
+test("defineLanguage binds symbol productions", () => {
   const Value = Symbol("Value");
   type Grammar = {
     [Value]: number;
@@ -178,7 +177,7 @@ Deno.test("defineLanguage binds symbol productions", () => {
   if (result.success) assertEquals(result.value, 42);
 });
 
-Deno.test("defineLanguage safely binds special property names", () => {
+test("defineLanguage safely binds special property names", () => {
   type Grammar = {
     __proto__: string;
   };

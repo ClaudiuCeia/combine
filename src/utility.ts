@@ -157,7 +157,7 @@ export const onFailure = <T>(
 };
 
 export const trim = <T>(p: Parser<T>): Parser<T> => {
-  return map(seq(optional(space()), p, optional(space())), ([_, p]) => p);
+  return map(seq(optional(space()), p, optional(space())), ([, p]) => p);
 };
 
 export type Marked<T> = Readonly<{

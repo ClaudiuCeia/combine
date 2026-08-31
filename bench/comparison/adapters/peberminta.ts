@@ -19,20 +19,16 @@ const createExpressionParser = (): P<number> => {
     integer,
     p.middle(symbol("("), expressionRef, symbol(")")),
   );
-  const multiply = p.map(
-    p.choice(symbol("*"), symbol("/")),
-    (operator) =>
-      operator === "*"
-        ? (left: number, right: number) => left * right
-        : (left: number, right: number) => left / right,
+  const multiply = p.map(p.choice(symbol("*"), symbol("/")), (operator) =>
+    operator === "*"
+      ? (left: number, right: number) => left * right
+      : (left: number, right: number) => left / right,
   );
   const product = p.leftAssoc2(factor, multiply, factor);
-  const add = p.map(
-    p.choice(symbol("+"), symbol("-")),
-    (operator) =>
-      operator === "+"
-        ? (left: number, right: number) => left + right
-        : (left: number, right: number) => left - right,
+  const add = p.map(p.choice(symbol("+"), symbol("-")), (operator) =>
+    operator === "+"
+      ? (left: number, right: number) => left + right
+      : (left: number, right: number) => left - right,
   );
   grammar.expression = p.leftAssoc2(product, add, product);
 

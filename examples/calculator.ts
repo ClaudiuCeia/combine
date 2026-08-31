@@ -14,13 +14,13 @@ import {
 type Expr =
   | Readonly<{ kind: "num"; value: number; start: number; end: number }>
   | Readonly<{
-    kind: "bin";
-    op: "+" | "-" | "*" | "/";
-    left: Expr;
-    right: Expr;
-    start: number;
-    end: number;
-  }>;
+      kind: "bin";
+      op: "+" | "-" | "*" | "/";
+      left: Expr;
+      right: Expr;
+      start: number;
+      end: number;
+    }>;
 
 const lx = createLexer();
 

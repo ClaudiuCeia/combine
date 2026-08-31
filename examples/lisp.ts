@@ -34,10 +34,7 @@ const L = defineLanguage<Grammar>({
     return lx.parens(many(Expression));
   },
   File: ({ Expression }) => {
-    return map(
-      seq(lx.trivia, many(Expression), eof()),
-      ([, exprs]) => exprs,
-    );
+    return map(seq(lx.trivia, many(Expression), eof()), ([, exprs]) => exprs);
   },
 });
 

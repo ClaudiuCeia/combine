@@ -1,7 +1,7 @@
 # combine
 
-Typed parser combinators for TypeScript (Deno + Node). Build small parsers, then
-compose them into a grammar.
+Typed parser combinators for TypeScript (Bun, Deno, and Node). Build small
+parsers, then compose them into a grammar.
 
 [![CI](https://github.com/ClaudiuCeia/combine/actions/workflows/ci.yml/badge.svg)](https://github.com/ClaudiuCeia/combine/actions/workflows/ci.yml)
 [![JSR](https://jsr.io/badges/@claudiu-ceia/combine)](https://jsr.io/@claudiu-ceia/combine)
@@ -9,10 +9,20 @@ compose them into a grammar.
 
 ## Install
 
+### Bun (npm)
+
+```sh
+bun add @claudiu-ceia/combine
+```
+
+```ts
+import { seq, str } from "@claudiu-ceia/combine";
+```
+
 ### Deno (JSR)
 
 ```ts
-import { seq, str } from "jsr:@claudiu-ceia/combine@^0.6.0";
+import { seq, str } from "jsr:@claudiu-ceia/combine@^0.8.0";
 ```
 
 Subpath imports are also supported:
@@ -22,7 +32,7 @@ import { recognizeAt } from "jsr:@claudiu-ceia/combine/nondeterministic";
 import { createTracer } from "jsr:@claudiu-ceia/combine/perf";
 ```
 
-### Node (npm)
+### Node 20+ (npm)
 
 ```sh
 npm i @claudiu-ceia/combine
@@ -103,7 +113,11 @@ type Expr = { kind: "paren"; inner: Expr } | { kind: "lit"; value: string };
 
 const lit: Parser<Expr> = map(str("x"), (value) => ({ kind: "lit", value }));
 const paren: Parser<Expr> = map(
-  seq(str("("), lazy(() => expr), str(")")),
+  seq(
+    str("("),
+    lazy(() => expr),
+    str(")"),
+  ),
   ([, inner]) => ({ kind: "paren", inner }),
 );
 
@@ -133,7 +147,7 @@ tokenizer-like use cases where you want _multiple_ simultaneous matches at the
 same input position, use the nondeterministic/recognizer module:
 
 ```ts
-import { recognizeAt } from "jsr:@claudiu-ceia/combine/nondeterministic";
+import { recognizeAt } from "@claudiu-ceia/combine/nondeterministic";
 ```
 
 These combinators can return multiple successes; you must decide how (or
@@ -159,12 +173,27 @@ advertised lexical primitives and combinators, with no user-authored regex. It
 covers successful parsing, late failures, and grammar construction. Run it with:
 
 ```sh
-deno task bench:verify
-deno task bench:comparison
+bun run bench:verify
+bun run bench:comparison
 ```
 
 See `bench/comparison/README.md` for methodology, package-selection criteria,
 and limitations.
+
+## Development
+
+Bun owns the development toolchain:
+
+```sh
+bun install
+bun run check
+bun run build
+bun run package:check
+```
+
+`bun run check` runs Oxfmt, Oxlint, TypeScript, the Bun test suite, and benchmark
+correctness verification. Deno is required only to validate or publish the JSR
+package with `deno publish --dry-run` or `deno publish`.
 
 ## License
 

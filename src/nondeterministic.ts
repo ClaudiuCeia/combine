@@ -36,7 +36,8 @@ type UnwrapParser<T> = T extends Parser<infer U> ? U : T;
 type UnwrapParsers<T extends [...unknown[]]> = T extends [
   infer Head,
   ...infer Tail,
-] ? [UnwrapParser<Head>, ...UnwrapParsers<Tail>]
+]
+  ? [UnwrapParser<Head>, ...UnwrapParsers<Tail>]
   : [];
 
 type ArrayUnion<T extends unknown[]> = T extends [infer Head, ...infer Tail]
@@ -88,7 +89,7 @@ export const recognizeAt = <T extends [...Parser<unknown>[]]>(
     // Longest match first; stable for equal indexes.
     const sorted = matches
       .map((m, i) => ({ m, i }))
-      .sort((a, b) => (b.m.ctx.index - a.m.ctx.index) || (a.i - b.i))
+      .sort((a, b) => b.m.ctx.index - a.m.ctx.index || a.i - b.i)
       .map((x) => x.m);
 
     return success(ctx, sorted);
@@ -121,9 +122,10 @@ export const step = <T>(
     let nextIndex = policy === "furthest" ? -1 : Number.POSITIVE_INFINITY;
     for (const r of res.value) {
       const idx = r.ctx.index;
-      nextIndex = policy === "furthest"
-        ? Math.max(nextIndex, idx)
-        : Math.min(nextIndex, idx);
+      nextIndex =
+        policy === "furthest"
+          ? Math.max(nextIndex, idx)
+          : Math.min(nextIndex, idx);
     }
 
     if (!(nextIndex > ctx.index)) {
@@ -151,10 +153,7 @@ export const furthestAll = <T extends [...Parser<unknown>[]]>(
 ): Parser<ArrayUnion<UnwrapParsers<T>>[]> => {
   return (ctx) => {
     if (parsers.length === 0) {
-      return failure(
-        ctx,
-        "furthestAll: expected at least one parser",
-      );
+      return failure(ctx, "furthestAll: expected at least one parser");
     }
 
     let bestIndex = -1;
@@ -213,10 +212,7 @@ export const allMatches = <T extends [...Parser<unknown>[]]>(
 ): Parser<ArrayUnion<UnwrapParsers<T>>[]> => {
   return (ctx) => {
     if (parsers.length === 0) {
-      return failure(
-        ctx,
-        "allMatches: expected at least one parser",
-      );
+      return failure(ctx, "allMatches: expected at least one parser");
     }
 
     let bestSuccessCtx: Context | undefined;

@@ -45,7 +45,11 @@ const number: Parser<Expr> = str("0"); // placeholder
 
 const expr: Parser<Expr> = any(
   number,
-  seq(str("("), lazy(() => expr), str(")")),
+  seq(
+    str("("),
+    lazy(() => expr),
+    str(")"),
+  ),
 );
 ```
 

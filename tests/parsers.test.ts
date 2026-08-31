@@ -1,4 +1,5 @@
-import { assertObjectMatch } from "@std/assert";
+import { assertObjectMatch } from "./assert.ts";
+import { test } from "bun:test";
 import {
   any,
   either,
@@ -26,7 +27,7 @@ import {
 } from "../src/parsers.ts";
 import { map, mapJoin } from "../src/utility.ts";
 
-Deno.test("str", () => {
+test("str", () => {
   assertObjectMatch(
     str("Typescript")({
       text: "Typescript is okay",
@@ -51,7 +52,7 @@ Deno.test("str", () => {
   );
 });
 
-Deno.test("double", () => {
+test("double", () => {
   assertObjectMatch(
     double()({
       text: "29.8",
@@ -76,13 +77,11 @@ Deno.test("double", () => {
     },
   );
 
-  for (
-    const [text, value] of [
-      ["1.05", 1.05],
-      ["0.001", 0.001],
-      ["10.00", 10],
-    ] as const
-  ) {
+  for (const [text, value] of [
+    ["1.05", 1.05],
+    ["0.001", 0.001],
+    ["10.00", 10],
+  ] as const) {
     assertObjectMatch(double()({ text, index: 0 }), {
       success: true,
       value,
@@ -96,7 +95,7 @@ Deno.test("double", () => {
   });
 });
 
-Deno.test("number", () => {
+test("number", () => {
   assertObjectMatch(
     number()({
       text: "29.8",
@@ -128,7 +127,7 @@ Deno.test("number", () => {
   });
 });
 
-Deno.test("regex", () => {
+test("regex", () => {
   assertObjectMatch(
     regex(
       /[A-Z]+/,
@@ -159,7 +158,7 @@ Deno.test("regex", () => {
   );
 });
 
-Deno.test("seq", () => {
+test("seq", () => {
   const brownAnimal = seq(
     str("brown"),
     str(" "),
@@ -190,7 +189,7 @@ Deno.test("seq", () => {
   );
 });
 
-Deno.test("either", () => {
+test("either", () => {
   const brownAnimal = seq(
     str("brown"),
     str(" "),
@@ -232,7 +231,7 @@ Deno.test("either", () => {
   );
 });
 
-Deno.test("any", () => {
+test("any", () => {
   const okayLangs = any(str("haskell"), str("typescript"), str("clojure"));
 
   assertObjectMatch(
@@ -270,7 +269,7 @@ Deno.test("any", () => {
   );
 });
 
-Deno.test("optional", () => {
+test("optional", () => {
   const maybeFluffy = optional(str("fluffy"));
 
   assertObjectMatch(
@@ -296,7 +295,7 @@ Deno.test("optional", () => {
   );
 });
 
-Deno.test("space", () => {
+test("space", () => {
   assertObjectMatch(
     seq(
       optional(space()),
@@ -323,7 +322,7 @@ Deno.test("space", () => {
   );
 });
 
-Deno.test("char", () => {
+test("char", () => {
   assertObjectMatch(
     char(34)({
       text: `"`,
@@ -347,7 +346,7 @@ Deno.test("char", () => {
   );
 });
 
-Deno.test("notChar", () => {
+test("notChar", () => {
   assertObjectMatch(
     notChar(34)({
       text: `"`,
@@ -371,7 +370,7 @@ Deno.test("notChar", () => {
   );
 });
 
-Deno.test("many", () => {
+test("many", () => {
   const manyDigits = many(regex(/\d/, "expected digit"));
 
   assertObjectMatch(
@@ -419,7 +418,7 @@ Deno.test("many", () => {
   );
 });
 
-Deno.test("many1", () => {
+test("many1", () => {
   const manyDigits = many1(regex(/\d/, "expected digit"));
 
   assertObjectMatch(
@@ -457,7 +456,7 @@ Deno.test("many1", () => {
   );
 });
 
-Deno.test("manyTill", () => {
+test("manyTill", () => {
   const anyLowercaseLetter = regex(/[a-z]/, "expected a lowercase letter");
   const letterOrSpace = either(
     anyLowercaseLetter,
@@ -501,7 +500,7 @@ Deno.test("manyTill", () => {
   );
 });
 
-Deno.test("sepBy", () => {
+test("sepBy", () => {
   const numberList = sepBy(
     regex(/[0-9]+/, "expected digit or number"),
     str(","),
@@ -550,7 +549,7 @@ Deno.test("sepBy", () => {
   });
 });
 
-Deno.test("sepBy1", () => {
+test("sepBy1", () => {
   const numberList = sepBy1(
     regex(/[0-9]+/, "expected digit or number"),
     str(","),
@@ -599,7 +598,7 @@ Deno.test("sepBy1", () => {
   });
 });
 
-Deno.test("skipMany", () => {
+test("skipMany", () => {
   const skipNumber = skipMany(regex(/[0-9]+/, "expected digit or number"));
 
   assertObjectMatch(
@@ -625,7 +624,7 @@ Deno.test("skipMany", () => {
   );
 });
 
-Deno.test("skipMany1", () => {
+test("skipMany1", () => {
   const skipNumber = skipMany1(regex(/[0-9]+/, "expected digit or number"));
 
   assertObjectMatch(
@@ -652,7 +651,7 @@ Deno.test("skipMany1", () => {
   );
 });
 
-Deno.test("Hello world test", () => {
+test("Hello world test", () => {
   const helloWorldParser = seq(
     str("Hello,"),
     optional(space()),
@@ -684,7 +683,7 @@ Deno.test("Hello world test", () => {
   );
 });
 
-Deno.test("repeat", () => {
+test("repeat", () => {
   const yearParser = repeat(4, digit());
 
   assertObjectMatch(

@@ -1,4 +1,5 @@
-import { assertEquals, assertObjectMatch } from "@std/assert";
+import { assertEquals, assertObjectMatch } from "./assert.ts";
+import { test } from "bun:test";
 import { many, repeat } from "../src/combinators.ts";
 import { formatErrorCompact, type Parser } from "../src/Parser.ts";
 import {
@@ -21,7 +22,7 @@ import {
   takeText,
 } from "../src/parsers.ts";
 
-Deno.test("str preserves literal result types", () => {
+test("str preserves literal result types", () => {
   const parser: Parser<"token"> = str("token");
   assertObjectMatch(parser({ text: "token", index: 0 }), {
     success: true,
@@ -33,7 +34,7 @@ Deno.test("str preserves literal result types", () => {
   assertEquals(widened({ text: dynamic, index: 0 }).success, true);
 });
 
-Deno.test("digit, letter, and space parsers are reusable", () => {
+test("digit, letter, and space parsers are reusable", () => {
   const digitParser = digit();
   const letterParser = letter();
   const spaceParser = space();
@@ -75,7 +76,7 @@ Deno.test("digit, letter, and space parsers are reusable", () => {
   });
 });
 
-Deno.test("anyChar fails at end of input", () => {
+test("anyChar fails at end of input", () => {
   for (const index of [1, 2]) {
     const res = anyChar()({ text: "a", index });
     assertEquals(res.success, false);
@@ -86,7 +87,7 @@ Deno.test("anyChar fails at end of input", () => {
   }
 });
 
-Deno.test("notChar fails at and beyond end of input", () => {
+test("notChar fails at and beyond end of input", () => {
   for (const index of [1, 2]) {
     const res = notChar(34)({ text: "a", index });
     assertEquals(res.success, false);
@@ -94,7 +95,7 @@ Deno.test("notChar fails at and beyond end of input", () => {
   }
 });
 
-Deno.test("many notChar terminates at end of input", () => {
+test("many notChar terminates at end of input", () => {
   assertObjectMatch(many(notChar(34))({ text: "abc", index: 0 }), {
     success: true,
     value: ["a", "b", "c"],
@@ -102,7 +103,7 @@ Deno.test("many notChar terminates at end of input", () => {
   });
 });
 
-Deno.test("charWhere succeeds/fails based on predicate", () => {
+test("charWhere succeeds/fails based on predicate", () => {
   const ok = charWhere((code) => code === "A".charCodeAt(0))({
     text: "A",
     index: 0,
@@ -120,7 +121,7 @@ Deno.test("charWhere succeeds/fails based on predicate", () => {
   assertEquals(charWhere(() => true)({ text: "\n", index: 0 }).success, true);
 });
 
-Deno.test("skipCharWhere returns null when underlying charWhere matches", () => {
+test("skipCharWhere returns null when underlying charWhere matches", () => {
   const res = skipCharWhere(() => true)({ text: "Z", index: 0 });
   assertEquals(res.success, true);
   if (res.success) {
@@ -129,13 +130,13 @@ Deno.test("skipCharWhere returns null when underlying charWhere matches", () => 
   }
 });
 
-Deno.test("take fails when count exceeds remaining input", () => {
+test("take fails when count exceeds remaining input", () => {
   const res = take(3)({ text: "ab", index: 0 });
   assertEquals(res.success, false);
   if (!res.success) assertEquals(res.expected, "unexpected end of input");
 });
 
-Deno.test("take and repeat reject invalid counts", () => {
+test("take and repeat reject invalid counts", () => {
   for (const count of [-1, 1.5, Number.NaN, Number.POSITIVE_INFINITY]) {
     const takeRes = take(count)({ text: "abc", index: 0 });
     assertEquals(takeRes.success, false);
@@ -163,30 +164,31 @@ Deno.test("take and repeat reject invalid counts", () => {
   });
 });
 
-Deno.test("takeText consumes remainder", () => {
-  assertObjectMatch(
-    takeText()({ text: "hello", index: 2 }),
-    { success: true, value: "llo", ctx: { index: 5 } },
-  );
+test("takeText consumes remainder", () => {
+  assertObjectMatch(takeText()({ text: "hello", index: 2 }), {
+    success: true,
+    value: "llo",
+    ctx: { index: 5 },
+  });
 });
 
-Deno.test("eol matches both LF and CRLF", () => {
+test("eol matches both LF and CRLF", () => {
   assertEquals(eol()({ text: "\n", index: 0 }).success, true);
   assertEquals(eol()({ text: "\r\n", index: 0 }).success, true);
 });
 
-Deno.test("eof fails when input remains", () => {
+test("eof fails when input remains", () => {
   const res = eof()({ text: "x", index: 0 });
   assertEquals(res.success, false);
   if (!res.success) assertEquals(res.expected, "eof not reached");
 });
 
-Deno.test("horizontalSpace requires at least one space/tab", () => {
+test("horizontalSpace requires at least one space/tab", () => {
   assertEquals(horizontalSpace()({ text: " \tX", index: 0 }).success, true);
   assertEquals(horizontalSpace()({ text: "X", index: 0 }).success, false);
 });
 
-Deno.test("horizontalSpace rejects LF and CRLF", () => {
+test("horizontalSpace rejects LF and CRLF", () => {
   for (const lineEnding of ["\n", "\r\n"]) {
     const rejected = horizontalSpace()({ text: lineEnding, index: 0 });
     assertEquals(rejected.success, false);
@@ -198,7 +200,7 @@ Deno.test("horizontalSpace rejects LF and CRLF", () => {
   }
 });
 
-Deno.test("hexDigit matches 0-9 and A-F/a-f", () => {
+test("hexDigit matches 0-9 and A-F/a-f", () => {
   assertObjectMatch(hexDigit()({ text: "9", index: 0 }), {
     success: true,
     value: "9",
@@ -213,13 +215,13 @@ Deno.test("hexDigit matches 0-9 and A-F/a-f", () => {
   });
 });
 
-Deno.test("hex rejects 0x lead", () => {
+test("hex rejects 0x lead", () => {
   const res = hex()({ text: "0xFF", index: 0 });
   assertEquals(res.success, false);
   if (!res.success) assertEquals(res.expected, "unexpected 0x lead");
 });
 
-Deno.test("hex parses contiguous digits without commas", () => {
+test("hex parses contiguous digits without commas", () => {
   const res = hex()({ text: "FF", index: 0 });
   assertEquals(res.success, true);
   if (res.success) {
@@ -228,7 +230,7 @@ Deno.test("hex parses contiguous digits without commas", () => {
   }
 });
 
-Deno.test("signed parses +/- numbers", () => {
+test("signed parses +/- numbers", () => {
   assertObjectMatch(signed()({ text: "+12", index: 0 }), {
     success: true,
     value: 12,
@@ -241,14 +243,14 @@ Deno.test("signed parses +/- numbers", () => {
   });
 });
 
-Deno.test("regex does not search ahead from index", () => {
+test("regex does not search ahead from index", () => {
   const p = regex(/[0-9]+/, "number");
   const res = p({ text: "a1", index: 0 });
   assertEquals(res.success, false);
   if (!res.success) assertEquals(res.ctx.index, 0);
 });
 
-Deno.test("primitive expectations format without duplicate prefixes", () => {
+test("primitive expectations format without duplicate prefixes", () => {
   for (const parser of [digit(), letter(), space()]) {
     const res = parser({ text: "!", index: 0 });
     assertEquals(res.success, false);

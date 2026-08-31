@@ -40,7 +40,7 @@ const doc = tracer.wrap("many(clause)", many(clause));
 const res = doc({ text, index: 0 });
 if (!res.success) {
   console.error(res);
-  Deno.exit(1);
+  throw new Error("Trace parse failed");
 }
 
 console.log(formatTraceTable(tracer.rows()));

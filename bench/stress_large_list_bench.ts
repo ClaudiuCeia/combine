@@ -1,3 +1,4 @@
+import { bench, group, run } from "mitata";
 import { createLexer, eof, map, number, sepBy1, seq } from "../mod.ts";
 
 const N = 5_000;
@@ -12,6 +13,10 @@ const list = map(
   ([, items]) => items,
 );
 
-Deno.bench("parse [0..4999] list", { group: "stress" }, () => {
-  list({ text, index: 0 });
+group("stress", () => {
+  bench("parse [0..4999] list", () => {
+    list({ text, index: 0 });
+  });
 });
+
+await run({ throw: true });

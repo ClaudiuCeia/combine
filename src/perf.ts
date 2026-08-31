@@ -144,7 +144,7 @@ export const formatTraceTable = (rows: TraceRow[]): string => {
   ];
 
   const widths = headers.map((_, i) =>
-    Math.max(...cells.map((row) => row[i]!.length))
+    Math.max(...cells.map((row) => row[i]!.length)),
   );
 
   const pad = (s: string, w: number) => s.padEnd(w, " ");

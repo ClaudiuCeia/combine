@@ -1,10 +1,11 @@
-import { assertEquals } from "@std/assert";
+import { assertEquals } from "./assert.ts";
+import { test } from "bun:test";
 import { recognizeAt, step } from "../src/nondeterministic.ts";
 import { seq } from "../src/combinators.ts";
 import { str } from "../src/parsers.ts";
 import { cut, map } from "../src/utility.ts";
 
-Deno.test("recognizeAt returns all matches (longest first) without consuming", () => {
+test("recognizeAt returns all matches (longest first) without consuming", () => {
   const a = map(str("a"), () => "a");
   const ab = map(str("ab"), () => "ab");
 
@@ -12,12 +13,18 @@ Deno.test("recognizeAt returns all matches (longest first) without consuming", (
   assertEquals(res.success, true);
   if (res.success) {
     assertEquals(res.ctx.index, 0); // does not advance
-    assertEquals(res.value.map((x) => x.value), ["ab", "a"]);
-    assertEquals(res.value.map((x) => x.ctx.index), [2, 1]);
+    assertEquals(
+      res.value.map((x) => x.value),
+      ["ab", "a"],
+    );
+    assertEquals(
+      res.value.map((x) => x.ctx.index),
+      [2, 1],
+    );
   }
 });
 
-Deno.test("recognizeAt returns furthest failure when none match", () => {
+test("recognizeAt returns furthest failure when none match", () => {
   const p1 = seq(str("a"), str("b")); // fails at index 1 on "aX"
   const p2 = seq(str("a"), str("X"), str("Y")); // fails at index 2 on "aXz"
 
@@ -29,7 +36,7 @@ Deno.test("recognizeAt returns furthest failure when none match", () => {
   }
 });
 
-Deno.test("recognizeAt propagates fatal failures immediately", () => {
+test("recognizeAt propagates fatal failures immediately", () => {
   let secondTried = false;
   const fatal = cut(str("a"), "a");
   const other = map(str("b"), () => {
@@ -43,7 +50,7 @@ Deno.test("recognizeAt propagates fatal failures immediately", () => {
   assertEquals(secondTried, false);
 });
 
-Deno.test("step(furthest) advances to the longest match", () => {
+test("step(furthest) advances to the longest match", () => {
   const a = map(str("a"), () => "a");
   const ab = map(str("ab"), () => "ab");
   const p = step(recognizeAt(a, ab), "furthest");
@@ -52,11 +59,14 @@ Deno.test("step(furthest) advances to the longest match", () => {
   assertEquals(res.success, true);
   if (res.success) {
     assertEquals(res.ctx.index, 2);
-    assertEquals(res.value.map((x) => x.value), ["ab", "a"]);
+    assertEquals(
+      res.value.map((x) => x.value),
+      ["ab", "a"],
+    );
   }
 });
 
-Deno.test("step(shortest) advances to the shortest match", () => {
+test("step(shortest) advances to the shortest match", () => {
   const a = map(str("a"), () => "a");
   const ab = map(str("ab"), () => "ab");
   const p = step(recognizeAt(a, ab), "shortest");
@@ -65,6 +75,9 @@ Deno.test("step(shortest) advances to the shortest match", () => {
   assertEquals(res.success, true);
   if (res.success) {
     assertEquals(res.ctx.index, 1);
-    assertEquals(res.value.map((x) => x.value), ["ab", "a"]);
+    assertEquals(
+      res.value.map((x) => x.value),
+      ["ab", "a"],
+    );
   }
 });

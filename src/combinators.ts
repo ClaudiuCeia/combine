@@ -45,7 +45,7 @@ const mergeFailures = (
       ? current.variants
       : [current, ...current.variants]),
     ...(candidate.expected.startsWith("one of ") &&
-        candidate.variants.length > 0
+    candidate.variants.length > 0
       ? candidate.variants
       : [candidate, ...candidate.variants]),
   ].filter((item) => {
@@ -81,7 +81,8 @@ type UnwrapParser<T> = T extends Parser<infer U> ? U : T;
 type UnwrapParsers<T extends [...unknown[]]> = T extends [
   infer Head,
   ...infer Tail,
-] ? [UnwrapParser<Head>, ...UnwrapParsers<Tail>]
+]
+  ? [UnwrapParser<Head>, ...UnwrapParsers<Tail>]
   : [];
 
 /**
@@ -215,11 +216,9 @@ export const oneOf = <T>(...parsers: Parser<T>[]): Parser<T> => {
           if (match.success) {
             return failure(
               ctx,
-              `expected single parser to match, already matched "${
-                JSON.stringify(
-                  match.value,
-                )
-              }", now matched ${JSON.stringify(res.value)}`,
+              `expected single parser to match, already matched "${JSON.stringify(
+                match.value,
+              )}", now matched ${JSON.stringify(res.value)}`,
             );
           } else {
             return failure(ctx, "expected single parser to match", [match]);
@@ -238,8 +237,9 @@ export const oneOf = <T>(...parsers: Parser<T>[]): Parser<T> => {
       return match;
     }
 
-    return furthestFailure ??
-      failure(ctx, "oneOf: expected at least one parser");
+    return (
+      furthestFailure ?? failure(ctx, "oneOf: expected at least one parser")
+    );
   };
 };
 
@@ -275,8 +275,9 @@ export const furthest = <T>(...parsers: Parser<T>[]): Parser<T> => {
       }
     }
 
-    return furthestRes ??
-      failure(ctx, "furthest: expected at least one parser");
+    return (
+      furthestRes ?? failure(ctx, "furthest: expected at least one parser")
+    );
   };
 };
 
@@ -497,10 +498,7 @@ const separatedTail = <T, S>(
  *
  * Fatal errors are propagated immediately.
  */
-export const sepBy = <T, S>(
-  parser: Parser<T>,
-  sep: Parser<S>,
-): Parser<T[]> => {
+export const sepBy = <T, S>(parser: Parser<T>, sep: Parser<S>): Parser<T[]> => {
   return (ctx) => {
     const first = parser(ctx);
     if (!first.success) {

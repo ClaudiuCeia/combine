@@ -7,20 +7,19 @@ window ending 2026-08-29.
 ## Commands
 
 ```sh
-deno task bench:verify
-deno task bench:comparison
-deno task bench:comparison:json
+bun run bench:verify
+bun run bench:comparison
+bun run bench:comparison:json
 ```
 
 `bench:verify` must pass before results are accepted. It checks equivalent
 expression values, precedence, associativity, complete input consumption, and
 rejection of malformed examples for every adapter.
 
-`bench:comparison:json` runs the same suite but emits Deno's machine-readable
+`bench:comparison:json` runs the same suite but emits Mitata's machine-readable
 JSON output. It does not select a JSON grammar.
 
-Tarsec reads `process.env.DEBUG` when its tracing module is imported, so the two
-tasks grant access to that variable only.
+Tarsec reads `process.env.DEBUG` when its tracing module is imported.
 
 ## Grammar
 
@@ -48,7 +47,7 @@ Steady-state parsers are built outside timed callbacks.
 - Each adapter uses the package's idiomatic public primitive API. Mini-Parse
   includes creation of its required character-token stream; Peberminta includes
   conversion of the string to character tokens.
-- Versions are exact in `deno.json` and integrity-locked in `deno.lock`.
+- Versions are exact in `package.json` and integrity-locked in `bun.lock`.
 
 The suite is not a universal parser score. It covers deterministic successful
 parsing, late failure detection, cold grammar construction, and construction

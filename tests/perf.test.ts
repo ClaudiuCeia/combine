@@ -1,8 +1,9 @@
-import { assertEquals } from "@std/assert";
+import { assertEquals } from "./assert.ts";
+import { test } from "bun:test";
 import { createTracer, formatTraceTable } from "../src/perf.ts";
 import { failure, type Parser, success } from "../src/Parser.ts";
 
-Deno.test("tracer counts calls and consumed input", () => {
+test("tracer counts calls and consumed input", () => {
   let t = 0;
   const tracer = createTracer({ now: () => ++t }); // deterministic
 
@@ -33,7 +34,7 @@ Deno.test("tracer counts calls and consumed input", () => {
   assertEquals(badRow.failure, 1);
 });
 
-Deno.test("formatTraceTable prints a header and rows", () => {
+test("formatTraceTable prints a header and rows", () => {
   const table = formatTraceTable([
     {
       name: "p",

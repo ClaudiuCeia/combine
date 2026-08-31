@@ -1,8 +1,9 @@
-import { assertEquals } from "@std/assert";
+import { assertEquals } from "./assert.ts";
+import { test } from "bun:test";
 import { mark, withSpan } from "../src/utility.ts";
 import { str } from "../src/parsers.ts";
 
-Deno.test("mark captures start/end indices", () => {
+test("mark captures start/end indices", () => {
   const p = mark(str("abc"));
   const res = p({ text: "zabcq", index: 1 });
   assertEquals(res.success, true);
@@ -11,7 +12,7 @@ Deno.test("mark captures start/end indices", () => {
   }
 });
 
-Deno.test("withSpan captures locations on multiline input", () => {
+test("withSpan captures locations on multiline input", () => {
   const p = withSpan(str("a\nb"));
   const res = p({ text: "a\nb", index: 0 });
   assertEquals(res.success, true);
