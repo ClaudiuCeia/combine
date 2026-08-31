@@ -173,6 +173,18 @@ Deno.test("horizontalSpace requires at least one space/tab", () => {
   assertEquals(horizontalSpace()({ text: "X", index: 0 }).success, false);
 });
 
+Deno.test("horizontalSpace rejects LF and CRLF", () => {
+  for (const lineEnding of ["\n", "\r\n"]) {
+    const rejected = horizontalSpace()({ text: lineEnding, index: 0 });
+    assertEquals(rejected.success, false);
+    if (!rejected.success) assertEquals(rejected.ctx.index, 0);
+
+    const stopped = horizontalSpace()({ text: ` \t${lineEnding}`, index: 0 });
+    assertEquals(stopped.success, true);
+    if (stopped.success) assertEquals(stopped.ctx.index, 2);
+  }
+});
+
 Deno.test("hexDigit matches 0-9 and A-F/a-f", () => {
   assertObjectMatch(hexDigit()({ text: "9", index: 0 }), {
     success: true,
