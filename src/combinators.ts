@@ -343,8 +343,10 @@ export const many = <T>(parser: Parser<T>): Parser<T[]> => {
  * Fatal errors are propagated immediately.
  */
 export const many1 = <T>(parser: Parser<T>): Parser<T[]> => {
+  const repeated = many(parser);
+
   return (ctx) => {
-    const res = many(parser)(ctx);
+    const res = repeated(ctx);
 
     // Propagate fatal errors
     if (!res.success) {
