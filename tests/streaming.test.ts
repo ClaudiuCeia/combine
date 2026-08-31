@@ -640,6 +640,13 @@ describe("streaming end of input", () => {
 });
 
 describe("streaming tries", () => {
+  test("waits before selecting an empty prefix over a longer candidate", () => {
+    const stream = createStreamingParser(trie(["", "a"]));
+
+    expect(stream.feed("")).toMatchObject({ success: false, pending: true });
+    expect(stream.finish()).toMatchObject({ success: true, value: "" });
+  });
+
   test("wait for a possible longer match", () => {
     const stream = createStreamingParser(trie(["`", "```"]));
 

@@ -70,3 +70,15 @@ test("trie parser uses maximal munch regardless of input order", () => {
     });
   }
 });
+
+test("trie parser supports an empty string candidate", () => {
+  const words = new Trie();
+  words.insertMany(["", "a"]);
+
+  assertEquals(words.existsSubstring(""), [true, ""]);
+  assertObjectMatch(trie(["", "a"])({ text: "", index: 0 }), {
+    success: true,
+    value: "",
+    ctx: { index: 0 },
+  });
+});
