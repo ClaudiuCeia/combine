@@ -66,7 +66,7 @@ export class Trie {
    */
   public existsSubstring(word: string): [boolean, string | undefined] {
     let current = this.root;
-    let match: string | undefined;
+    let match = this.root.isWord ? "" : undefined;
 
     for (let i = 0; i < word.length; i++) {
       const ch = word.charAt(i);
