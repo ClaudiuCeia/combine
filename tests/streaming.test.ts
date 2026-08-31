@@ -38,6 +38,7 @@ import {
   takeText,
   trie,
 } from "../src/parsers.ts";
+import { cut, ifPeek, onFailure, peekAnd } from "../src/utility.ts";
 
 describe("pending parser results", () => {
   test("are distinguishable from definitive failures", () => {
@@ -338,6 +339,59 @@ describe("streaming expression chains", () => {
     expect(stream.feed("*a ")).toMatchObject({
       success: true,
       value: "a**a",
+    });
+  });
+});
+
+describe("streaming utility wrappers", () => {
+  test("keeps peekAnd unresolved without consuming lookahead", () => {
+    const stream = createStreamingParser(peekAnd(str("ab"), str("ab")));
+
+    expect(stream.feed("a")).toMatchObject({
+      success: false,
+      pending: true,
+      ctx: { index: 0 },
+    });
+    expect(stream.feed("b")).toMatchObject({ success: true, value: "ab" });
+  });
+
+  test("keeps ifPeek unresolved until its probe finishes", () => {
+    const stream = createStreamingParser(ifPeek(str("ab"), str("c")));
+
+    expect(stream.feed("a")).toMatchObject({ success: false, pending: true });
+    expect(stream.feed("bc")).toMatchObject({ success: true, value: "c" });
+  });
+
+  test("does not rewrite pending results with onFailure", () => {
+    let rewrites = 0;
+    const parser = onFailure(str("ab"), (result) => {
+      rewrites++;
+      return { ...result, expected: "rewritten" };
+    });
+    const stream = createStreamingParser(parser);
+
+    expect(stream.feed("a")).toMatchObject({ success: false, pending: true });
+    expect(rewrites).toBe(0);
+    expect(stream.finish()).toMatchObject({
+      success: false,
+      expected: "rewritten",
+    });
+    expect(rewrites).toBe(1);
+  });
+
+  test("does not make pending cut failures fatal", () => {
+    const stream = createStreamingParser(cut(str("ab"), "complete token"));
+
+    expect(stream.feed("a")).toMatchObject({
+      success: false,
+      pending: true,
+      fatal: false,
+      expected: "ab",
+    });
+    expect(stream.finish()).toMatchObject({
+      success: false,
+      fatal: true,
+      expected: "complete token",
     });
   });
 });
