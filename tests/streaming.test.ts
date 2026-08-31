@@ -8,6 +8,7 @@ import {
   type Result,
 } from "../src/Parser.ts";
 import { createStreamingParser } from "../src/streaming.ts";
+import { str } from "../src/parsers.ts";
 
 describe("pending parser results", () => {
   test("are distinguishable from definitive failures", () => {
@@ -93,6 +94,40 @@ describe("buffered parser sessions", () => {
       success: false,
       expected: "a terminal result",
       fatal: false,
+    });
+  });
+});
+
+describe("streaming strings", () => {
+  test("suspend while input is a strict prefix", () => {
+    const stream = createStreamingParser(str("hello"));
+
+    expect(stream.feed("hel")).toMatchObject({
+      success: false,
+      pending: true,
+      expected: "hello",
+    });
+    expect(stream.feed("lo")).toMatchObject({
+      success: true,
+      value: "hello",
+      ctx: { index: 5 },
+    });
+  });
+
+  test("fail as soon as an existing character mismatches", () => {
+    const result = createStreamingParser(str("hello")).feed("help");
+    expect(result).toMatchObject({ success: false, expected: "hello" });
+    expect(isPending(result)).toBe(false);
+  });
+
+  test("preserve finite parsing and empty matches", () => {
+    expect(str("hello")({ text: "hel", index: 0 })).toMatchObject({
+      success: false,
+      expected: "hello",
+    });
+    expect(str("")({ text: "", index: 0, final: false })).toMatchObject({
+      success: true,
+      value: "",
     });
   });
 });

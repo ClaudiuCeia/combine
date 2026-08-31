@@ -1,5 +1,5 @@
 import { any, either, many1, peek, seq, skipMany1 } from "./combinators.ts";
-import { failure, type Parser, success } from "./Parser.ts";
+import { failure, type Parser, pending, success } from "./Parser.ts";
 import { Trie } from "./Trie.ts";
 import { map } from "./utility.ts";
 
@@ -12,10 +12,24 @@ export const str = <const Match extends string>(
   return (ctx) => {
     const endIdx = ctx.index + match.length;
     if (ctx.text.substring(ctx.index, endIdx) === match) {
-      return success({ text: ctx.text, index: endIdx }, match);
-    } else {
-      return failure(ctx, match);
+      return success(
+        ctx.final === false
+          ? { text: ctx.text, index: endIdx, final: false }
+          : { text: ctx.text, index: endIdx },
+        match,
+      );
     }
+
+    const available = ctx.text.substring(ctx.index);
+    if (
+      ctx.final === false &&
+      available.length < match.length &&
+      match.startsWith(available)
+    ) {
+      return pending(ctx, match);
+    }
+
+    return failure(ctx, match);
   };
 };
 
