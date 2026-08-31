@@ -23,7 +23,8 @@ export class Trie {
    */
   public insert(word: string): void {
     let current = this.root;
-    for (const letter of word) {
+    for (let i = 0; i < word.length; i++) {
+      const letter = word.charAt(i);
       if (!current.children[letter]) {
         current.children[letter] = new TrieNode(letter);
       }
