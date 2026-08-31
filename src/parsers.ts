@@ -207,7 +207,27 @@ export const letter = (): Parser<string> => {
  * Matches any whitespace
  */
 export const space = (): Parser<string> => {
-  return regex(/\s+/, "whitespace");
+  const finite = regex(/\s+/, "whitespace");
+
+  return (ctx) => {
+    if (ctx.final !== false) return finite(ctx);
+
+    let index = ctx.index;
+    while (index < ctx.text.length && /\s/.test(ctx.text[index]!)) index++;
+
+    if (index === ctx.index) {
+      return index === ctx.text.length
+        ? pending(ctx, "whitespace")
+        : failure(ctx, "whitespace");
+    }
+
+    if (index === ctx.text.length) return pending(ctx, "whitespace");
+
+    return success(
+      { text: ctx.text, index, final: false },
+      ctx.text.substring(ctx.index, index),
+    );
+  };
 };
 
 /**

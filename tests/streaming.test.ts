@@ -28,6 +28,7 @@ import {
   eof,
   notChar,
   regex,
+  space,
   str,
   take,
   takeText,
@@ -269,6 +270,21 @@ describe("streaming characters", () => {
 
     expect(stream.feed("")).toMatchObject({ success: false, pending: true });
     expect(stream.feed("7")).toMatchObject({ success: true, value: 7 });
+  });
+});
+
+describe("streaming whitespace", () => {
+  test("waits while the whitespace token can grow", () => {
+    const stream = createStreamingParser(space());
+
+    expect(stream.feed(" \t")).toMatchObject({ success: false, pending: true });
+    expect(stream.feed("x")).toMatchObject({ success: true, value: " \t" });
+  });
+
+  test("finishes whitespace at final input", () => {
+    const stream = createStreamingParser(space());
+    expect(stream.feed("\n ")).toMatchObject({ success: false, pending: true });
+    expect(stream.finish()).toMatchObject({ success: true, value: "\n " });
   });
 });
 
