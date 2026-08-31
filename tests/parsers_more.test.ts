@@ -20,6 +20,48 @@ import {
   takeText,
 } from "../src/parsers.ts";
 
+Deno.test("digit, letter, and space parsers are reusable", () => {
+  const digitParser = digit();
+  const letterParser = letter();
+  const spaceParser = space();
+
+  assertObjectMatch(digitParser({ text: "a7", index: 1 }), {
+    success: true,
+    value: 7,
+    ctx: { index: 2 },
+  });
+  assertEquals(digitParser({ text: "x", index: 0 }).success, false);
+  assertObjectMatch(digitParser({ text: "3", index: 0 }), {
+    success: true,
+    value: 3,
+    ctx: { index: 1 },
+  });
+
+  assertObjectMatch(letterParser({ text: "1Z", index: 1 }), {
+    success: true,
+    value: "Z",
+    ctx: { index: 2 },
+  });
+  assertEquals(letterParser({ text: "_", index: 0 }).success, false);
+  assertObjectMatch(letterParser({ text: "q", index: 0 }), {
+    success: true,
+    value: "q",
+    ctx: { index: 1 },
+  });
+
+  assertObjectMatch(spaceParser({ text: "x \t\n", index: 1 }), {
+    success: true,
+    value: " \t\n",
+    ctx: { index: 4 },
+  });
+  assertEquals(spaceParser({ text: "x", index: 0 }).success, false);
+  assertObjectMatch(spaceParser({ text: "\r", index: 0 }), {
+    success: true,
+    value: "\r",
+    ctx: { index: 1 },
+  });
+});
+
 Deno.test("anyChar fails at end of input", () => {
   for (const index of [1, 2]) {
     const res = anyChar()({ text: "a", index });

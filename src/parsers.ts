@@ -131,31 +131,21 @@ export const skipCharWhere = (
  * Matches any single decimal digit
  */
 export const digit = (): Parser<number> => {
-  return (ctx) => {
-    const isDigit = regex(/[0-9]/, "digit");
-
-    return map(isDigit, (digit) => {
-      return parseInt(digit, 10);
-    })(ctx);
-  };
+  return map(regex(/[0-9]/, "digit"), (value) => parseInt(value, 10));
 };
 
 /**
  * Matches any single letter (case insesitive A-Z)
  */
 export const letter = (): Parser<string> => {
-  return (ctx) => {
-    return regex(/[a-zA-Z]/, "letter")(ctx);
-  };
+  return regex(/[a-zA-Z]/, "letter");
 };
 
 /**
  * Matches any whitespace
  */
 export const space = (): Parser<string> => {
-  return (ctx) => {
-    return regex(/\s+/, "whitespace")(ctx);
-  };
+  return regex(/\s+/, "whitespace");
 };
 
 /**
