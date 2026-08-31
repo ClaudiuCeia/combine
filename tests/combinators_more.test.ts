@@ -43,6 +43,15 @@ Deno.test("oneOf fails when multiple alternatives match", () => {
   assertEquals(res.success, false);
 });
 
+Deno.test("oneOf succeeds when exactly one alternative matches", () => {
+  const res = oneOf(str("a"), str("b"))({ text: "b", index: 0 });
+  assertEquals(res.success, true);
+  if (res.success) {
+    assertEquals(res.value, "b");
+    assertEquals(res.ctx.index, 1);
+  }
+});
+
 Deno.test("choice combinators fail when called without parsers", () => {
   const choices: [string, Parser<unknown>][] = [
     ["any", any()],

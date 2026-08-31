@@ -137,7 +137,7 @@ When you build user-facing parsers, you typically want:
 - readable "where in the grammar did this fail?" traces
 - fewer confusing backtracks once you've committed to a branch
 
-### Error selection (`any` vs `furthest`)
+### Error selection (`choice`/`any`, `oneOf`, and `furthest`)
 
 Backtracking combinators need a rule for which error to return when multiple
 alternatives fail.
@@ -151,6 +151,9 @@ alternatives fail.
   (success or failure) that got the furthest.
   - This often improves error quality, but it may return a failure even if an
     earlier alternative succeeded.
+- `oneOf(p1, p2, ...)` evaluates alternatives from the same starting context and
+  succeeds only when exactly one matches. Use it to enforce mutually exclusive
+  branches, not for ordinary ordered choice.
 
 ### `context(label, parser)`
 

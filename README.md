@@ -86,6 +86,9 @@ reach for first:
   `optional`
 - Transform: `map`, `chain`/`flatMap`, `mapJoin`, `trim`
 
+`choice` (`any`) returns the first successful alternative. `oneOf` evaluates all
+alternatives and succeeds only when exactly one matches.
+
 If you like learning by examples, start with `tests/`.
 
 ## Recursion (Grammars)

@@ -187,12 +187,12 @@ export const any = <T extends [...Parser<unknown>[]]>(
 export const choice: typeof any = any;
 
 /**
- * Try all parsers in order. If more than one match is found,
- * it's a failure. If only one matches, return it's result.
- * If none matches, return the failure result of the parser
- * that consumed the most input.
+ * Evaluate alternatives from the same starting context and succeed only when
+ * exactly one matches. If multiple alternatives match, this fails rather than
+ * choosing one. If none match, return the failure that consumed the most input.
  *
- * Fatal errors are propagated immediately.
+ * Use `choice` or `any` for ordinary ordered choice. Fatal errors are propagated
+ * immediately without trying later alternatives.
  */
 export const oneOf = <T>(...parsers: Parser<T>[]): Parser<T> => {
   return (ctx) => {
