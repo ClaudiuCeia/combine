@@ -8,7 +8,7 @@ import {
   type Result,
 } from "../src/Parser.ts";
 import { createStreamingParser } from "../src/streaming.ts";
-import { any, optional } from "../src/combinators.ts";
+import { any, many, optional } from "../src/combinators.ts";
 import {
   anyChar,
   eof,
@@ -311,6 +311,31 @@ describe("streaming optional values", () => {
     expect(createStreamingParser(optional(str("ab"))).feed("x")).toMatchObject({
       success: true,
       value: null,
+    });
+  });
+});
+
+describe("streaming repetitions", () => {
+  test("wait for an incomplete repeated value", () => {
+    const stream = createStreamingParser(many(str("ab")));
+
+    expect(stream.feed("aba")).toMatchObject({ success: false, pending: true });
+    expect(stream.feed("bx")).toMatchObject({
+      success: true,
+      value: ["ab", "ab"],
+      ctx: { index: 4 },
+    });
+  });
+
+  test("finish repetition at final input", () => {
+    const stream = createStreamingParser(many(str("ab")));
+    expect(stream.feed("abab")).toMatchObject({
+      success: false,
+      pending: true,
+    });
+    expect(stream.finish()).toMatchObject({
+      success: true,
+      value: ["ab", "ab"],
     });
   });
 });

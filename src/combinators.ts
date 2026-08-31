@@ -349,6 +349,10 @@ export const many = <T>(parser: Parser<T>): Parser<T[]> => {
     while (true) {
       const res = parser(nextCtx);
       if (!res.success) {
+        if (isPending(res)) {
+          return res;
+        }
+
         // Fatal errors propagate
         if (isFatal(res)) {
           return res as unknown as Failure;
