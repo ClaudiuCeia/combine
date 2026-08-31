@@ -136,9 +136,7 @@ export const seq = <T extends [...Parser<unknown>[]]>(
  * Fatal errors from either parser will be propagated immediately.
  */
 export const either = <A, B>(a: Parser<A>, b: Parser<B>): Parser<A | B> => {
-  return (ctx) => {
-    return any(a, b)(ctx);
-  };
+  return any(a, b);
 };
 
 /**
