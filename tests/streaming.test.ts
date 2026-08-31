@@ -263,6 +263,45 @@ describe("async parser streams", () => {
     expect(results.filter(isPending)).toHaveLength(2);
   });
 
+  test("release consumed input between repeated-value batches", async () => {
+    const contexts: { text: string; index: number }[] = [];
+    const parser: Parser<string> = (ctx) => {
+      contexts.push({ text: ctx.text, index: ctx.index });
+      return str("a")(ctx);
+    };
+    async function* chunks(): AsyncGenerator<string> {
+      yield "a";
+      yield "a";
+      yield "a";
+    }
+
+    const values: string[] = [];
+    for await (const result of parseStreamEach(parser, chunks())) {
+      if (result.success) values.push(result.value);
+    }
+
+    expect(values).toEqual(["a", "a", "a"]);
+    expect(contexts).toEqual([
+      { text: "a", index: 0 },
+      { text: "a", index: 0 },
+      { text: "a", index: 0 },
+    ]);
+  });
+
+  test("retain an incomplete value while compacting completed input", async () => {
+    async function* chunks(): AsyncGenerator<string> {
+      yield "aba";
+      yield "b";
+    }
+
+    const values: string[] = [];
+    for await (const result of parseStreamEach(str("ab"), chunks())) {
+      if (result.success) values.push(result.value);
+    }
+
+    expect(values).toEqual(["ab", "ab"]);
+  });
+
   test("reject non-advancing repeated parsers", async () => {
     async function* chunks(): AsyncGenerator<string> {
       yield "x";

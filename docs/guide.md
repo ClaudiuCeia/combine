@@ -61,6 +61,10 @@ Use `parseStream(parser, chunks)` to consume an `AsyncIterable<string>`. Use
 values. The repeated parser must consume input whenever it succeeds; otherwise
 `parseStreamEach` returns a failure instead of looping forever.
 
+`parseStreamEach` releases completed input between batches, so result contexts,
+locations, and spans are relative to the currently retained buffer window. A
+repeated-value parser must not depend on input before the current value.
+
 ### Open boundaries
 
 Some otherwise-valid prefixes remain pending at the current end of an open

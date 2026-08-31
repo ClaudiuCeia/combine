@@ -98,6 +98,12 @@ export async function* parseStreamEach<T>(
   let text = "";
   let index = 0;
 
+  const compactConsumed = (): void => {
+    if (index === 0) return;
+    text = text.substring(index);
+    index = 0;
+  };
+
   const parseAvailable = (
     final: boolean,
   ): { results: Result<T>[]; done: boolean } => {
@@ -154,6 +160,7 @@ export async function* parseStreamEach<T>(
     const batch = parseAvailable(false);
     for (const result of batch.results) yield result;
     if (batch.done) return;
+    compactConsumed();
   }
 
   const batch = parseAvailable(true);
