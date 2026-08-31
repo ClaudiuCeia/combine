@@ -8,7 +8,7 @@ import {
   type Result,
 } from "../src/Parser.ts";
 import { createStreamingParser } from "../src/streaming.ts";
-import { anyChar, str } from "../src/parsers.ts";
+import { anyChar, notChar, str } from "../src/parsers.ts";
 
 describe("pending parser results", () => {
   test("are distinguishable from definitive failures", () => {
@@ -149,5 +149,24 @@ describe("streaming characters", () => {
       success: false,
       expected: "reached end of input",
     });
+  });
+
+  test("notChar suspends at an open boundary", () => {
+    const stream = createStreamingParser(notChar("\n".charCodeAt(0)));
+
+    expect(stream.feed("")).toMatchObject({ success: false, pending: true });
+    expect(stream.feed("a")).toMatchObject({ success: true, value: "a" });
+  });
+
+  test("notChar keeps exclusions definitive", () => {
+    const result = createStreamingParser(notChar("\n".charCodeAt(0))).feed(
+      "\n",
+    );
+
+    expect(result).toMatchObject({
+      success: false,
+      expected: 'found char "\n"',
+    });
+    expect(isPending(result)).toBe(false);
   });
 });

@@ -112,6 +112,7 @@ export const anyChar = (): Parser<string> => {
  * Matches any character not matching the given UTF-16 code.
  */
 export const notChar = (code: number): Parser<string> => {
+  const read = anyChar();
   return (ctx) => {
     if (!isUtf16Code(code)) {
       return failure(
@@ -120,16 +121,14 @@ export const notChar = (code: number): Parser<string> => {
       );
     }
 
-    if (ctx.index >= ctx.text.length) {
-      return failure(ctx, "reached end of input");
+    const res = read(ctx);
+    if (!res.success) return res;
+
+    if (res.value === String.fromCharCode(code)) {
+      return failure(ctx, `found char "${res.value}"`);
     }
 
-    const value = ctx.text.substring(ctx.index, ctx.index + 1);
-    if (value === String.fromCharCode(code)) {
-      return failure(ctx, `found char "${value}"`);
-    }
-
-    return success({ text: ctx.text, index: ctx.index + 1 }, value);
+    return res;
   };
 };
 
