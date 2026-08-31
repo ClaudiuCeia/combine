@@ -12,7 +12,7 @@ import {
   parseStream,
   parseStreamEach,
 } from "../src/streaming.ts";
-import { any, many, manyTill, optional } from "../src/combinators.ts";
+import { any, many, manyTill, optional, sepBy } from "../src/combinators.ts";
 import {
   anyChar,
   eof,
@@ -436,5 +436,24 @@ describe("streaming terminated repetitions", () => {
       pending: true,
     });
     expect(stream.finish()).toMatchObject({ success: false, expected: "```" });
+  });
+});
+
+describe("streaming separated lists", () => {
+  test("wait for separators and values split across chunks", () => {
+    const stream = createStreamingParser(sepBy(str("x"), str(",")));
+
+    expect(stream.feed("x,")).toMatchObject({ success: false, pending: true });
+    expect(stream.feed("x;")).toMatchObject({
+      success: true,
+      value: ["x", "x"],
+      ctx: { index: 3 },
+    });
+  });
+
+  test("do not turn an incomplete first value into an empty list", () => {
+    expect(
+      createStreamingParser(sepBy(str("ab"), str(","))).feed("a"),
+    ).toMatchObject({ success: false, pending: true });
   });
 });

@@ -496,6 +496,7 @@ const separatedTail = <T, S>(
   while (true) {
     const sepRes = sep(nextCtx);
     if (!sepRes.success) {
+      if (isPending(sepRes)) return sepRes;
       return isFatal(sepRes) ? sepRes : success(nextCtx, values);
     }
 
@@ -530,6 +531,7 @@ export const sepBy = <T, S>(parser: Parser<T>, sep: Parser<S>): Parser<T[]> => {
   return (ctx) => {
     const first = parser(ctx);
     if (!first.success) {
+      if (isPending(first)) return first;
       return isFatal(first) ? first : success(ctx, []);
     }
 
