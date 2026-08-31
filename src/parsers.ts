@@ -13,9 +13,9 @@ export const str = <const Match extends string>(
     const endIdx = ctx.index + match.length;
     if (ctx.text.substring(ctx.index, endIdx) === match) {
       return success(
-        ctx.final === false
-          ? { text: ctx.text, index: endIdx, final: false }
-          : { text: ctx.text, index: endIdx },
+        ctx.final === undefined
+          ? { text: ctx.text, index: endIdx }
+          : { text: ctx.text, index: endIdx, final: ctx.final },
         match,
       );
     }
@@ -64,17 +64,11 @@ export const trie = (matches: string[]): Parser<string> => {
     }
 
     if (match !== undefined) {
+      const index = ctx.index + match.length;
       return success(
-        ctx.final === false
-          ? {
-              text: ctx.text,
-              index: ctx.index + match.length,
-              final: false,
-            }
-          : {
-              text: ctx.text,
-              index: ctx.index + match.length,
-            },
+        ctx.final === undefined
+          ? { text: ctx.text, index }
+          : { text: ctx.text, index, final: ctx.final },
         match,
       );
     }
@@ -113,9 +107,9 @@ export const anyChar = (): Parser<string> => {
     }
 
     return success(
-      ctx.final === false
-        ? { text: ctx.text, index: ctx.index + 1, final: false }
-        : { text: ctx.text, index: ctx.index + 1 },
+      ctx.final === undefined
+        ? { text: ctx.text, index: ctx.index + 1 }
+        : { text: ctx.text, index: ctx.index + 1, final: ctx.final },
       ctx.text.substring(ctx.index, ctx.index + 1),
     );
   };
@@ -252,9 +246,9 @@ export const take = (count: number): Parser<string> => {
     const endIdx = ctx.index + count;
     if (endIdx <= ctx.text.length) {
       return success(
-        ctx.final === false
-          ? { text: ctx.text, index: endIdx, final: false }
-          : { text: ctx.text, index: endIdx },
+        ctx.final === undefined
+          ? { text: ctx.text, index: endIdx }
+          : { text: ctx.text, index: endIdx, final: ctx.final },
         ctx.text.substring(ctx.index, endIdx),
       );
     }
@@ -275,7 +269,9 @@ export const takeText = (): Parser<string> => {
     }
 
     return success(
-      { text: ctx.text, index: ctx.text.length },
+      ctx.final === undefined
+        ? { text: ctx.text, index: ctx.text.length }
+        : { text: ctx.text, index: ctx.text.length, final: ctx.final },
       ctx.text.substring(ctx.index, ctx.text.length),
     );
   };
@@ -451,7 +447,16 @@ export const regex = (re: RegExp, expected: string): Parser<string> => {
     stickyRe.lastIndex = ctx.index;
     const res = stickyRe.exec(ctx.text);
     return res && res.index === ctx.index
-      ? success({ text: ctx.text, index: res.index + res[0].length }, res[0])
+      ? success(
+          ctx.final === undefined
+            ? { text: ctx.text, index: res.index + res[0].length }
+            : {
+                text: ctx.text,
+                index: res.index + res[0].length,
+                final: ctx.final,
+              },
+          res[0],
+        )
       : failure(ctx, expected);
   };
 };

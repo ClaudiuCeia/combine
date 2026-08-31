@@ -81,6 +81,33 @@ describe("pending parser results", () => {
   test("ordinary failures are not pending", () => {
     expect(isPending(failure({ text: "x", index: 0 }, "value"))).toBe(false);
   });
+
+  test("primitive successes preserve an explicit final marker", () => {
+    const cases: [Parser<unknown>, string][] = [
+      [str("a"), "a"],
+      [trie(["a"]), "a"],
+      [anyChar(), "a"],
+      [take(1), "a"],
+      [takeText(), "a"],
+      [regex(/a/, "a"), "a"],
+    ];
+
+    for (const [parser, text] of cases) {
+      expect(parser({ text, index: 0, final: true })).toMatchObject({
+        success: true,
+        ctx: { final: true },
+      });
+    }
+  });
+
+  test("final-aware parsers compose after primitive successes", () => {
+    const finalOnly: Parser<null> = (ctx) =>
+      ctx.final === true ? success(ctx, null) : pending(ctx, "final input");
+    const stream = createStreamingParser(seq(str("a"), finalOnly));
+
+    expect(stream.feed("a")).toMatchObject({ success: false, pending: true });
+    expect(stream.finish()).toMatchObject({ success: true });
+  });
 });
 
 describe("buffered parser sessions", () => {
