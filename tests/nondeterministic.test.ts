@@ -1,7 +1,8 @@
-import { assertEquals } from "./assert.ts";
+import { assertEquals, assertStrictEquals } from "./assert.ts";
 import { test } from "bun:test";
 import { recognizeAt, step } from "../src/nondeterministic.ts";
 import { seq } from "../src/combinators.ts";
+import { failure, success } from "../src/Parser.ts";
 import { str } from "../src/parsers.ts";
 import { cut, map } from "../src/utility.ts";
 
@@ -21,6 +22,14 @@ test("recognizeAt returns all matches (longest first) without consuming", () => 
       res.value.map((x) => x.ctx.index),
       [2, 1],
     );
+  }
+});
+
+test("recognizeAt requires at least one parser", () => {
+  const res = recognizeAt()({ text: "", index: 0 });
+  assertEquals(res.success, false);
+  if (!res.success) {
+    assertEquals(res.expected, "recognizeAt: expected at least one parser");
   }
 });
 
@@ -78,6 +87,31 @@ test("step(shortest) advances to the shortest match", () => {
     assertEquals(
       res.value.map((x) => x.value),
       ["ab", "a"],
+    );
+  }
+});
+
+test("step preserves recognizer failures", () => {
+  const sourceFailure = failure({ text: "x", index: 0 }, "recognizer");
+  const res = step(() => sourceFailure)({ text: "x", index: 0 });
+  assertStrictEquals(res, sourceFailure);
+});
+
+test("step rejects an empty recognition set", () => {
+  const res = step((ctx) => success(ctx, []))({ text: "x", index: 0 });
+  assertEquals(res.success, false);
+  if (!res.success) {
+    assertEquals(res.expected, "step: expected at least one recognition");
+  }
+});
+
+test("step rejects a selected recognition that does not advance", () => {
+  const res = step(recognizeAt(str("")))({ text: "x", index: 1 });
+  assertEquals(res.success, false);
+  if (!res.success) {
+    assertEquals(
+      res.expected,
+      "step(furthest): recognizer did not advance (index 1 -> 1)",
     );
   }
 });

@@ -80,3 +80,17 @@ test("createLexer provides a consistent trivia policy", () => {
   assertEquals(res.success, true);
   if (res.success) assertEquals(res.value, 12);
 });
+
+test("createLexer parens returns the enclosed value", () => {
+  const lexer = createLexer();
+  const res = lexer.parens(lexer.lexeme(int()))({
+    text: "( 12 /*x*/ )",
+    index: 0,
+  });
+
+  assertEquals(res.success, true);
+  if (res.success) {
+    assertEquals(res.value, 12);
+    assertEquals(res.ctx.index, 12);
+  }
+});

@@ -5,6 +5,7 @@ import {
   isFatal,
   type Parser,
   type Result,
+  type Success,
   success,
 } from "./Parser.ts";
 import { map } from "./utility.ts";
@@ -201,7 +202,7 @@ export const oneOf = <T>(...parsers: Parser<T>[]): Parser<T> => {
       return failure(ctx, "oneOf: expected at least one parser");
     }
 
-    let match: Result<T> | undefined;
+    let match: Success<T> | undefined;
     let furthestFailure: Failure | undefined;
     for (const parser of parsers) {
       const res = parser(ctx);
@@ -213,16 +214,12 @@ export const oneOf = <T>(...parsers: Parser<T>[]): Parser<T> => {
 
       if (res.success) {
         if (match) {
-          if (match.success) {
-            return failure(
-              ctx,
-              `expected single parser to match, already matched "${JSON.stringify(
-                match.value,
-              )}", now matched ${JSON.stringify(res.value)}`,
-            );
-          } else {
-            return failure(ctx, "expected single parser to match", [match]);
-          }
+          return failure(
+            ctx,
+            `expected single parser to match, already matched "${JSON.stringify(
+              match.value,
+            )}", now matched ${JSON.stringify(res.value)}`,
+          );
         }
 
         match = res;
@@ -407,12 +404,7 @@ export const manyTill = <A, B>(
           return res;
         }
 
-        const maybeEnd = end(nextCtx);
-        if (maybeEnd.success) {
-          return success(maybeEnd.ctx, [...values, maybeEnd.value]);
-        } else {
-          return maybeEnd;
-        }
+        return maybeEnd;
       }
 
       const advanceErr = assertAdvanced("manyTill", nextCtx, res.ctx);
