@@ -8,6 +8,7 @@ import {
   type Result,
 } from "../src/Parser.ts";
 import { createStreamingParser } from "../src/streaming.ts";
+import { any } from "../src/combinators.ts";
 import {
   anyChar,
   eof,
@@ -280,5 +281,20 @@ describe("streaming regular expressions", () => {
       success: false,
       expected: "a before final b",
     });
+  });
+});
+
+describe("streaming ordered choice", () => {
+  test("waits for an earlier ambiguous alternative", () => {
+    const stream = createStreamingParser(any(str("ab"), str("a")));
+
+    expect(stream.feed("a")).toMatchObject({ success: false, pending: true });
+    expect(stream.feed("b")).toMatchObject({ success: true, value: "ab" });
+  });
+
+  test("tries later alternatives after definitive failures", () => {
+    expect(
+      createStreamingParser(any(str("x"), str("ab"))).feed("ab"),
+    ).toMatchObject({ success: true, value: "ab" });
   });
 });

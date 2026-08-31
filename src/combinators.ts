@@ -3,6 +3,7 @@ import {
   type Failure,
   failure,
   isFatal,
+  isPending,
   type Parser,
   type Result,
   type Success,
@@ -185,6 +186,10 @@ export const any = <T extends [...Parser<unknown>[]]>(
     for (const parser of parsers) {
       const res = parser(ctx) as Result<ArrayUnion<UnwrapParsers<T>>>;
       if (res.success) {
+        return res;
+      }
+
+      if (isPending(res)) {
         return res;
       }
 
