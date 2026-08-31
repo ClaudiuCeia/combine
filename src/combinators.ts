@@ -764,6 +764,9 @@ export const chainl1 = <T, Op>(
     while (true) {
       const opRes = op(nextCtx);
       if (!opRes.success) {
+        if (isPending(opRes)) {
+          return opRes;
+        }
         // Fatal errors propagate
         if (isFatal(opRes)) {
           return opRes;
@@ -850,6 +853,9 @@ export const chainr1 = <T, Op>(
     while (true) {
       const opRes = op(nextCtx);
       if (!opRes.success) {
+        if (isPending(opRes)) {
+          return opRes;
+        }
         // Fatal errors propagate
         if (isFatal(opRes)) {
           return opRes;

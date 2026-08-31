@@ -14,6 +14,8 @@ import {
 } from "../src/streaming.ts";
 import {
   any,
+  chainl1,
+  chainr1,
   many,
   manyTill,
   minus,
@@ -309,6 +311,34 @@ describe("streaming numbers", () => {
     const stream = createStreamingParser(double());
     expect(stream.feed("29.")).toMatchObject({ success: false, pending: true });
     expect(stream.finish()).toMatchObject({ success: true, value: 29 });
+  });
+});
+
+describe("streaming expression chains", () => {
+  test("keeps a left-associative chain open for another operator", () => {
+    const term: Parser<string> = str("a");
+    const stream = createStreamingParser(
+      chainl1(term, str("+"), (left, op, right) => left + op + right),
+    );
+
+    expect(stream.feed("a")).toMatchObject({ success: false, pending: true });
+    expect(stream.feed("+a ")).toMatchObject({
+      success: true,
+      value: "a+a",
+    });
+  });
+
+  test("keeps a right-associative chain open for another operator", () => {
+    const term: Parser<string> = str("a");
+    const stream = createStreamingParser(
+      chainr1(term, str("**"), (left, op, right) => left + op + right),
+    );
+
+    expect(stream.feed("a*")).toMatchObject({ success: false, pending: true });
+    expect(stream.feed("*a ")).toMatchObject({
+      success: true,
+      value: "a**a",
+    });
   });
 });
 
