@@ -24,6 +24,7 @@ import {
 } from "../src/combinators.ts";
 import {
   anyChar,
+  digit,
   eof,
   notChar,
   regex,
@@ -261,6 +262,13 @@ describe("streaming characters", () => {
       expected: 'found char "\n"',
     });
     expect(isPending(result)).toBe(false);
+  });
+
+  test("digit reads incrementally without generic regex", () => {
+    const stream = createStreamingParser(digit());
+
+    expect(stream.feed("")).toMatchObject({ success: false, pending: true });
+    expect(stream.feed("7")).toMatchObject({ success: true, value: 7 });
   });
 });
 

@@ -184,7 +184,16 @@ export const skipCharWhere = (
  * Matches any single decimal digit
  */
 export const digit = (): Parser<number> => {
-  return map(regex(/[0-9]/, "digit"), (value) => parseInt(value, 10));
+  const read = anyChar();
+  return (ctx) => {
+    const res = read(ctx);
+    if (!res.success) return res;
+
+    const code = res.value.charCodeAt(0);
+    return code >= 48 && code <= 57
+      ? success(res.ctx, code - 48)
+      : failure(ctx, "digit");
+  };
 };
 
 /**
