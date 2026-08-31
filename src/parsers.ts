@@ -219,6 +219,10 @@ export const take = (count: number): Parser<string> => {
  */
 export const takeText = (): Parser<string> => {
   return (ctx) => {
+    if (ctx.final === false) {
+      return pending(ctx, "final input");
+    }
+
     return success(
       { text: ctx.text, index: ctx.text.length },
       ctx.text.substring(ctx.index, ctx.text.length),
