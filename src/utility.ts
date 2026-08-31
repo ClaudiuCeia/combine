@@ -50,6 +50,24 @@ export const map = <A, B>(
 };
 
 /**
+ * Parse a value, then choose the next parser from that value.
+ *
+ * Useful for value-directed formats such as length-prefixed fields.
+ */
+export const chain = <A, B>(
+  parser: Parser<A>,
+  next: (value: A) => Parser<B>,
+): Parser<B> => {
+  return (ctx) => {
+    const res = parser(ctx);
+    return res.success ? next(res.value)(res.ctx) : res;
+  };
+};
+
+/** Alias for `chain`. */
+export const flatMap: typeof chain = chain;
+
+/**
  * A simple parser used to collapse a string array parser back into a string.
  * Useful for smaller parsing tasks.
  */

@@ -83,7 +83,7 @@ reach for first:
 
 - Parsers: `str`, `regex`, `digit`, `letter`, `int`, `double`, `space`, `eof`
 - Composition: `seq`, `any`, `either`, `oneOf`, `many`, `many1`, `optional`
-- Transform: `map`, `mapJoin`, `trim`
+- Transform: `map`, `chain`/`flatMap`, `mapJoin`, `trim`
 
 If you like learning by examples, start with `tests/`.
 

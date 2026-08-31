@@ -1,8 +1,52 @@
-import { assertEquals, assertObjectMatch } from "@std/assert";
+import {
+  assertEquals,
+  assertObjectMatch,
+  assertStrictEquals,
+} from "@std/assert";
 import { failure, type Parser } from "../src/Parser.ts";
 import { seq } from "../src/combinators.ts";
-import { str } from "../src/parsers.ts";
-import { lazy, map, onFailure, peekAnd, trim } from "../src/utility.ts";
+import { digit, str, take } from "../src/parsers.ts";
+import {
+  chain,
+  flatMap,
+  lazy,
+  map,
+  onFailure,
+  peekAnd,
+  trim,
+} from "../src/utility.ts";
+
+Deno.test("chain selects the next parser from the parsed value", () => {
+  const parser: Parser<string> = chain(digit(), (length) => take(length));
+  assertObjectMatch(parser({ text: "3abc!", index: 0 }), {
+    success: true,
+    value: "abc",
+    ctx: { index: 4 },
+  });
+
+  const firstFailure = parser({ text: "xabc", index: 0 });
+  assertEquals(firstFailure.success, false);
+  if (!firstFailure.success) assertEquals(firstFailure.ctx.index, 0);
+
+  const nextFailure = parser({ text: "3ab", index: 0 });
+  assertEquals(nextFailure.success, false);
+  if (!nextFailure.success) assertEquals(nextFailure.ctx.index, 1);
+});
+
+Deno.test("flatMap aliases chain", () => {
+  assertStrictEquals(flatMap, chain);
+  assertObjectMatch(
+    flatMap(str("a"), () => str("b"))({
+      text: "ab",
+      index: 0,
+    }),
+    {
+      success: true,
+      value: "b",
+      ctx: { index: 2 },
+    },
+  );
+});
 
 Deno.test("map trace passes a measurement string when enabled", () => {
   let gotMeasurement: string | undefined;
