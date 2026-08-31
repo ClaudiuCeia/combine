@@ -12,7 +12,14 @@ import {
   parseStream,
   parseStreamEach,
 } from "../src/streaming.ts";
-import { any, many, manyTill, optional, sepBy } from "../src/combinators.ts";
+import {
+  any,
+  many,
+  manyTill,
+  optional,
+  peek,
+  sepBy,
+} from "../src/combinators.ts";
 import {
   anyChar,
   eof,
@@ -455,5 +462,22 @@ describe("streaming separated lists", () => {
     expect(
       createStreamingParser(sepBy(str("ab"), str(","))).feed("a"),
     ).toMatchObject({ success: false, pending: true });
+  });
+});
+
+describe("streaming lookahead", () => {
+  test("preserves pending without consuming input", () => {
+    const stream = createStreamingParser(peek(str("ab")));
+
+    expect(stream.feed("a")).toMatchObject({
+      success: false,
+      pending: true,
+      ctx: { index: 0 },
+    });
+    expect(stream.feed("b")).toMatchObject({
+      success: true,
+      value: null,
+      ctx: { index: 0 },
+    });
   });
 });

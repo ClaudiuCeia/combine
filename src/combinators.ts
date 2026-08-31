@@ -7,6 +7,7 @@ import {
   type Parser,
   type Result,
   type Success,
+  pending,
   success,
 } from "./Parser.ts";
 import { map } from "./utility.ts";
@@ -604,6 +605,15 @@ export const peek = <T>(parser: Parser<T>): Parser<null> => {
     const res = parser(ctx);
     if (res.success) {
       return success(ctx, null);
+    }
+
+    if (isPending(res)) {
+      return pending(
+        ctx,
+        `lookahead pending, ${res.expected}`,
+        res.variants,
+        res.stack,
+      );
     }
 
     return failure(
