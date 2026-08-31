@@ -93,11 +93,16 @@ export const char = (code: number): Parser<string> => {
 export const anyChar = (): Parser<string> => {
   return (ctx) => {
     if (ctx.index >= ctx.text.length) {
+      if (ctx.final === false) {
+        return pending(ctx, "character");
+      }
       return failure(ctx, "reached end of input");
     }
 
     return success(
-      { text: ctx.text, index: ctx.index + 1 },
+      ctx.final === false
+        ? { text: ctx.text, index: ctx.index + 1, final: false }
+        : { text: ctx.text, index: ctx.index + 1 },
       ctx.text.substring(ctx.index, ctx.index + 1),
     );
   };

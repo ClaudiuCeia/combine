@@ -8,7 +8,7 @@ import {
   type Result,
 } from "../src/Parser.ts";
 import { createStreamingParser } from "../src/streaming.ts";
-import { str } from "../src/parsers.ts";
+import { anyChar, str } from "../src/parsers.ts";
 
 describe("pending parser results", () => {
   test("are distinguishable from definitive failures", () => {
@@ -128,6 +128,26 @@ describe("streaming strings", () => {
     expect(str("")({ text: "", index: 0, final: false })).toMatchObject({
       success: true,
       value: "",
+    });
+  });
+});
+
+describe("streaming characters", () => {
+  test("anyChar suspends only at an open boundary", () => {
+    const stream = createStreamingParser(anyChar());
+
+    expect(stream.feed("")).toMatchObject({ success: false, pending: true });
+    expect(stream.feed("a")).toMatchObject({
+      success: true,
+      value: "a",
+      ctx: { index: 1, final: false },
+    });
+  });
+
+  test("anyChar preserves final EOF failure", () => {
+    expect(createStreamingParser(anyChar()).finish()).toMatchObject({
+      success: false,
+      expected: "reached end of input",
     });
   });
 });
