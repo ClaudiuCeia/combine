@@ -25,18 +25,24 @@ export const str = <const Match extends string>(
  * to match against many possible strings.
  */
 export const trie = (matches: string[]): Parser<string> => {
+  const candidates = [...matches];
+
   // Build trie once at parser creation time, not on every parse
   const t = new Trie();
-  t.insertMany(matches);
-  const longest = matches.reduce(
+  t.insertMany(candidates);
+  const longest = candidates.reduce(
     (acc, s) => (s.length > acc ? s.length : acc),
     0,
   );
 
   return (ctx) => {
+    if (candidates.length === 0) {
+      return failure(ctx, "trie: expected at least one match");
+    }
+
     const candidate = ctx.text.substring(ctx.index, ctx.index + longest);
     const [exists, match] = t.existsSubstring(candidate);
-    if (exists && match) {
+    if (exists && match !== undefined) {
       return success(
         {
           text: ctx.text,
@@ -46,15 +52,22 @@ export const trie = (matches: string[]): Parser<string> => {
       );
     }
 
-    return failure(ctx, `one of ${matches.join(", ")}`);
+    return failure(ctx, `one of ${candidates.join(", ")}`);
   };
 };
+
+const isUtf16Code = (code: number): boolean =>
+  Number.isInteger(code) && code >= 0 && code <= 0xffff;
 
 /**
  * Matches a given character by UTF-16 code.
  */
 export const char = (code: number): Parser<string> => {
   return (ctx) => {
+    if (!isUtf16Code(code)) {
+      return failure(ctx, "char: code must be an integer between 0 and 65535");
+    }
+
     const match = String.fromCharCode(code);
     return str(match)(ctx);
   };
@@ -81,6 +94,13 @@ export const anyChar = (): Parser<string> => {
  */
 export const notChar = (code: number): Parser<string> => {
   return (ctx) => {
+    if (!isUtf16Code(code)) {
+      return failure(
+        ctx,
+        "notChar: code must be an integer between 0 and 65535",
+      );
+    }
+
     if (ctx.index >= ctx.text.length) {
       return failure(ctx, "reached end of input");
     }
@@ -114,7 +134,7 @@ export const charWhere = (pred: (code: number) => boolean): Parser<string> => {
 };
 
 /**
- * Skips matching any character not matching the given UTF-16 code.
+ * Skips a character matching the given predicate.
  */
 export const skipCharWhere = (
   pred: (code: number) => boolean,
@@ -217,21 +237,36 @@ export const horizontalSpace = (): Parser<null> => {
 };
 
 /**
- * Matches a positive integer
+ * Matches a positive safe integer. Inputs outside JavaScript's safe integer
+ * range fail rather than returning a rounded or infinite value.
  */
 export const int = (): Parser<number> => {
+  const digitsParser = many1(digit());
   return (ctx) => {
-    return map(many1(digit()), (digits) => parseInt(digits.join("")))(ctx);
+    const res = digitsParser(ctx);
+    if (!res.success) return res;
+
+    const value = Number(res.value.join(""));
+    return Number.isSafeInteger(value)
+      ? success(res.ctx, value)
+      : failure(res.ctx, "safe integer");
   };
 };
 
 /**
- * Matches a dot-separated double
+ * Matches a finite dot-separated double.
  */
 export const double = (): Parser<number> => {
-  return map(regex(/[0-9]+\.[0-9]*/, "decimal number"), (value) =>
-    Number(value),
-  );
+  const decimal = regex(/[0-9]+\.[0-9]*/, "decimal number");
+  return (ctx) => {
+    const res = decimal(ctx);
+    if (!res.success) return res;
+
+    const value = Number(res.value);
+    return Number.isFinite(value)
+      ? success(res.ctx, value)
+      : failure(res.ctx, "finite decimal number");
+  };
 };
 
 /**
@@ -254,7 +289,7 @@ export const hexDigit = (): Parser<string> => {
  */
 export const hex = (): Parser<string> => {
   return (ctx) => {
-    const lead = peek(str("0x"))(ctx);
+    const lead = peek(regex(/0[xX]/, "hexadecimal prefix"))(ctx);
     if (lead.success) {
       return failure(ctx, "unexpected 0x lead");
     }
@@ -298,8 +333,8 @@ export const regex = (re: RegExp, expected: string): Parser<string> => {
   return (ctx) => {
     stickyRe.lastIndex = ctx.index;
     const res = stickyRe.exec(ctx.text);
-    return res
-      ? success({ text: ctx.text, index: ctx.index + res[0].length }, res[0])
+    return res && res.index === ctx.index
+      ? success({ text: ctx.text, index: res.index + res[0].length }, res[0])
       : failure(ctx, expected);
   };
 };

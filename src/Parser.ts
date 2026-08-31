@@ -1,11 +1,13 @@
 /**
  * A parser consumes input from a `Context` and returns either a `Success<T>` or
- * `Failure`.
+ * `Failure`. Custom parsers must preserve `ctx.text` and must not move the index
+ * backwards on success.
  */
 export type Parser<T> = (ctx: Context) => Result<T>;
 
 /**
- * Parsing context (input + current offset).
+ * Parsing context (input + current UTF-16 offset). The index must be a safe
+ * integer between zero and `text.length`, inclusive.
  */
 export type Context = Readonly<{
   text: string;
@@ -84,7 +86,19 @@ export const runParser = <T>(
   parser: Parser<T>,
   text: string,
   index = 0,
-): Result<T> => parser({ text, index });
+): Result<T> => {
+  if (!Number.isSafeInteger(index) || index < 0 || index > text.length) {
+    const validIndex = Number.isFinite(index)
+      ? Math.min(Math.max(Math.trunc(index), 0), text.length)
+      : 0;
+    return failure(
+      { text, index: validIndex },
+      "runParser: index must be a safe integer within the input",
+    );
+  }
+
+  return parser({ text, index });
+};
 
 /**
  * Run a parser and require it to consume all input.
