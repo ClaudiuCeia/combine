@@ -1,5 +1,6 @@
-import { assertEquals } from "./assert.ts";
+import { assertEquals, assertStrictEquals } from "./assert.ts";
 import { test } from "bun:test";
+import { failure } from "../src/Parser.ts";
 import { mark, withSpan } from "../src/utility.ts";
 import { str } from "../src/parsers.ts";
 
@@ -22,4 +23,17 @@ test("withSpan captures locations on multiline input", () => {
     assertEquals(res.value.locationStart, { line: 1, column: 1 });
     assertEquals(res.value.locationEnd, { line: 2, column: 2 });
   }
+});
+
+test("span combinators preserve parser failures", () => {
+  const sourceFailure = failure({ text: "x", index: 0 }, "value");
+
+  assertStrictEquals(
+    mark(() => sourceFailure)({ text: "x", index: 0 }),
+    sourceFailure,
+  );
+  assertStrictEquals(
+    withSpan(() => sourceFailure)({ text: "x", index: 0 }),
+    sourceFailure,
+  );
 });

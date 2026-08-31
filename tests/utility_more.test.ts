@@ -4,12 +4,14 @@ import {
   assertStrictEquals,
 } from "./assert.ts";
 import { test } from "bun:test";
-import { failure, type Parser } from "../src/Parser.ts";
+import { failure, type Parser, success } from "../src/Parser.ts";
 import { seq } from "../src/combinators.ts";
 import { digit, str, take } from "../src/parsers.ts";
 import {
   chain,
+  attempt,
   flatMap,
+  ifPeek,
   lazy,
   map,
   onFailure,
@@ -79,6 +81,24 @@ test("peekAnd fails when peek fails", () => {
   assertEquals(res.success, false);
 });
 
+test("ifPeek continues from a successful probe and backtracks on failure", () => {
+  const parser = ifPeek(str("a"), str("b"));
+
+  const matched = parser({ text: "ab", index: 0 });
+  assertObjectMatch(matched, {
+    success: true,
+    value: "b",
+    ctx: { index: 2 },
+  });
+
+  const missed = parser({ text: "xb", index: 0 });
+  assertObjectMatch(missed, {
+    success: true,
+    value: null,
+    ctx: { index: 0 },
+  });
+});
+
 test("onFailure can rewrite failures and preserves original as variants", () => {
   const bad: Parser<string> = (ctx) => failure(ctx, "orig");
   const p = onFailure(bad, (f) => ({ ...f, expected: "rewritten" }));
@@ -93,6 +113,35 @@ test("onFailure can rewrite failures and preserves original as variants", () => 
       true,
     );
   }
+});
+
+test("onFailure preserves successes without invoking the callback", () => {
+  const source = success({ text: "a", index: 1 }, "a");
+  let callbackCalled = false;
+  const res = onFailure(
+    () => source,
+    (failure) => {
+      callbackCalled = true;
+      return failure;
+    },
+  )({ text: "a", index: 0 });
+
+  assertStrictEquals(res, source);
+  assertEquals(callbackCalled, false);
+});
+
+test("attempt preserves successful and non-fatal results", () => {
+  const sourceSuccess = success({ text: "a", index: 1 }, "a");
+  const sourceFailure = failure({ text: "x", index: 0 }, "a");
+
+  assertStrictEquals(
+    attempt(() => sourceSuccess)({ text: "a", index: 0 }),
+    sourceSuccess,
+  );
+  assertStrictEquals(
+    attempt(() => sourceFailure)({ text: "x", index: 0 }),
+    sourceFailure,
+  );
 });
 
 test("trim consumes optional surrounding whitespace", () => {

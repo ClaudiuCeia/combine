@@ -83,10 +83,28 @@ test("skip1 fails when inner parser fails", () => {
   assertEquals(res.success, false);
 });
 
+test("skip1 consumes a successful inner parser and discards its value", () => {
+  const res = skip1(str("a"))({ text: "ab", index: 0 });
+  assertEquals(res.success, true);
+  if (res.success) {
+    assertEquals(res.value, null);
+    assertEquals(res.ctx.index, 1);
+  }
+});
+
 test("minus fails when excluded parser matches", () => {
   const p = minus(str("a"), str("a"));
   const res = p({ text: "a", index: 0 });
   assertEquals(res.success, false);
+});
+
+test("minus delegates to the included parser when the exclusion misses", () => {
+  const res = minus(str("a"), str("b"))({ text: "a", index: 0 });
+  assertEquals(res.success, true);
+  if (res.success) {
+    assertEquals(res.value, "a");
+    assertEquals(res.ctx.index, 1);
+  }
 });
 
 test("keepNonNull filters nulls from array result", () => {
@@ -116,6 +134,21 @@ test("chainr1 fails when operator matches but right operand does not", () => {
   const p = chainr1(str("a"), str("+"), (l) => l);
   const res = p({ text: "a+", index: 0 });
   assertEquals(res.success, false);
+});
+
+test("chainr1 preserves an initial term failure", () => {
+  const sourceFailure = failure({ text: "x", index: 0 }, "term");
+  const term: Parser<string> = () => sourceFailure;
+  const res = chainr1(
+    term,
+    str("+"),
+    (left) => left,
+  )({
+    text: "x",
+    index: 0,
+  });
+
+  assertStrictEquals(res, sourceFailure);
 });
 
 test("repeat preserves the inner parser failure", () => {

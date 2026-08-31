@@ -130,6 +130,12 @@ test("skipCharWhere returns null when underlying charWhere matches", () => {
   }
 });
 
+test("skipCharWhere preserves the underlying parser failure", () => {
+  const res = skipCharWhere(() => true)({ text: "", index: 0 });
+  assertEquals(res.success, false);
+  if (!res.success) assertEquals(res.expected, "reached end of input");
+});
+
 test("take fails when count exceeds remaining input", () => {
   const res = take(3)({ text: "ab", index: 0 });
   assertEquals(res.success, false);
