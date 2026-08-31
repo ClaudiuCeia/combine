@@ -211,7 +211,7 @@ export const eof = (): Parser<null> => {
 export const horizontalSpace = (): Parser<null> => {
   return (ctx) => {
     return skipMany1(
-      charWhere((code) => String.fromCharCode(code).trim() === ""),
+      charWhere((code) => code === 0x20 || code === 0x09),
     )(ctx);
   };
 };
