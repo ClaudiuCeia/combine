@@ -20,6 +20,20 @@ Deno.test("trie returns the longest matching prefix", () => {
   assertEquals(operators.existsSubstring("!value"), [false, undefined]);
 });
 
+Deno.test("trie matches astral characters with UTF-16 offsets", () => {
+  const words = new Trie();
+  words.insertMany(["😀", "😀ok", "🚀"]);
+
+  assertEquals(words.exists("😀"), true);
+  assertEquals(words.exists("🚀"), true);
+  assertEquals(words.existsSubstring("😀okay"), [true, "😀ok"]);
+  assertObjectMatch(trie(["😀", "😀ok"])({ text: "😀okay", index: 0 }), {
+    success: true,
+    value: "😀ok",
+    ctx: { index: 4 },
+  });
+});
+
 Deno.test("trie parser", () => {
   assertObjectMatch(
     trie(["Romania", "Germany", "Ronaldo", "Germanic"])({
