@@ -74,6 +74,26 @@ test("any propagates fatal errors immediately (no backtracking)", () => {
   assertEquals(secondTried, false);
 });
 
+test("exhaustive choice combinators propagate fatal errors immediately", () => {
+  for (const makeParser of [oneOf<string>, furthest<string>]) {
+    let secondTried = false;
+    const other: Parser<string> = (ctx) => {
+      secondTried = true;
+      return failure(ctx, "other");
+    };
+
+    const parser = makeParser(cut(str("a"), "committed"), other);
+    const res = parser({ text: "b", index: 0 });
+
+    assertEquals(res.success, false);
+    if (!res.success) {
+      assertEquals(res.fatal, true);
+      assertEquals(res.expected, "committed");
+    }
+    assertEquals(secondTried, false);
+  }
+});
+
 test("formatErrorSnippet clamps when failure index is out of bounds", () => {
   const text = "abc";
   const f = failure({ text, index: 999 }, "x");
@@ -96,6 +116,22 @@ test("manyTill propagates fatal failures from the end parser", () => {
   if (!res.success) {
     assertEquals(res.fatal, true);
     assertEquals(res.expected, "end");
+  }
+});
+
+test("manyTill propagates fatal failures from the content parser", () => {
+  const res = manyTill(
+    cut(str("a"), "content"),
+    str("END"),
+  )({
+    text: "x",
+    index: 0,
+  });
+
+  assertEquals(res.success, false);
+  if (!res.success) {
+    assertEquals(res.fatal, true);
+    assertEquals(res.expected, "content");
   }
 });
 
@@ -132,6 +168,32 @@ test("chainr1 propagates fatal failures from the operator parser", () => {
     assertEquals(res.fatal, true);
     assertEquals(res.expected, "plus");
   }
+});
+
+test("chain combinators propagate fatal right operand failures", () => {
+  const term = any(str("a"), cut(str("b"), "right operand"));
+
+  for (const parser of [
+    chainl1(term, str("+"), (left) => left),
+    chainr1(term, str("+"), (left) => left),
+  ]) {
+    const res = parser({ text: "a+", index: 0 });
+    assertEquals(res.success, false);
+    if (!res.success) {
+      assertEquals(res.ctx.index, 2);
+      assertEquals(res.fatal, true);
+      assertEquals(res.expected, "right operand");
+    }
+  }
+});
+
+test("formatErrorSnippet preserves tabs when tab expansion is disabled", () => {
+  const text = "\tvalue";
+  const snippet = formatErrorSnippet(failure({ text, index: 1 }, "value"), {
+    tabWidth: 0,
+  });
+
+  assertEquals(snippet.includes("1 | \tvalue"), true);
 });
 
 test("optional propagates fatal errors", () => {

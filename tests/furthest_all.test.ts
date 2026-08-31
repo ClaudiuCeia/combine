@@ -1,6 +1,7 @@
 import { assertEquals } from "./assert.ts";
 import { test } from "bun:test";
 import { allMatches, furthestAll, seq } from "../src/combinators.ts";
+import { failure, type Parser } from "../src/Parser.ts";
 import { str } from "../src/parsers.ts";
 import { cut, map } from "../src/utility.ts";
 
@@ -14,6 +15,19 @@ test("furthestAll returns all matches at the furthest consumed index", () => {
   if (res.success) {
     assertEquals(res.ctx.index, 2);
     assertEquals(res.value, ["p2", "p3"]);
+  }
+});
+
+test("nondeterministic choices require at least one parser", () => {
+  for (const [name, parser] of [
+    ["furthestAll", furthestAll()],
+    ["allMatches", allMatches()],
+  ] as const) {
+    const res = parser({ text: "", index: 0 });
+    assertEquals(res.success, false);
+    if (!res.success) {
+      assertEquals(res.expected, `${name}: expected at least one parser`);
+    }
   }
 });
 
@@ -80,4 +94,38 @@ test("furthestAll propagates fatal failures immediately", () => {
     assertEquals(res.expected, "a");
   }
   assertEquals(secondTried, false);
+});
+
+test("allMatches propagates fatal failures immediately", () => {
+  let secondTried = false;
+  const other: Parser<string> = (ctx) => {
+    secondTried = true;
+    return failure(ctx, "other");
+  };
+
+  const res = allMatches(
+    cut(str("a"), "committed"),
+    other,
+  )({
+    text: "b",
+    index: 0,
+  });
+  assertEquals(res.success, false);
+  if (!res.success) {
+    assertEquals(res.fatal, true);
+    assertEquals(res.expected, "committed");
+  }
+  assertEquals(secondTried, false);
+});
+
+test("allMatches returns the furthest failure when none match", () => {
+  const shorter = seq(str("a"), str("b"));
+  const longer = seq(str("a"), str("X"), str("Y"));
+  const res = allMatches(shorter, longer)({ text: "aXz", index: 0 });
+
+  assertEquals(res.success, false);
+  if (!res.success) {
+    assertEquals(res.ctx.index, 2);
+    assertEquals(res.expected, "Y");
+  }
 });

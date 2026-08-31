@@ -9,6 +9,7 @@ test("trie", () => {
 
   assertEquals(trie.exists("Romania"), true);
   assertEquals(trie.exists("Roman"), false);
+  assertEquals(trie.exists("Spain"), false);
 });
 
 test("trie returns the longest matching prefix", () => {
@@ -46,6 +47,15 @@ test("trie parser", () => {
       ctx: { text: "Ronaldo, not a bad footballer", index: 7 },
     },
   );
+});
+
+test("trie parser fails without consuming when no prefix matches", () => {
+  const res = trie(["if", "else"])({ text: "while", index: 0 });
+  assertEquals(res.success, false);
+  if (!res.success) {
+    assertEquals(res.expected, "one of if, else");
+    assertEquals(res.ctx.index, 0);
+  }
 });
 
 test("trie parser uses maximal munch regardless of input order", () => {
