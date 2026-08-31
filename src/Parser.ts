@@ -102,11 +102,7 @@ const lineStartsCache = new Map<string, number[] | null>();
 
 const getLineStarts = (text: string): number[] | null => {
   if (lineStartsCache.has(text)) {
-    const cached = lineStartsCache.get(text) ?? null;
-    // Basic LRU bump: preserve small cache without unbounded growth.
-    lineStartsCache.delete(text);
-    lineStartsCache.set(text, cached);
-    return cached;
+    return lineStartsCache.get(text) ?? null;
   }
 
   const starts: number[] = [0];
