@@ -7,7 +7,7 @@ import {
   success,
   type Result,
 } from "../src/Parser.ts";
-import { createStreamingParser } from "../src/streaming.ts";
+import { createStreamingParser, parseStream } from "../src/streaming.ts";
 import { any, many, manyTill, optional } from "../src/combinators.ts";
 import {
   anyChar,
@@ -105,6 +105,40 @@ describe("buffered parser sessions", () => {
       expected: "a terminal result",
       fatal: false,
     });
+  });
+});
+
+describe("async parser streams", () => {
+  test("yield pending states followed by the terminal result", async () => {
+    async function* chunks(): AsyncGenerator<string> {
+      yield "";
+      yield "hel";
+      yield "lo";
+    }
+
+    const results: Result<string>[] = [];
+    for await (const result of parseStream(str("hello"), chunks())) {
+      results.push(result);
+    }
+
+    expect(results).toHaveLength(2);
+    expect(results[0]).toMatchObject({ success: false, pending: true });
+    expect(results[1]).toMatchObject({ success: true, value: "hello" });
+  });
+
+  test("finalize an incomplete source", async () => {
+    async function* chunks(): AsyncGenerator<string> {
+      yield "hel";
+    }
+
+    const results: Result<string>[] = [];
+    for await (const result of parseStream(str("hello"), chunks())) {
+      results.push(result);
+    }
+
+    expect(results).toHaveLength(2);
+    expect(results[1]).toMatchObject({ success: false, expected: "hello" });
+    expect(isPending(results[1]!)).toBe(false);
   });
 });
 

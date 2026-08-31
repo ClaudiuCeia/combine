@@ -57,3 +57,21 @@ export const createStreamingParser = <T>(
     },
   };
 };
+
+/** Parse an async chunk source until the parser reaches a definitive result. */
+export async function* parseStream<T>(
+  parser: Parser<T>,
+  chunks: AsyncIterable<string>,
+): AsyncGenerator<Result<T>, void, undefined> {
+  const stream = createStreamingParser(parser);
+
+  for await (const chunk of chunks) {
+    if (chunk.length === 0) continue;
+
+    const result = stream.feed(chunk);
+    yield result;
+    if (!isPending(result)) return;
+  }
+
+  yield stream.finish();
+}
