@@ -193,6 +193,24 @@ describe("buffered parser sessions", () => {
 });
 
 describe("async parser streams", () => {
+  test("resolve nullable parsers before pulling a chunk", async () => {
+    let pulls = 0;
+    async function* chunks(): AsyncGenerator<string> {
+      pulls++;
+      yield "unused";
+    }
+
+    const results: Result<string>[] = [];
+    for await (const result of parseStream(str(""), chunks())) {
+      results.push(result);
+    }
+
+    expect(pulls).toBe(0);
+    expect(results).toEqual([
+      success({ text: "", index: 0, final: false }, ""),
+    ]);
+  });
+
   test("yield pending states followed by the terminal result", async () => {
     async function* chunks(): AsyncGenerator<string> {
       yield "";
