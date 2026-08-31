@@ -1,6 +1,6 @@
 import { assertEquals, assertObjectMatch } from "@std/assert";
 import { many, repeat } from "../src/combinators.ts";
-import { formatErrorCompact } from "../src/Parser.ts";
+import { formatErrorCompact, type Parser } from "../src/Parser.ts";
 import {
   anyChar,
   charWhere,
@@ -16,9 +16,22 @@ import {
   signed,
   skipCharWhere,
   space,
+  str,
   take,
   takeText,
 } from "../src/parsers.ts";
+
+Deno.test("str preserves literal result types", () => {
+  const parser: Parser<"token"> = str("token");
+  assertObjectMatch(parser({ text: "token", index: 0 }), {
+    success: true,
+    value: "token",
+  });
+
+  const dynamic: string = "token";
+  const widened: Parser<string> = str(dynamic);
+  assertEquals(widened({ text: dynamic, index: 0 }).success, true);
+});
 
 Deno.test("digit, letter, and space parsers are reusable", () => {
   const digitParser = digit();

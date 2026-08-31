@@ -10,6 +10,20 @@ import {
 import { eof, int, str } from "../src/parsers.ts";
 import { seq } from "../src/combinators.ts";
 import { map } from "../src/utility.ts";
+import type { Parser } from "../src/Parser.ts";
+
+Deno.test("symbol and keyword preserve literal result types", () => {
+  const symbolParser: Parser<"("> = symbol("(");
+  const keywordParser: Parser<"if"> = keyword("if");
+  const lexer = createLexer();
+  const lexerSymbol: Parser<")"> = lexer.symbol(")");
+  const lexerKeyword: Parser<"else"> = lexer.keyword("else");
+
+  assertEquals(symbolParser({ text: "(", index: 0 }).success, true);
+  assertEquals(keywordParser({ text: "if", index: 0 }).success, true);
+  assertEquals(lexerSymbol({ text: ")", index: 0 }).success, true);
+  assertEquals(lexerKeyword({ text: "else", index: 0 }).success, true);
+});
 
 Deno.test("lexeme consumes trailing whitespace", () => {
   const p = seq(lexeme(str("a")), str("b"), eof());

@@ -6,7 +6,9 @@ import { map } from "./utility.ts";
 /**
  * Matches a given string.
  */
-export const str = (match: string): Parser<string> => {
+export const str = <const Match extends string>(
+  match: Match,
+): Parser<Match> => {
   return (ctx) => {
     const endIdx = ctx.index + match.length;
     if (ctx.text.substring(ctx.index, endIdx) === match) {

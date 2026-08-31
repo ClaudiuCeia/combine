@@ -54,10 +54,10 @@ export const lexeme = <T>(
 /**
  * Parse a fixed string token and consume trailing trivia.
  */
-export const symbol = (
-  s: string,
+export const symbol = <const S extends string>(
+  s: S,
   trivia: TriviaParser = defaultTrivia(),
-): Parser<string> => {
+): Parser<S> => {
   return lexeme(str(s), trivia);
 };
 
@@ -70,10 +70,10 @@ const identContinueChar = (): Parser<string> => {
  *
  * Ensures the keyword is not immediately followed by an identifier character.
  */
-export const keyword = (
-  s: string,
+export const keyword = <const S extends string>(
+  s: S,
   trivia: TriviaParser = defaultTrivia(),
-): Parser<string> => {
+): Parser<S> => {
   return lexeme(
     map(seq(str(s), not(identContinueChar())), ([kw]) => kw),
     trivia,
@@ -83,8 +83,8 @@ export const keyword = (
 export type Lexer = Readonly<{
   trivia: TriviaParser;
   lexeme: <T>(p: Parser<T>) => Parser<T>;
-  symbol: (s: string) => Parser<string>;
-  keyword: (s: string) => Parser<string>;
+  symbol: <const S extends string>(s: S) => Parser<S>;
+  keyword: <const S extends string>(s: S) => Parser<S>;
   parens: <T>(p: Parser<T>) => Parser<T>;
 }>;
 
@@ -98,8 +98,8 @@ export const createLexer = (opts?: { trivia?: TriviaParser }): Lexer => {
   return {
     trivia,
     lexeme: <T>(p: Parser<T>): Parser<T> => lexeme(p, trivia),
-    symbol: (s: string): Parser<string> => symbol(s, trivia),
-    keyword: (s: string): Parser<string> => keyword(s, trivia),
+    symbol: <const S extends string>(s: S): Parser<S> => symbol(s, trivia),
+    keyword: <const S extends string>(s: S): Parser<S> => keyword(s, trivia),
     parens: <T>(p: Parser<T>): Parser<T> =>
       surrounded(symbol("(", trivia), p, symbol(")", trivia)),
   };
