@@ -16,6 +16,8 @@ import {
   any,
   many,
   manyTill,
+  minus,
+  not,
   optional,
   peek,
   sepBy,
@@ -479,5 +481,19 @@ describe("streaming lookahead", () => {
       value: null,
       ctx: { index: 0 },
     });
+  });
+
+  test("negative lookahead remains unresolved at a boundary", () => {
+    const stream = createStreamingParser(not(str("x")));
+
+    expect(stream.feed("")).toMatchObject({ success: false, pending: true });
+    expect(stream.feed("y")).toMatchObject({ success: true, value: null });
+  });
+
+  test("subtraction waits for the excluded parser", () => {
+    const stream = createStreamingParser(minus(str("a"), str("ab")));
+
+    expect(stream.feed("a")).toMatchObject({ success: false, pending: true });
+    expect(stream.feed("x")).toMatchObject({ success: true, value: "a" });
   });
 });

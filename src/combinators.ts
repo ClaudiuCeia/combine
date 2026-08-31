@@ -679,6 +679,9 @@ export const minus = <T>(a: Parser<T>, b: Parser<unknown>): Parser<T> => {
     }
 
     if (isFatal(excludedRes)) return excludedRes;
+    if (isPending(excludedRes)) {
+      return excludedRes;
+    }
 
     return a(ctx);
   };
@@ -696,6 +699,9 @@ export const not = <T>(a: Parser<T>): Parser<null> => {
     }
 
     if (isFatal(res)) return res;
+    if (isPending(res)) {
+      return res;
+    }
 
     return success(ctx, null);
   };
