@@ -51,6 +51,11 @@ Sessions are single-use after a terminal result. Calling `feed()` after success
 or definitive failure throws. Calling `finish()` more than once returns the same
 terminal result.
 
+Custom parser wrappers must forward the complete `Context`, including `final`,
+when invoking another parser. Built-in combinators restore the session marker
+between successful children for compatibility with wrappers that return a fresh
+context, but cannot recover it if a wrapper removes it before delegation.
+
 Use `parseStream(parser, chunks)` to consume an `AsyncIterable<string>`. Use
 `parseStreamEach(parser, chunks, { until? })` when one source contains repeated
 values. The repeated parser must consume input whenever it succeeds; otherwise

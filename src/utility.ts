@@ -11,6 +11,7 @@ import {
   pushFrame,
   success,
 } from "./Parser.ts";
+import { preserveContextFinality } from "./internal.ts";
 import { space } from "./parsers.ts";
 
 /**
@@ -62,7 +63,9 @@ export const chain = <A, B>(
 ): Parser<B> => {
   return (ctx) => {
     const res = parser(ctx);
-    return res.success ? next(res.value)(res.ctx) : res;
+    return res.success
+      ? next(res.value)(preserveContextFinality(ctx, res.ctx))
+      : res;
   };
 };
 
@@ -138,7 +141,7 @@ export const ifPeek = <A, B>(
   return (ctx) => {
     const res = peek(ctx);
     if (res.success) {
-      return continueWith(res.ctx);
+      return continueWith(preserveContextFinality(ctx, res.ctx));
     }
 
     if (isFatal(res) || isPending(res)) return res;

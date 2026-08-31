@@ -108,6 +108,35 @@ describe("pending parser results", () => {
     expect(stream.feed("a")).toMatchObject({ success: false, pending: true });
     expect(stream.finish()).toMatchObject({ success: true });
   });
+
+  test("combinators restore finality erased by existing wrappers", () => {
+    const legacy = <T>(parser: Parser<T>): Parser<T> => {
+      return (ctx) => parser({ text: ctx.text, index: ctx.index });
+    };
+    const stream = createStreamingParser(seq(legacy(str("a")), str("bc")));
+
+    expect(stream.feed("ab")).toMatchObject({ success: false, pending: true });
+    expect(stream.feed("c")).toMatchObject({
+      success: true,
+      value: ["a", "bc"],
+    });
+  });
+
+  test("repetition restores finality between wrapped matches", () => {
+    const legacyA: Parser<string> = (ctx) => {
+      const result = str("a")(ctx);
+      return result.success
+        ? success(
+            { text: result.ctx.text, index: result.ctx.index },
+            result.value,
+          )
+        : result;
+    };
+    const stream = createStreamingParser(many(legacyA));
+
+    expect(stream.feed("a")).toMatchObject({ success: false, pending: true });
+    expect(stream.feed("!")).toMatchObject({ success: true, value: ["a"] });
+  });
 });
 
 describe("buffered parser sessions", () => {

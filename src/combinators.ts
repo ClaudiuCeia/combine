@@ -11,6 +11,7 @@ import {
   pending,
   success,
 } from "./Parser.ts";
+import { preserveContextFinality } from "./internal.ts";
 import { map } from "./utility.ts";
 
 const failedToAdvance = (name: string): string =>
@@ -154,7 +155,7 @@ export const seq = <T extends [...Parser<unknown>[]]>(
       }
 
       values.push(res.value);
-      nextCtx = res.ctx;
+      nextCtx = preserveContextFinality(ctx, res.ctx);
     }
 
     return success(nextCtx, values as UnwrapParsers<T>);
@@ -392,7 +393,7 @@ export const many = <T>(parser: Parser<T>): Parser<T[]> => {
       }
 
       values.push(res.value);
-      nextCtx = res.ctx;
+      nextCtx = preserveContextFinality(ctx, res.ctx);
     }
 
     return success(nextCtx, values);
@@ -443,7 +444,10 @@ export const manyTill = <A, B>(
     while (true) {
       const maybeEnd = end(nextCtx);
       if (maybeEnd.success) {
-        return success(maybeEnd.ctx, [...values, maybeEnd.value]);
+        return success(preserveContextFinality(ctx, maybeEnd.ctx), [
+          ...values,
+          maybeEnd.value,
+        ]);
       }
 
       if (isPending(maybeEnd)) {
@@ -475,7 +479,7 @@ export const manyTill = <A, B>(
       }
 
       values.push(res.value);
-      nextCtx = res.ctx;
+      nextCtx = preserveContextFinality(ctx, res.ctx);
     }
   };
 };
@@ -501,7 +505,7 @@ export const repeat = <T>(n: number, parser: Parser<T>): Parser<T[]> => {
         return res;
       }
       values.push(res.value);
-      nextCtx = res.ctx;
+      nextCtx = preserveContextFinality(ctx, res.ctx);
       idx++;
     }
 
@@ -529,14 +533,15 @@ const separatedTail = <T, S>(
     const sepAdvanceErr = assertAdvanced(name, nextCtx, sepRes.ctx);
     if (sepAdvanceErr) return sepAdvanceErr;
 
-    const valueRes = parser(sepRes.ctx);
+    const sepCtx = preserveContextFinality(ctx, sepRes.ctx);
+    const valueRes = parser(sepCtx);
     if (!valueRes.success) return valueRes;
 
-    const valueAdvanceErr = assertAdvanced(name, sepRes.ctx, valueRes.ctx);
+    const valueAdvanceErr = assertAdvanced(name, sepCtx, valueRes.ctx);
     if (valueAdvanceErr) return valueAdvanceErr;
 
     values.push(valueRes.value);
-    nextCtx = valueRes.ctx;
+    nextCtx = preserveContextFinality(ctx, valueRes.ctx);
   }
 };
 
@@ -564,7 +569,13 @@ export const sepBy = <T, S>(parser: Parser<T>, sep: Parser<S>): Parser<T[]> => {
     const advanceErr = assertAdvanced("sepBy", ctx, first.ctx);
     if (advanceErr) return advanceErr;
 
-    return separatedTail("sepBy", parser, sep, first.value, first.ctx);
+    return separatedTail(
+      "sepBy",
+      parser,
+      sep,
+      first.value,
+      preserveContextFinality(ctx, first.ctx),
+    );
   };
 };
 
@@ -584,7 +595,13 @@ export const sepBy1 = <T, S>(
     const advanceErr = assertAdvanced("sepBy1", ctx, first.ctx);
     if (advanceErr) return advanceErr;
 
-    return separatedTail("sepBy1", parser, sep, first.value, first.ctx);
+    return separatedTail(
+      "sepBy1",
+      parser,
+      sep,
+      first.value,
+      preserveContextFinality(ctx, first.ctx),
+    );
   };
 };
 
@@ -703,10 +720,7 @@ export const minus = <T>(a: Parser<T>, b: Parser<unknown>): Parser<T> => {
       );
     }
 
-    if (isFatal(excludedRes)) return excludedRes;
-    if (isPending(excludedRes)) {
-      return excludedRes;
-    }
+    if (isFatal(excludedRes) || isPending(excludedRes)) return excludedRes;
 
     return a(ctx);
   };
@@ -723,10 +737,7 @@ export const not = <T>(a: Parser<T>): Parser<null> => {
       return failure(ctx, `Matched "${formatValue(res.value)}"`);
     }
 
-    if (isFatal(res)) return res;
-    if (isPending(res)) {
-      return res;
-    }
+    if (isFatal(res) || isPending(res)) return res;
 
     return success(ctx, null);
   };
@@ -784,7 +795,7 @@ export const chainl1 = <T, Op>(
     }
 
     let acc = firstRes.value;
-    let nextCtx = firstRes.ctx;
+    let nextCtx = preserveContextFinality(ctx, firstRes.ctx);
 
     while (true) {
       const opRes = op(nextCtx);
@@ -804,7 +815,8 @@ export const chainl1 = <T, Op>(
         return opAdvanceErr;
       }
 
-      const rightRes = term(opRes.ctx);
+      const opCtx = preserveContextFinality(ctx, opRes.ctx);
+      const rightRes = term(opCtx);
       if (!rightRes.success) {
         // Fatal errors propagate
         if (isFatal(rightRes)) {
@@ -814,17 +826,13 @@ export const chainl1 = <T, Op>(
         return rightRes;
       }
 
-      const rightAdvanceErr = assertAdvanced(
-        "chainl1",
-        opRes.ctx,
-        rightRes.ctx,
-      );
+      const rightAdvanceErr = assertAdvanced("chainl1", opCtx, rightRes.ctx);
       if (rightAdvanceErr) {
         return rightAdvanceErr;
       }
 
       acc = combine(acc, opRes.value, rightRes.value);
-      nextCtx = rightRes.ctx;
+      nextCtx = preserveContextFinality(ctx, rightRes.ctx);
     }
 
     return success(nextCtx, acc);
@@ -873,7 +881,7 @@ export const chainr1 = <T, Op>(
     // Collect all terms and operators
     const terms: T[] = [firstRes.value];
     const ops: Op[] = [];
-    let nextCtx = firstRes.ctx;
+    let nextCtx = preserveContextFinality(ctx, firstRes.ctx);
 
     while (true) {
       const opRes = op(nextCtx);
@@ -893,7 +901,8 @@ export const chainr1 = <T, Op>(
         return opAdvanceErr;
       }
 
-      const rightRes = term(opRes.ctx);
+      const opCtx = preserveContextFinality(ctx, opRes.ctx);
+      const rightRes = term(opCtx);
       if (!rightRes.success) {
         // Fatal errors propagate
         if (isFatal(rightRes)) {
@@ -903,18 +912,14 @@ export const chainr1 = <T, Op>(
         return rightRes;
       }
 
-      const rightAdvanceErr = assertAdvanced(
-        "chainr1",
-        opRes.ctx,
-        rightRes.ctx,
-      );
+      const rightAdvanceErr = assertAdvanced("chainr1", opCtx, rightRes.ctx);
       if (rightAdvanceErr) {
         return rightAdvanceErr;
       }
 
       ops.push(opRes.value);
       terms.push(rightRes.value);
-      nextCtx = rightRes.ctx;
+      nextCtx = preserveContextFinality(ctx, rightRes.ctx);
     }
 
     // Fold right: a op b op c => a op (b op c)
