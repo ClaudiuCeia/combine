@@ -19,6 +19,10 @@ rejection of malformed examples for every adapter.
 `bench:comparison:json` runs the same suite but emits Mitata's machine-readable
 JSON output. It does not select a JSON grammar.
 
+CI runs the suite three times for both the base and head revisions on the same
+runner. It compares the median p50 for each `combine` benchmark and fails when a
+result regresses by more than 15%.
+
 Tarsec reads `process.env.DEBUG` when its tracing module is imported.
 
 ## Grammar
