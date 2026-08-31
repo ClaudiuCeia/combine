@@ -330,14 +330,46 @@ export const int = (): Parser<number> => {
  */
 export const double = (): Parser<number> => {
   const decimal = regex(/[0-9]+\.[0-9]*/, "decimal number");
-  return (ctx) => {
-    const res = decimal(ctx);
-    if (!res.success) return res;
 
-    const value = Number(res.value);
+  return (ctx) => {
+    if (ctx.final !== false) {
+      const res = decimal(ctx);
+      if (!res.success) return res;
+
+      const value = Number(res.value);
+      return Number.isFinite(value)
+        ? success(res.ctx, value)
+        : failure(res.ctx, "finite decimal number");
+    }
+
+    let index = ctx.index;
+    while (index < ctx.text.length) {
+      const code = ctx.text.charCodeAt(index);
+      if (code < 48 || code > 57) break;
+      index++;
+    }
+
+    if (index === ctx.index) {
+      return index === ctx.text.length
+        ? pending(ctx, "decimal number")
+        : failure(ctx, "decimal number");
+    }
+    if (index === ctx.text.length) return pending(ctx, "decimal number");
+    if (ctx.text[index] !== ".") return failure(ctx, "decimal number");
+
+    index++;
+    while (index < ctx.text.length) {
+      const code = ctx.text.charCodeAt(index);
+      if (code < 48 || code > 57) break;
+      index++;
+    }
+
+    if (index === ctx.text.length) return pending(ctx, "decimal number");
+
+    const value = Number(ctx.text.substring(ctx.index, index));
     return Number.isFinite(value)
-      ? success(res.ctx, value)
-      : failure(res.ctx, "finite decimal number");
+      ? success({ text: ctx.text, index, final: false }, value)
+      : failure(ctx, "finite decimal number");
   };
 };
 

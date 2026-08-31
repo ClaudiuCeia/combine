@@ -25,8 +25,10 @@ import {
 import {
   anyChar,
   digit,
+  double,
   eof,
   notChar,
+  number,
   regex,
   space,
   str,
@@ -285,6 +287,28 @@ describe("streaming whitespace", () => {
     const stream = createStreamingParser(space());
     expect(stream.feed("\n ")).toMatchObject({ success: false, pending: true });
     expect(stream.finish()).toMatchObject({ success: true, value: "\n " });
+  });
+});
+
+describe("streaming numbers", () => {
+  test("waits for an integer that may become a decimal", () => {
+    const stream = createStreamingParser(number());
+
+    expect(stream.feed("29")).toMatchObject({ success: false, pending: true });
+    expect(stream.feed(".8 ")).toMatchObject({ success: true, value: 29.8 });
+  });
+
+  test("selects an integer after a delimiter", () => {
+    expect(createStreamingParser(number()).feed("29 ")).toMatchObject({
+      success: true,
+      value: 29,
+    });
+  });
+
+  test("preserves a decimal with no fractional digits", () => {
+    const stream = createStreamingParser(double());
+    expect(stream.feed("29.")).toMatchObject({ success: false, pending: true });
+    expect(stream.finish()).toMatchObject({ success: true, value: 29 });
   });
 });
 
