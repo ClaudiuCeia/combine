@@ -1,7 +1,13 @@
 import { assertEquals } from "./assert.ts";
 import { test } from "bun:test";
 import { createTracer, formatTraceTable } from "../src/perf.ts";
-import { failure, fatalFailure, type Parser, success } from "../src/Parser.ts";
+import {
+  failure,
+  fatalFailure,
+  type Parser,
+  pending,
+  success,
+} from "../src/Parser.ts";
 
 test("tracer counts calls and consumed input", () => {
   let t = 0;
@@ -65,6 +71,7 @@ test("formatTraceTable prints a header and rows", () => {
       name: "p",
       calls: 2,
       success: 1,
+      pending: 0,
       failure: 1,
       fatalFailure: 0,
       consumed: 3,
@@ -77,4 +84,15 @@ test("formatTraceTable prints a header and rows", () => {
   assertEquals(table.includes("calls"), true);
   assertEquals(table.includes("p"), true);
   assertEquals(table.includes("1.235"), true);
+});
+
+test("tracer counts pending results separately from failures", () => {
+  const tracer = createTracer();
+  const parser = tracer.wrap("streaming", (ctx) => pending(ctx, "more input"));
+
+  parser({ text: "", index: 0, final: false });
+
+  const [row] = tracer.rows();
+  assertEquals(row.pending, 1);
+  assertEquals(row.failure, 0);
 });
