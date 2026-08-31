@@ -148,6 +148,20 @@ handling, `cut` vs `context`, and `any` vs `furthest`), see `docs/guide.md`.
 The guide also covers the optional lexer layer (`lexeme`, `symbol`, `keyword`,
 `createLexer`) for trivia/comments, plus the library's UTF-16 offset policy.
 
+## Benchmarks
+
+The maintained-library comparison uses a recursive arithmetic grammar built from
+advertised lexical primitives and combinators, with no user-authored regex. It
+covers successful parsing, late failures, and grammar construction. Run it with:
+
+```sh
+deno task bench:verify
+deno task bench:comparison
+```
+
+See `bench/comparison/README.md` for methodology, package-selection criteria,
+and limitations.
+
 ## License
 
 MIT © [Claudiu Ceia](https://github.com/ClaudiuCeia)

@@ -12,7 +12,11 @@
     "jsr:@std/path@^1.1.5": "1.1.6",
     "jsr:@ts-morph/bootstrap@0.29": "0.29.0",
     "jsr:@ts-morph/common@0.29": "0.29.0",
-    "npm:parsimmon@1.18.1": "1.18.1"
+    "npm:mini-parse@0.6.41": "0.6.41",
+    "npm:parjs@1.3.9": "1.3.9",
+    "npm:parser-combinators@1.2.7": "1.2.7",
+    "npm:peberminta@0.10.0": "0.10.0",
+    "npm:tarsec@0.5.3": "0.5.3"
   },
   "jsr": {
     "@david/code-block-writer@13.0.3": {
@@ -68,27 +72,49 @@
     }
   },
   "npm": {
-    "parsimmon@1.18.1": {
-      "integrity": "sha512-u7p959wLfGAhJpSDJVYXoyMCXWYwHia78HhRBWqk7AIbxdmlrfdp5wX0l3xv/iTSH5HvhN9K7o26hwwpgS5Nmw=="
+    "char-info@0.3.6": {
+      "integrity": "sha512-JskE1gqij+E0bHxs7hZt4h1xG3mvFntZGPn+jFWqImn2y/g53ugy/4J7/thcOCriiZFcLDFph4w+A0xbe2NFbg==",
+      "dependencies": [
+        "node-interval-tree"
+      ]
+    },
+    "mini-parse@0.6.41": {
+      "integrity": "sha512-XUQKrs2lzLXcJkyX6eIc0Bsa2nSURodYSgtPbO1SL4x6rVYmbK6v4DLqXfYIJMenas4WTn/bx5HmhjeYMS7H2g=="
+    },
+    "node-interval-tree@1.3.3": {
+      "integrity": "sha512-K9vk96HdTK5fEipJwxSvIIqwTqr4e3HRJeJrNxBSeVMNSC/JWARRaX7etOLOuTmrRMeOI/K5TCJu3aWIwZiNTw==",
+      "dependencies": [
+        "shallowequal"
+      ]
+    },
+    "parjs@1.3.9": {
+      "integrity": "sha512-zmQhbzWM3M391tjwTGvNvvtoT8rRE/bBTjw6+54g8ANaPpnyekDF1d8q5tzN4kxmVud82cNj8zSd+uxSL4LE0A==",
+      "dependencies": [
+        "char-info"
+      ]
+    },
+    "parser-combinators@1.2.7": {
+      "integrity": "sha512-vjWYdpm20K3TqQaPtViLM+Y/5zgPZMiuyw1hlvKWKWphBnkslC3y2EeRzHTRk2TdW4giUbfCT5r8ktntUFP3yg=="
+    },
+    "peberminta@0.10.0": {
+      "integrity": "sha512-80B2AsU+I4Qdb0ZAPSfe9UwvGzwkM37IKIFEvdS3D/3Ndgv2bsuJ0bfG1+iEYO+l7Gfd4EUJmuRyq7efLgRMzQ=="
+    },
+    "shallowequal@1.1.0": {
+      "integrity": "sha512-y0m1JoUZSlPAjXVtPPW70aZWfIL/dSP7AFkRnniLCrK/8MDKog3TySTBmckD+RObVxH0v4Tox67+F14PdED2oQ=="
+    },
+    "tarsec@0.5.3": {
+      "integrity": "sha512-JrOqwP0+raZ+YEktoB0OEM6kYGhTORcN95fWJtSN7sHKTNXoNBxF2KVHnXhb4x5fWHXOYPpsveUVoZiyEH36eQ=="
     }
-  },
-  "redirects": {
-    "https://esm.sh/@types/parsimmon@~1.10.9/index.d.ts": "https://esm.sh/@types/parsimmon@1.10.9/index.d.ts"
-  },
-  "remote": {
-    "https://deno.land/std@0.149.0/fmt/colors.ts": "6f9340b7fb8cc25a993a99e5efc56fe81bb5af284ff412129dd06df06f53c0b4",
-    "https://deno.land/std@0.149.0/testing/_diff.ts": "029a00560b0d534bc0046f1bce4bd36b3b41ada3f2a3178c85686eb2ff5f1413",
-    "https://deno.land/std@0.149.0/testing/_format.ts": "0d8dc79eab15b67cdc532826213bbe05bccfd276ca473a50a3fc7bbfb7260642",
-    "https://deno.land/std@0.149.0/testing/asserts.ts": "0ee58a557ac764e762c62bb21f00e7d897e3919e71be38b2d574fb441d721005",
-    "https://esm.sh/parsimmon@1.18.1": "c74b4bb74e1956d185b92ff627883f8a7cac0e80d472335f48fb21f9ca783206",
-    "https://esm.sh/parsimmon@1.18.1/denonext/parsimmon.mjs": "f4aa7ac5d2b1d31d92bd3612d0095dc03a0bbebf01597383b46ae4b2fdea1727",
-    "https://raw.githubusercontent.com/ClaudiuCeia/geojson-romania/master/generated/uats.json": "267b869a3a2a931b1db36ebc553c09324cc0b7875010f32c591d90d1723cfb3c"
   },
   "workspace": {
     "dependencies": [
       "jsr:@deno/dnt@~0.43.2",
       "jsr:@std/assert@^1.0.19",
-      "npm:parsimmon@1.18.1"
+      "npm:mini-parse@0.6.41",
+      "npm:parjs@1.3.9",
+      "npm:parser-combinators@1.2.7",
+      "npm:peberminta@0.10.0",
+      "npm:tarsec@0.5.3"
     ]
   }
 }
