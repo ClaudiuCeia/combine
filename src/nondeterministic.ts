@@ -4,6 +4,8 @@ import {
   type Failure,
   failure,
   isFatal,
+  isPending,
+  type Pending,
   type Parser,
   type Result,
   success,
@@ -65,9 +67,17 @@ export const recognizeAt = <T extends [...Parser<unknown>[]]>(
 
     const matches: Recognition<ArrayUnion<UnwrapParsers<T>>>[] = [];
     let furthestFailure: Failure | undefined;
+    let unresolved: Pending | undefined;
 
     for (const parser of parsers) {
       const res = parser(ctx) as Result<ArrayUnion<UnwrapParsers<T>>>;
+
+      if (isPending(res)) {
+        if (!unresolved || unresolved.ctx.index < res.ctx.index) {
+          unresolved = res;
+        }
+        continue;
+      }
 
       if (!res.success && isFatal(res)) return res;
 
@@ -80,6 +90,8 @@ export const recognizeAt = <T extends [...Parser<unknown>[]]>(
         furthestFailure = res;
       }
     }
+
+    if (unresolved) return unresolved;
 
     if (matches.length === 0) {
       assert(furthestFailure);
@@ -135,7 +147,7 @@ export const step = <T>(
       );
     }
 
-    return success({ text: ctx.text, index: nextIndex }, res.value);
+    return success({ ...ctx, index: nextIndex }, res.value);
   };
 };
 
@@ -161,9 +173,17 @@ export const furthestAll = <T extends [...Parser<unknown>[]]>(
     let bestValues: ArrayUnion<UnwrapParsers<T>>[] = [];
 
     let furthestFailure: Failure | undefined;
+    let unresolved: Pending | undefined;
 
     for (const parser of parsers) {
       const res = parser(ctx) as Result<ArrayUnion<UnwrapParsers<T>>>;
+
+      if (isPending(res)) {
+        if (!unresolved || unresolved.ctx.index < res.ctx.index) {
+          unresolved = res;
+        }
+        continue;
+      }
 
       // Fatal errors propagate immediately - no backtracking
       if (!res.success && isFatal(res)) {
@@ -186,6 +206,8 @@ export const furthestAll = <T extends [...Parser<unknown>[]]>(
         furthestFailure = res;
       }
     }
+
+    if (unresolved) return unresolved;
 
     if (bestCtx) {
       return success(bestCtx, bestValues);
@@ -219,9 +241,17 @@ export const allMatches = <T extends [...Parser<unknown>[]]>(
     const values: ArrayUnion<UnwrapParsers<T>>[] = [];
 
     let furthestFailure: Failure | undefined;
+    let unresolved: Pending | undefined;
 
     for (const parser of parsers) {
       const res = parser(ctx) as Result<ArrayUnion<UnwrapParsers<T>>>;
+
+      if (isPending(res)) {
+        if (!unresolved || unresolved.ctx.index < res.ctx.index) {
+          unresolved = res;
+        }
+        continue;
+      }
 
       // Fatal errors propagate immediately - no backtracking
       if (!res.success && isFatal(res)) {
@@ -240,6 +270,8 @@ export const allMatches = <T extends [...Parser<unknown>[]]>(
         furthestFailure = res;
       }
     }
+
+    if (unresolved) return unresolved;
 
     if (bestSuccessCtx) {
       return success(bestSuccessCtx, values);

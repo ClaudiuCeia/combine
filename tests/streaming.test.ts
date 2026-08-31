@@ -13,6 +13,7 @@ import {
   parseStreamEach,
 } from "../src/streaming.ts";
 import {
+  allMatches,
   any,
   chainl1,
   chainr1,
@@ -25,6 +26,7 @@ import {
   peek,
   sepBy,
   furthest,
+  furthestAll,
   seq,
 } from "../src/combinators.ts";
 import {
@@ -44,6 +46,7 @@ import {
 } from "../src/parsers.ts";
 import { cut, ifPeek, onFailure, peekAnd } from "../src/utility.ts";
 import { blockComment, keyword, lineComment } from "../src/lexer.ts";
+import { recognizeAt, step } from "../src/nondeterministic.ts";
 
 describe("pending parser results", () => {
   test("are distinguishable from definitive failures", () => {
@@ -501,6 +504,38 @@ describe("streaming lexer", () => {
 
     expect(stream.feed("let")).toMatchObject({ success: false, pending: true });
     expect(stream.feed(" ")).toMatchObject({ success: true, value: "let" });
+  });
+});
+
+describe("streaming nondeterministic parsers", () => {
+  test("waits before publishing recognizer matches", () => {
+    const stream = createStreamingParser(recognizeAt(str("a"), str("ab")));
+
+    expect(stream.feed("a")).toMatchObject({ success: false, pending: true });
+    expect(stream.feed("x")).toMatchObject({
+      success: true,
+      value: [{ value: "a", ctx: { index: 1 } }],
+    });
+  });
+
+  test("preserves open input when stepping a recognizer", () => {
+    expect(
+      createStreamingParser(step(recognizeAt(str("a")))).feed("ax"),
+    ).toMatchObject({ success: true, ctx: { index: 1, final: false } });
+  });
+
+  test("waits before publishing furthest matches", () => {
+    const stream = createStreamingParser(furthestAll(str("a"), str("ab")));
+
+    expect(stream.feed("a")).toMatchObject({ success: false, pending: true });
+    expect(stream.feed("x")).toMatchObject({ success: true, value: ["a"] });
+  });
+
+  test("waits before publishing all matches", () => {
+    const stream = createStreamingParser(allMatches(str("a"), str("ab")));
+
+    expect(stream.feed("a")).toMatchObject({ success: false, pending: true });
+    expect(stream.feed("x")).toMatchObject({ success: true, value: ["a"] });
   });
 });
 
