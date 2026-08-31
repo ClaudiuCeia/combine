@@ -16,6 +16,63 @@ may advance the context by two UTF-16 positions. The default `keyword` boundary
 recognizes ASCII letters, digits, and underscores; grammars with Unicode
 identifiers should define their own boundary parser.
 
+## Streaming input
+
+`createStreamingParser(parser)` runs a parser over an append-only buffer. Each
+`feed(chunk)` evaluates the grammar with `Context.final === false`. `finish()`
+marks the same buffer as final and produces an authoritative success or failure.
+The current engine reruns the grammar against the accumulated text after each
+chunk; the lifecycle does not expose that implementation detail to callers.
+
+```ts
+import {
+  createStreamingParser,
+  isPending,
+  seq,
+  str,
+} from "@claudiu-ceia/combine";
+
+const stream = createStreamingParser(seq(str("Content-Type"), str(":")));
+
+const partial = stream.feed("Content-");
+if (isPending(partial)) {
+  const complete = stream.feed("Type:");
+  // complete.success === true
+}
+```
+
+A streaming result has three states:
+
+- `result.success === true`: terminal success
+- `isPending(result)`: more appended input may change the outcome
+- otherwise: terminal failure
+
+Sessions are single-use after a terminal result. Calling `feed()` after success
+or definitive failure throws. Calling `finish()` more than once returns the same
+terminal result.
+
+Use `parseStream(parser, chunks)` to consume an `AsyncIterable<string>`. Use
+`parseStreamEach(parser, chunks, { until? })` when one source contains repeated
+values. The repeated parser must consume input whenever it succeeds; otherwise
+`parseStreamEach` returns a failure instead of looping forever.
+
+### Open boundaries
+
+Some otherwise-valid prefixes remain pending at the current end of an open
+buffer. For example, `space()` cannot publish `" "` while another whitespace
+character may arrive, and `number()` cannot publish `29` while `.8` may still
+arrive. A delimiter or `finish()` closes those choices.
+
+Ordered choice also remains pending when its selected branch is incomplete.
+Selection combinators such as `oneOf` and `furthest` wait while an unresolved
+alternative could change their result.
+
+`regex(...)` is intentionally conservative: it remains pending for every open
+input and evaluates only after finalization. JavaScript regular expressions do
+not expose enough information to prove that an arbitrary match is stable under
+appending. Use streaming-aware primitives or a custom `Parser` when early
+emission is required.
+
 ## Order and recursion
 
 Parser combinators are functions, so order and recursion rules apply.
@@ -234,8 +291,8 @@ if (!result.success) {
 ## Perf tracing (optional)
 
 For larger grammars it can be useful to measure where time goes. `createTracer`
-lets you wrap parsers and collect per-parser call counts, success/failure, input
-consumed, and total/max time.
+lets you wrap parsers and collect per-parser call counts,
+success/pending/failure, input consumed, and total/max time.
 
 ```ts
 import {
