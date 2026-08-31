@@ -8,7 +8,15 @@ import {
   type Result,
 } from "../src/Parser.ts";
 import { createStreamingParser } from "../src/streaming.ts";
-import { anyChar, eof, notChar, str, take, takeText } from "../src/parsers.ts";
+import {
+  anyChar,
+  eof,
+  notChar,
+  str,
+  take,
+  takeText,
+  trie,
+} from "../src/parsers.ts";
 
 describe("pending parser results", () => {
   test("are distinguishable from definitive failures", () => {
@@ -222,5 +230,30 @@ describe("streaming end of input", () => {
       expected: "eof not reached",
     });
     expect(isPending(result)).toBe(false);
+  });
+});
+
+describe("streaming tries", () => {
+  test("wait for a possible longer match", () => {
+    const stream = createStreamingParser(trie(["`", "```"]));
+
+    expect(stream.feed("`")).toMatchObject({ success: false, pending: true });
+    expect(stream.feed("``")).toMatchObject({ success: true, value: "```" });
+  });
+
+  test("commit the shorter match after a mismatch", () => {
+    expect(createStreamingParser(trie(["=", "=="])).feed("=x")).toMatchObject({
+      success: true,
+      value: "=",
+    });
+  });
+
+  test("fail partial prefixes when input is final", () => {
+    const stream = createStreamingParser(trie(["```"]));
+    expect(stream.feed("``")).toMatchObject({ success: false, pending: true });
+    expect(stream.finish()).toMatchObject({
+      success: false,
+      expected: "one of ```",
+    });
   });
 });

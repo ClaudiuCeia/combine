@@ -65,6 +65,18 @@ export class Trie {
    * longest matching prefix if present.
    */
   public existsSubstring(word: string): [boolean, string | undefined] {
+    const { match } = this.matchPrefix(word);
+    return match === undefined ? [false, undefined] : [true, match];
+  }
+
+  /**
+   * Find the longest complete word and whether all supplied input is still a
+   * prefix of a longer word.
+   */
+  public matchPrefix(word: string): {
+    match: string | undefined;
+    canExtend: boolean;
+  } {
     let current = this.root;
     let match = this.root.isWord ? "" : undefined;
 
@@ -72,7 +84,7 @@ export class Trie {
       const ch = word.charAt(i);
       const node = current.children[ch];
       if (!node) {
-        break;
+        return { match, canExtend: false };
       }
 
       if (node.isWord) {
@@ -82,6 +94,9 @@ export class Trie {
       current = node;
     }
 
-    return match === undefined ? [false, undefined] : [true, match];
+    return {
+      match,
+      canExtend: Object.keys(current.children).length > 0,
+    };
   }
 }

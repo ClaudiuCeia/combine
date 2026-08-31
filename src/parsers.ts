@@ -55,13 +55,26 @@ export const trie = (matches: string[]): Parser<string> => {
     }
 
     const candidate = ctx.text.substring(ctx.index, ctx.index + longest);
-    const [exists, match] = t.existsSubstring(candidate);
-    if (exists && match !== undefined) {
+    const { match, canExtend } = t.matchPrefix(candidate);
+    const atOpenBoundary =
+      ctx.final === false && ctx.index + candidate.length >= ctx.text.length;
+
+    if (atOpenBoundary && canExtend) {
+      return pending(ctx, `one of ${candidates.join(", ")}`);
+    }
+
+    if (match !== undefined) {
       return success(
-        {
-          text: ctx.text,
-          index: ctx.index + match.length,
-        },
+        ctx.final === false
+          ? {
+              text: ctx.text,
+              index: ctx.index + match.length,
+              final: false,
+            }
+          : {
+              text: ctx.text,
+              index: ctx.index + match.length,
+            },
         match,
       );
     }
