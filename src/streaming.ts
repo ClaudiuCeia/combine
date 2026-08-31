@@ -104,7 +104,9 @@ export async function* parseStreamEach<T>(
       const end = until(ctx);
       if (end.success) return { results, done: true };
       if (isPending(end)) {
-        results.push(end);
+        results.push(
+          final ? failure(end.ctx, end.expected, end.variants, end.stack) : end,
+        );
         return { results, done: final };
       }
       if (end.fatal) {

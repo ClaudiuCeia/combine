@@ -204,6 +204,25 @@ describe("async parser streams", () => {
       expected: "parseStreamEach: parser succeeded without consuming input",
     });
   });
+
+  test("turns a final pending terminator into a failure", async () => {
+    async function* chunks(): AsyncGenerator<string> {
+      yield "a";
+    }
+
+    const results: Result<string>[] = [];
+    for await (const result of parseStreamEach(str("a"), chunks(), {
+      until: (ctx) => pending(ctx, "terminator"),
+    })) {
+      results.push(result);
+    }
+
+    expect(results.at(-1)).toMatchObject({
+      success: false,
+      expected: "terminator",
+    });
+    expect(isPending(results.at(-1)!)).toBe(false);
+  });
 });
 
 describe("streaming strings", () => {
