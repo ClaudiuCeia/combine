@@ -420,6 +420,10 @@ export const manyTill = <A, B>(
         return success(maybeEnd.ctx, [...values, maybeEnd.value]);
       }
 
+      if (isPending(maybeEnd)) {
+        return maybeEnd;
+      }
+
       // Fatal errors from end parser propagate
       if (isFatal(maybeEnd)) {
         return maybeEnd;
@@ -427,6 +431,10 @@ export const manyTill = <A, B>(
 
       const res = parser(nextCtx);
       if (!res.success) {
+        if (isPending(res)) {
+          return res;
+        }
+
         // Fatal errors from content parser propagate
         if (isFatal(res)) {
           return res;

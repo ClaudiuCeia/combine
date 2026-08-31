@@ -8,7 +8,7 @@ import {
   type Result,
 } from "../src/Parser.ts";
 import { createStreamingParser } from "../src/streaming.ts";
-import { any, many, optional } from "../src/combinators.ts";
+import { any, many, manyTill, optional } from "../src/combinators.ts";
 import {
   anyChar,
   eof,
@@ -337,5 +337,30 @@ describe("streaming repetitions", () => {
       success: true,
       value: ["ab", "ab"],
     });
+  });
+});
+
+describe("streaming terminated repetitions", () => {
+  test("wait for a closing fence split across chunks", () => {
+    const stream = createStreamingParser(manyTill(anyChar(), str("```")));
+
+    expect(stream.feed("const x = 1;\n`")).toMatchObject({
+      success: false,
+      pending: true,
+    });
+    expect(stream.feed("``")).toMatchObject({
+      success: true,
+      value: [..."const x = 1;\n", "```"],
+    });
+  });
+
+  test("turn an unfinished fence into a final failure", () => {
+    const stream = createStreamingParser(manyTill(anyChar(), str("```")));
+
+    expect(stream.feed("body\n``")).toMatchObject({
+      success: false,
+      pending: true,
+    });
+    expect(stream.finish()).toMatchObject({ success: false, expected: "```" });
   });
 });
