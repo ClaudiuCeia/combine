@@ -1,5 +1,5 @@
 import { assertEquals, assertStrictEquals } from "./assert.ts";
-import { test } from "bun:test";
+import { expect, test } from "bun:test";
 import {
   any,
   chainl1,
@@ -194,6 +194,19 @@ test("formatErrorSnippet preserves tabs when tab expansion is disabled", () => {
   });
 
   assertEquals(snippet.includes("1 | \tvalue"), true);
+});
+
+test("formatErrorSnippet normalizes hostile layout options", () => {
+  const source = failure({ text: "a\n\tb", index: 3 }, "value");
+
+  for (const options of [
+    { contextLines: Number.NaN, tabWidth: Number.POSITIVE_INFINITY },
+    { contextLines: -1, tabWidth: -1 },
+    { contextLines: 1.5, tabWidth: 1.5 },
+  ]) {
+    expect(() => formatErrorSnippet(source, options)).not.toThrow();
+    assertEquals(formatErrorSnippet(source, options).includes("^"), true);
+  }
 });
 
 test("optional propagates fatal errors", () => {
