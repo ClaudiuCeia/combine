@@ -180,6 +180,22 @@ test("failure merging survives context wrappers without duplicate variants", () 
   }
 });
 
+test("failure merging preserves rewritten aggregate expectations", () => {
+  const res = any(
+    attempt(cut(any(str("a"), str("b")), "letter")),
+    str("c"),
+  )({ text: "x", index: 0 });
+
+  assertEquals(res.success, false);
+  if (!res.success) {
+    assertEquals(res.expected, "one of letter, a, b, c");
+    assertEquals(
+      res.variants.map((variant) => variant.expected),
+      ["letter", "a", "b", "c"],
+    );
+  }
+});
+
 test("onFailure preserves the original failure once without duplicating variants", () => {
   const ctx = { text: "x", index: 0 };
   const alternative = failure(ctx, "alternative");
