@@ -51,6 +51,18 @@ const mergeFailures = (
   if (!current || candidate.ctx.index > current.ctx.index) return candidate;
   if (candidate.ctx.index < current.ctx.index) return current;
 
+  if (current.variants.length === 0 && candidate.variants.length === 0) {
+    if (current.expected === candidate.expected) return current;
+
+    const merged = {
+      ...current,
+      expected: `one of ${current.expected}, ${candidate.expected}`,
+      variants: [current, candidate],
+    };
+    mergedFailures.add(merged);
+    return merged;
+  }
+
   const seen = new Set<string>();
   const alternatives = [
     ...(mergedFailures.has(current)
