@@ -162,18 +162,21 @@ test("failure merging does not interpret custom expectations as metadata", () =>
 });
 
 test("failure merging survives context wrappers without duplicate variants", () => {
-  const res = any(
-    context("inner", any(str("a"), str("b"))),
-    str("c"),
-  )({ text: "x", index: 0 });
+  for (const parser of [
+    any(context("inner", any(str("a"), str("b"))), str("c")),
+    oneOf(context("inner", any(str("a"), str("b"))), str("c")),
+    furthest(context("inner", any(str("a"), str("b"))), str("c")),
+  ]) {
+    const res = parser({ text: "x", index: 0 });
 
-  assertEquals(res.success, false);
-  if (!res.success) {
-    assertEquals(res.expected, "one of a, b, c");
-    assertEquals(
-      res.variants.map((variant) => variant.expected),
-      ["a", "b", "c"],
-    );
+    assertEquals(res.success, false);
+    if (!res.success) {
+      assertEquals(res.expected, "one of a, b, c");
+      assertEquals(
+        res.variants.map((variant) => variant.expected),
+        ["a", "b", "c"],
+      );
+    }
   }
 });
 
