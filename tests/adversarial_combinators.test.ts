@@ -137,6 +137,65 @@ test("manyTill returns a farther content failure than its end failure", () => {
   });
 });
 
+test("failure merging does not interpret custom expectations as metadata", () => {
+  const ctx = { text: "x", index: 0 };
+  const detail = failure(ctx, "detail");
+  const source = failure(
+    ctx,
+    "one of declarations",
+    [detail],
+    [{ label: "in declaration", location: { line: 1, column: 1 } }],
+  );
+  const res = any(
+    () => source,
+    () => failure(ctx, "expression"),
+  )(ctx);
+
+  assertEquals(res.success, false);
+  if (!res.success) {
+    expect(res.variants).toContain(source);
+    assertStrictEquals(
+      res.variants.find((variant) => variant === source)?.stack,
+      source.stack,
+    );
+  }
+});
+
+test("failure merging survives context wrappers without duplicate variants", () => {
+  for (const parser of [
+    any(context("inner", any(str("a"), str("b"))), str("c")),
+    oneOf(context("inner", any(str("a"), str("b"))), str("c")),
+    furthest(context("inner", any(str("a"), str("b"))), str("c")),
+  ]) {
+    const res = parser({ text: "x", index: 0 });
+
+    assertEquals(res.success, false);
+    if (!res.success) {
+      assertEquals(res.expected, "one of a, b, c");
+      assertEquals(
+        res.variants.map((variant) => variant.expected),
+        ["a", "b", "c"],
+      );
+    }
+  }
+});
+
+test("failure merging preserves rewritten aggregate expectations", () => {
+  const res = any(
+    attempt(cut(any(str("a"), str("b")), "letter")),
+    str("c"),
+  )({ text: "x", index: 0 });
+
+  assertEquals(res.success, false);
+  if (!res.success) {
+    assertEquals(res.expected, "one of letter, a, b, c");
+    assertEquals(
+      res.variants.map((variant) => variant.expected),
+      ["letter", "a", "b", "c"],
+    );
+  }
+});
+
 test("onFailure preserves the original failure once without duplicating variants", () => {
   const ctx = { text: "x", index: 0 };
   const alternative = failure(ctx, "alternative");

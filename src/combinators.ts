@@ -42,6 +42,8 @@ const assertAdvanced = (
     : failure(before, failedToAdvance(name));
 };
 
+const mergedFailureExpectations = new WeakMap<Failure[], string>();
+
 const mergeFailures = (
   current: Failure | undefined,
   candidate: Failure,
@@ -52,20 +54,23 @@ const mergeFailures = (
   if (current.variants.length === 0 && candidate.variants.length === 0) {
     if (current.expected === candidate.expected) return current;
 
-    return {
+    const expected = `one of ${current.expected}, ${candidate.expected}`;
+    const variants = [current, candidate];
+    const merged = {
       ...current,
-      expected: `one of ${current.expected}, ${candidate.expected}`,
-      variants: [current, candidate],
+      expected,
+      variants,
     };
+    mergedFailureExpectations.set(variants, expected);
+    return merged;
   }
 
   const seen = new Set<string>();
   const alternatives = [
-    ...(current.expected.startsWith("one of ") && current.variants.length > 0
+    ...(mergedFailureExpectations.get(current.variants) === current.expected
       ? current.variants
       : [current, ...current.variants]),
-    ...(candidate.expected.startsWith("one of ") &&
-    candidate.variants.length > 0
+    ...(mergedFailureExpectations.get(candidate.variants) === candidate.expected
       ? candidate.variants
       : [candidate, ...candidate.variants]),
   ].filter((item) => {
@@ -77,11 +82,14 @@ const mergeFailures = (
   const [primary, ...variants] = alternatives;
   if (variants.length === 0) return primary;
 
-  return {
+  const expected = `one of ${alternatives.map((item) => item.expected).join(", ")}`;
+  const merged = {
     ...primary,
-    expected: `one of ${alternatives.map((item) => item.expected).join(", ")}`,
+    expected,
     variants: alternatives,
   };
+  mergedFailureExpectations.set(alternatives, expected);
+  return merged;
 };
 
 /**
