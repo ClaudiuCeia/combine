@@ -174,6 +174,27 @@ test("numeric parsers reject unsafe integers and non-finite decimals", () => {
   );
 });
 
+test("streaming decimal overflow agrees with final parsing", () => {
+  const token = `${"9".repeat(309)}.0`;
+  const text = `${token} `;
+
+  for (const parser of [double(), number()]) {
+    const open = parser({ text, index: 0, final: false });
+    const final = parser({ text, index: 0, final: true });
+
+    assertObjectMatch(open, {
+      success: false,
+      expected: "finite decimal number",
+      ctx: { index: token.length, final: false },
+    });
+    assertObjectMatch(final, {
+      success: false,
+      expected: "finite decimal number",
+      ctx: { index: token.length, final: true },
+    });
+  }
+});
+
 test("hex rejects lowercase and uppercase prefixes", () => {
   for (const text of ["0xFF", "0XFF"]) {
     const res = hex()({ text, index: 0 });

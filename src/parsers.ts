@@ -372,9 +372,10 @@ export const double = (): Parser<number> => {
     if (index === ctx.text.length) return pending(ctx, "decimal number");
 
     const value = Number(ctx.text.substring(ctx.index, index));
+    const nextCtx = { text: ctx.text, index, final: false } as const;
     return Number.isFinite(value)
-      ? success({ text: ctx.text, index, final: false }, value)
-      : failure(ctx, "finite decimal number");
+      ? success(nextCtx, value)
+      : failure(nextCtx, "finite decimal number");
   };
 };
 
