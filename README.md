@@ -22,10 +22,10 @@ import { seq, str } from "@claudiu-ceia/combine";
 ### Deno (JSR)
 
 ```ts
-import { seq, str } from "jsr:@claudiu-ceia/combine@^0.8.0";
+import { seq, str } from "jsr:@claudiu-ceia/combine@^0.11.1";
 ```
 
-Subpath imports are also supported:
+The same optional subpaths are available through JSR:
 
 ```ts
 import { recognizeAt } from "jsr:@claudiu-ceia/combine/nondeterministic";
@@ -54,11 +54,23 @@ If you're in a CommonJS project, use a dynamic import:
 })();
 ```
 
+### Optional subpaths
+
+The root entrypoint exports the complete API. Bun, Node, and Deno can also use
+smaller entrypoints for the specialized modules:
+
+| Module                       | npm                                      | JSR                                          |
+| ---------------------------- | ---------------------------------------- | -------------------------------------------- |
+| Nondeterministic recognizers | `@claudiu-ceia/combine/nondeterministic` | `jsr:@claudiu-ceia/combine/nondeterministic` |
+| Performance tracing          | `@claudiu-ceia/combine/perf`             | `jsr:@claudiu-ceia/combine/perf`             |
+| Streaming                    | `@claudiu-ceia/combine/streaming`        | `jsr:@claudiu-ceia/combine/streaming`        |
+
 ## Quickstart
 
-Parsers are plain functions: `(ctx) => Result<T>`. Use `parseAll` when the
-parser must consume the complete input, or `runParser` for partial parsing and
-custom start offsets.
+Parsers are plain functions: `(ctx) => Result<T>`. Literal parsers preserve
+their literal types, `seq` infers a tuple, ordered choice infers a union, and
+`map` changes the output type. Use `parseAll` when the parser must consume the
+complete input, or `runParser` for prefix parsing and custom start offsets.
 
 ```ts
 import {
@@ -89,7 +101,7 @@ if (result.success) {
 
 ## Common Building Blocks
 
-The library exports a lot of small pieces; these are the ones you'll likely
+The library exports a lot of small pieces. These are the ones you'll likely
 reach for first:
 
 - Parsers: `str`, `regex`, `digit`, `letter`, `int`, `double`, `space`, `eof`
@@ -97,10 +109,12 @@ reach for first:
   `optional`
 - Transform: `map`, `chain`/`flatMap`, `mapJoin`, `trim`
 
-`choice` (`any`) returns the first successful alternative. `oneOf` evaluates all
-alternatives and succeeds only when exactly one matches.
+`choice` (`any`) returns the first successful alternative. `oneOf` checks
+alternatives from the same position and succeeds only when exactly one matches.
+Fatal failures stop either form of choice immediately.
 
-If you like learning by examples, start with `tests/`.
+The [API reference](https://github.com/ClaudiuCeia/combine/blob/main/docs/api.md)
+lists every parser and combinator with its output and consumption behavior.
 
 ## Streaming Input
 
@@ -109,7 +123,8 @@ from a definitive failure. Use `createStreamingParser` for one value,
 `parseStream` for an async source, or `parseStreamEach` for consecutive values:
 
 ```ts
-import { isPending, parseStreamEach, str } from "@claudiu-ceia/combine";
+import { isPending, str } from "@claudiu-ceia/combine";
+import { parseStreamEach } from "@claudiu-ceia/combine/streaming";
 
 async function* chunks(): AsyncGenerator<string> {
   yield "a";
@@ -123,10 +138,15 @@ for await (const result of parseStreamEach(str("ab"), chunks())) {
 }
 ```
 
+Success means the parser matched a prefix. It does not imply that the complete
+source was consumed. Compose a value parser with `eof()` when trailing input
+must fail.
+
 The generic `regex(...)` parser waits for final input because an arbitrary
 regular expression cannot reliably prove that its match will not grow. Dedicated
 primitives such as `str`, `trie`, `digit`, `letter`, `space`, and `number` can
-resolve incrementally. See `docs/guide.md` for lifecycle and boundary details.
+resolve incrementally. The [streaming guide](https://github.com/ClaudiuCeia/combine/blob/main/docs/streaming.md)
+covers lifecycle, buffering, boundaries, repeated values, and custom parsers.
 
 ## Recursion (Grammars)
 
@@ -154,7 +174,8 @@ const expr: Parser<Expr> = any(lit, paren);
 
 If you're defining a larger mutually-recursive grammar, use `defineLanguage`
 with a map of production output types. It provides fully typed sibling parsers
-without making declaration order significant. See `docs/guide.md`.
+without making declaration order significant. See the
+[grammar guide](https://github.com/ClaudiuCeia/combine/blob/main/docs/guide.md).
 
 ## Better Errors
 
@@ -162,9 +183,10 @@ For user-facing parsers, wrap important nodes with `context(...)`, and commit to
 branches with `cut(...)` (to avoid confusing backtracking). To print failures:
 
 ```ts
-import { formatErrorStack } from "@claudiu-ceia/combine";
+import { formatErrorReport, parseAll, str } from "@claudiu-ceia/combine";
 
-if (!result.success) console.error(formatErrorStack(result));
+const parsed = parseAll(str("ready"), "reading");
+if (!parsed.success) console.error(formatErrorReport(parsed));
 ```
 
 ## Nondeterministic Recognizers
@@ -174,25 +196,37 @@ tokenizer-like use cases where you want _multiple_ simultaneous matches at the
 same input position, use the nondeterministic/recognizer module:
 
 ```ts
-import { recognizeAt } from "@claudiu-ceia/combine/nondeterministic";
+import { many, str } from "@claudiu-ceia/combine";
+import { recognizeAt, step } from "@claudiu-ceia/combine/nondeterministic";
+
+const token = step(recognizeAt(str("="), str("==")));
+const tokens = many(token);
 ```
 
-These combinators can return multiple successes; you must decide how (or
-whether) to advance the cursor.
+`recognizeAt` keeps the outer cursor at the starting position and returns each
+match with its own end context. `step` chooses an end position so the recognizer
+can be used safely in repetition. See the
+[recognizer guide](https://github.com/ClaudiuCeia/combine/blob/main/docs/nondeterministic.md).
 
 ## More Examples
 
-- `tests/` has the most coverage and real usage patterns
-- `examples/` contains small runnable snippets
+- [Calculator](https://github.com/ClaudiuCeia/combine/blob/main/examples/calculator.ts)
+  shows precedence, recursion, a lexer, spans, and an AST
+- [Lisp](https://github.com/ClaudiuCeia/combine/blob/main/examples/lisp.ts)
+  shows recursive lists and trivia handling
+- [Tests](https://github.com/ClaudiuCeia/combine/tree/main/tests) cover edge cases
+  and parser contracts
 
 ## Guides
 
-If you want the deeper explanations (recursion patterns, `defineLanguage`, error
-handling, streaming, `cut` vs `context`, and `any` vs `furthest`), see
-`docs/guide.md`.
-
-The guide also covers the optional lexer layer (`lexeme`, `symbol`, `keyword`,
-`createLexer`) for trivia/comments, plus the library's UTF-16 offset policy.
+- [API reference](https://github.com/ClaudiuCeia/combine/blob/main/docs/api.md) - runners,
+  results, primitives, combinators, lexer, spans, errors, and tracing
+- [Grammar guide](https://github.com/ClaudiuCeia/combine/blob/main/docs/guide.md) - offsets,
+  recursion, `defineLanguage`, errors, lexer use, and tracing
+- [Streaming guide](https://github.com/ClaudiuCeia/combine/blob/main/docs/streaming.md) -
+  pending results, async sources, boundaries, buffering, and custom parsers
+- [Recognizer guide](https://github.com/ClaudiuCeia/combine/blob/main/docs/nondeterministic.md) -
+  multiple matches and explicit cursor advancement
 
 ## Benchmarks
 
@@ -206,9 +240,10 @@ bun run bench:comparison
 bun run bench:streaming
 ```
 
-See `bench/comparison/README.md` for methodology, package-selection criteria,
-and limitations. The streaming benchmark is Combine-only because the comparison
-libraries do not expose equivalent append-only parser lifecycles.
+See the [benchmark methodology](https://github.com/ClaudiuCeia/combine/blob/main/bench/comparison/README.md)
+for package-selection criteria and limitations. The streaming benchmark is
+Combine-only because the comparison libraries do not expose equivalent
+append-only parser lifecycles.
 
 ## Development
 
