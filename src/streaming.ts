@@ -104,54 +104,56 @@ export async function* parseStreamEach<T>(
     index = 0;
   };
 
-  const parseAvailable = (
+  function* parseAvailable(
     final: boolean,
-  ): { results: Result<T>[]; done: boolean } => {
-    const results: Result<T>[] = [];
-
+  ): Generator<Result<T>, boolean, undefined> {
     while (true) {
-      if (!final && index >= text.length) return { results, done: false };
-
       const ctx = { text, index, final };
       const end = until(ctx);
-      if (end.success) return { results, done: true };
+      if (end.success) return true;
       if (isPending(end)) {
-        results.push(
-          final ? failure(end.ctx, end.expected, end.variants, end.stack) : end,
-        );
-        return { results, done: final };
+        if (!final && index >= text.length) return false;
+        yield final
+          ? failure(end.ctx, end.expected, end.variants, end.stack)
+          : end;
+        return final;
       }
       if (end.fatal) {
-        results.push(end);
-        return { results, done: true };
+        yield end;
+        return true;
+      }
+      if (index >= text.length) {
+        if (final && options.until !== undefined) yield end;
+        return final;
       }
 
       const result = parser(ctx);
       if (!result.success) {
         if (final && isPending(result)) {
-          results.push(
-            failure(result.ctx, result.expected, result.variants, result.stack),
+          yield failure(
+            result.ctx,
+            result.expected,
+            result.variants,
+            result.stack,
           );
         } else {
-          results.push(result);
+          yield result;
         }
-        return { results, done: !isPending(result) || final };
+        return !isPending(result) || final;
       }
 
       if (result.ctx.index <= index) {
-        results.push(
-          failure(
-            ctx,
-            "parseStreamEach: parser succeeded without consuming input",
-          ),
+        yield failure(
+          ctx,
+          "parseStreamEach: parser succeeded without consuming input",
         );
-        return { results, done: true };
+        return true;
       }
 
-      results.push(result);
       index = result.ctx.index;
+      yield result;
     }
-  };
+  }
 
   const initialEnd = until({ text, index, final: false });
   if (initialEnd.success) return;
@@ -165,11 +167,19 @@ export async function* parseStreamEach<T>(
     text += chunk;
 
     const batch = parseAvailable(false);
-    for (const result of batch.results) yield result;
-    if (batch.done) return;
+    let next = batch.next();
+    while (!next.done) {
+      yield next.value;
+      next = batch.next();
+    }
+    if (next.value) return;
     compactConsumed();
   }
 
   const batch = parseAvailable(true);
-  for (const result of batch.results) yield result;
+  let next = batch.next();
+  while (!next.done) {
+    yield next.value;
+    next = batch.next();
+  }
 }

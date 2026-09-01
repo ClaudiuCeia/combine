@@ -321,6 +321,63 @@ describe("async parser streams", () => {
     expect(values).toEqual(["ab", "ab"]);
   });
 
+  test("yield repeated values with backpressure inside a large chunk", async () => {
+    let calls = 0;
+    const parser: Parser<string> = (ctx) => {
+      calls++;
+      return str("a")(ctx);
+    };
+    async function* chunks(): AsyncGenerator<string> {
+      yield "a".repeat(20_000);
+    }
+
+    const iterator = parseStreamEach(parser, chunks());
+    expect(await iterator.next()).toMatchObject({
+      value: { success: true, value: "a" },
+    });
+    expect(calls).toBe(1);
+    await iterator.return();
+  });
+
+  test("probe terminators after records ending at a chunk boundary", async () => {
+    let pulls = 0;
+    async function* chunks(): AsyncGenerator<string> {
+      pulls++;
+      yield "a";
+      pulls++;
+      yield "unused";
+    }
+    const until: Parser<null> = (ctx) =>
+      ctx.index > 0 ? success(ctx, null) : failure(ctx, "record boundary");
+
+    const values: string[] = [];
+    for await (const result of parseStreamEach(str("a"), chunks(), { until })) {
+      if (result.success) values.push(result.value);
+    }
+
+    expect(values).toEqual(["a"]);
+    expect(pulls).toBe(1);
+  });
+
+  test("report a missing explicit terminator at final input", async () => {
+    async function* chunks(): AsyncGenerator<string> {
+      yield "a";
+    }
+
+    const results: Result<string>[] = [];
+    for await (const result of parseStreamEach(str("a"), chunks(), {
+      until: str("END"),
+    })) {
+      results.push(result);
+    }
+
+    expect(results.filter((result) => result.success)).toHaveLength(1);
+    expect(results.at(-1)).toMatchObject({
+      success: false,
+      expected: "END",
+    });
+  });
+
   test("reject non-advancing repeated parsers", async () => {
     async function* chunks(): AsyncGenerator<string> {
       yield "x";
