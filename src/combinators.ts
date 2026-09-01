@@ -42,6 +42,8 @@ const assertAdvanced = (
     : failure(before, failedToAdvance(name));
 };
 
+const mergedFailures = new WeakSet<Failure>();
+
 const mergeFailures = (
   current: Failure | undefined,
   candidate: Failure,
@@ -49,23 +51,12 @@ const mergeFailures = (
   if (!current || candidate.ctx.index > current.ctx.index) return candidate;
   if (candidate.ctx.index < current.ctx.index) return current;
 
-  if (current.variants.length === 0 && candidate.variants.length === 0) {
-    if (current.expected === candidate.expected) return current;
-
-    return {
-      ...current,
-      expected: `one of ${current.expected}, ${candidate.expected}`,
-      variants: [current, candidate],
-    };
-  }
-
   const seen = new Set<string>();
   const alternatives = [
-    ...(current.expected.startsWith("one of ") && current.variants.length > 0
+    ...(mergedFailures.has(current)
       ? current.variants
       : [current, ...current.variants]),
-    ...(candidate.expected.startsWith("one of ") &&
-    candidate.variants.length > 0
+    ...(mergedFailures.has(candidate)
       ? candidate.variants
       : [candidate, ...candidate.variants]),
   ].filter((item) => {
@@ -77,11 +68,13 @@ const mergeFailures = (
   const [primary, ...variants] = alternatives;
   if (variants.length === 0) return primary;
 
-  return {
+  const merged = {
     ...primary,
     expected: `one of ${alternatives.map((item) => item.expected).join(", ")}`,
     variants: alternatives,
   };
+  mergedFailures.add(merged);
+  return merged;
 };
 
 /**
