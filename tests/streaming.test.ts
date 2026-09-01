@@ -212,6 +212,24 @@ describe("async parser streams", () => {
     ]);
   });
 
+  test("resolve repeated-stream terminators before pulling a chunk", async () => {
+    let pulls = 0;
+    async function* chunks(): AsyncGenerator<string> {
+      pulls++;
+      yield "unused";
+    }
+
+    const results: Result<string>[] = [];
+    for await (const result of parseStreamEach(str("x"), chunks(), {
+      until: str(""),
+    })) {
+      results.push(result);
+    }
+
+    expect(pulls).toBe(0);
+    expect(results).toEqual([]);
+  });
+
   test("yield pending states followed by the terminal result", async () => {
     async function* chunks(): AsyncGenerator<string> {
       yield "";

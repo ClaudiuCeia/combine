@@ -153,6 +153,13 @@ export async function* parseStreamEach<T>(
     }
   };
 
+  const initialEnd = until({ text, index, final: false });
+  if (initialEnd.success) return;
+  if (initialEnd.fatal) {
+    yield initialEnd;
+    return;
+  }
+
   for await (const chunk of chunks) {
     if (chunk.length === 0) continue;
     text += chunk;
