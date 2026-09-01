@@ -1,6 +1,6 @@
 {
   "name": "@claudiu-ceia/combine",
-  "version": "0.11.0",
+  "version": "0.11.1",
   "exports": {
     ".": "./mod.ts",
     "./nondeterministic": "./src/nondeterministic.ts",
