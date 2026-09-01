@@ -42,7 +42,7 @@ const assertAdvanced = (
     : failure(before, failedToAdvance(name));
 };
 
-const mergedFailures = new WeakSet<Failure>();
+const mergedFailureVariants = new WeakSet<Failure[]>();
 
 const mergeFailures = (
   current: Failure | undefined,
@@ -54,21 +54,22 @@ const mergeFailures = (
   if (current.variants.length === 0 && candidate.variants.length === 0) {
     if (current.expected === candidate.expected) return current;
 
+    const variants = [current, candidate];
     const merged = {
       ...current,
       expected: `one of ${current.expected}, ${candidate.expected}`,
-      variants: [current, candidate],
+      variants,
     };
-    mergedFailures.add(merged);
+    mergedFailureVariants.add(variants);
     return merged;
   }
 
   const seen = new Set<string>();
   const alternatives = [
-    ...(mergedFailures.has(current)
+    ...(mergedFailureVariants.has(current.variants)
       ? current.variants
       : [current, ...current.variants]),
-    ...(mergedFailures.has(candidate)
+    ...(mergedFailureVariants.has(candidate.variants)
       ? candidate.variants
       : [candidate, ...candidate.variants]),
   ].filter((item) => {
@@ -85,7 +86,7 @@ const mergeFailures = (
     expected: `one of ${alternatives.map((item) => item.expected).join(", ")}`,
     variants: alternatives,
   };
-  mergedFailures.add(merged);
+  mergedFailureVariants.add(alternatives);
   return merged;
 };
 
