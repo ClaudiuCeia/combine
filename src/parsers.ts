@@ -1,5 +1,5 @@
 import { any, either, many1, peek, seq, skipMany1 } from "./combinators.ts";
-import { failure, type Parser, pending, success } from "./Parser.ts";
+import { failure, isPending, type Parser, pending, success } from "./Parser.ts";
 import { Trie } from "./Trie.ts";
 import { map } from "./utility.ts";
 
@@ -397,13 +397,17 @@ export const hexDigit = (): Parser<string> => {
  * Matches a hexadecimal number (`0x` lead not allowed)
  */
 export const hex = (): Parser<string> => {
+  const prefix = peek(either(str("0x"), str("0X")));
+  const digits = map(many1(hexDigit()), (hex) => hex.join(""));
+
   return (ctx) => {
-    const lead = peek(regex(/0[xX]/, "hexadecimal prefix"))(ctx);
+    const lead = prefix(ctx);
     if (lead.success) {
       return failure(ctx, "unexpected 0x lead");
     }
+    if (isPending(lead)) return lead;
 
-    return map(many1(hexDigit()), (hex) => hex.join(""))(ctx);
+    return digits(ctx);
   };
 };
 

@@ -34,6 +34,7 @@ import {
   digit,
   double,
   eof,
+  hex,
   letter,
   notChar,
   number,
@@ -459,6 +460,16 @@ describe("streaming numbers", () => {
     const stream = createStreamingParser(double());
     expect(stream.feed("29.")).toMatchObject({ success: false, pending: true });
     expect(stream.finish()).toMatchObject({ success: true, value: 29 });
+  });
+
+  test("rejects a hexadecimal prefix before accepting digits", () => {
+    const stream = createStreamingParser(hex());
+
+    expect(stream.feed("0")).toMatchObject({ success: false, pending: true });
+    expect(stream.feed("xFF")).toMatchObject({
+      success: false,
+      expected: "unexpected 0x lead",
+    });
   });
 });
 
