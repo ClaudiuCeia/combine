@@ -30,6 +30,7 @@ Subpath imports are also supported:
 ```ts
 import { recognizeAt } from "jsr:@claudiu-ceia/combine/nondeterministic";
 import { createTracer } from "jsr:@claudiu-ceia/combine/perf";
+import { parseStream } from "jsr:@claudiu-ceia/combine/streaming";
 ```
 
 ### Node 20+ (npm)
@@ -101,6 +102,32 @@ alternatives and succeeds only when exactly one matches.
 
 If you like learning by examples, start with `tests/`.
 
+## Streaming Input
+
+Streaming parsers accept append-only chunks and distinguish an incomplete parse
+from a definitive failure. Use `createStreamingParser` for one value,
+`parseStream` for an async source, or `parseStreamEach` for consecutive values:
+
+```ts
+import { isPending, parseStreamEach, str } from "@claudiu-ceia/combine";
+
+async function* chunks(): AsyncGenerator<string> {
+  yield "a";
+  yield "ba";
+  yield "b";
+}
+
+for await (const result of parseStreamEach(str("ab"), chunks())) {
+  if (result.success) console.log(result.value);
+  else if (!isPending(result)) console.error(result.expected);
+}
+```
+
+The generic `regex(...)` parser waits for final input because an arbitrary
+regular expression cannot reliably prove that its match will not grow. Dedicated
+primitives such as `str`, `trie`, `digit`, `letter`, `space`, and `number` can
+resolve incrementally. See `docs/guide.md` for lifecycle and boundary details.
+
 ## Recursion (Grammars)
 
 When a parser needs to reference itself (directly or indirectly), wrap the
@@ -161,7 +188,8 @@ whether) to advance the cursor.
 ## Guides
 
 If you want the deeper explanations (recursion patterns, `defineLanguage`, error
-handling, `cut` vs `context`, and `any` vs `furthest`), see `docs/guide.md`.
+handling, streaming, `cut` vs `context`, and `any` vs `furthest`), see
+`docs/guide.md`.
 
 The guide also covers the optional lexer layer (`lexeme`, `symbol`, `keyword`,
 `createLexer`) for trivia/comments, plus the library's UTF-16 offset policy.
@@ -175,10 +203,12 @@ covers successful parsing, late failures, and grammar construction. Run it with:
 ```sh
 bun run bench:verify
 bun run bench:comparison
+bun run bench:streaming
 ```
 
 See `bench/comparison/README.md` for methodology, package-selection criteria,
-and limitations.
+and limitations. The streaming benchmark is Combine-only because the comparison
+libraries do not expose equivalent append-only parser lifecycles.
 
 ## Development
 

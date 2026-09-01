@@ -1,5 +1,5 @@
 import { any, either, many1, peek, seq, skipMany1 } from "./combinators.ts";
-import { failure, type Parser, success } from "./Parser.ts";
+import { failure, isPending, type Parser, pending, success } from "./Parser.ts";
 import { Trie } from "./Trie.ts";
 import { map } from "./utility.ts";
 
@@ -12,10 +12,24 @@ export const str = <const Match extends string>(
   return (ctx) => {
     const endIdx = ctx.index + match.length;
     if (ctx.text.substring(ctx.index, endIdx) === match) {
-      return success({ text: ctx.text, index: endIdx }, match);
-    } else {
-      return failure(ctx, match);
+      return success(
+        ctx.final === undefined
+          ? { text: ctx.text, index: endIdx }
+          : { text: ctx.text, index: endIdx, final: ctx.final },
+        match,
+      );
     }
+
+    const available = ctx.text.substring(ctx.index);
+    if (
+      ctx.final === false &&
+      available.length < match.length &&
+      match.startsWith(available)
+    ) {
+      return pending(ctx, match);
+    }
+
+    return failure(ctx, match);
   };
 };
 
@@ -41,13 +55,20 @@ export const trie = (matches: string[]): Parser<string> => {
     }
 
     const candidate = ctx.text.substring(ctx.index, ctx.index + longest);
-    const [exists, match] = t.existsSubstring(candidate);
-    if (exists && match !== undefined) {
+    const { match, canExtend } = t.matchPrefix(candidate);
+    const atOpenBoundary =
+      ctx.final === false && ctx.index + candidate.length >= ctx.text.length;
+
+    if (atOpenBoundary && canExtend) {
+      return pending(ctx, `one of ${candidates.join(", ")}`);
+    }
+
+    if (match !== undefined) {
+      const index = ctx.index + match.length;
       return success(
-        {
-          text: ctx.text,
-          index: ctx.index + match.length,
-        },
+        ctx.final === undefined
+          ? { text: ctx.text, index }
+          : { text: ctx.text, index, final: ctx.final },
         match,
       );
     }
@@ -79,11 +100,16 @@ export const char = (code: number): Parser<string> => {
 export const anyChar = (): Parser<string> => {
   return (ctx) => {
     if (ctx.index >= ctx.text.length) {
+      if (ctx.final === false) {
+        return pending(ctx, "character");
+      }
       return failure(ctx, "reached end of input");
     }
 
     return success(
-      { text: ctx.text, index: ctx.index + 1 },
+      ctx.final === undefined
+        ? { text: ctx.text, index: ctx.index + 1 }
+        : { text: ctx.text, index: ctx.index + 1, final: ctx.final },
       ctx.text.substring(ctx.index, ctx.index + 1),
     );
   };
@@ -93,6 +119,7 @@ export const anyChar = (): Parser<string> => {
  * Matches any character not matching the given UTF-16 code.
  */
 export const notChar = (code: number): Parser<string> => {
+  const read = anyChar();
   return (ctx) => {
     if (!isUtf16Code(code)) {
       return failure(
@@ -101,16 +128,14 @@ export const notChar = (code: number): Parser<string> => {
       );
     }
 
-    if (ctx.index >= ctx.text.length) {
-      return failure(ctx, "reached end of input");
+    const res = read(ctx);
+    if (!res.success) return res;
+
+    if (res.value === String.fromCharCode(code)) {
+      return failure(ctx, `found char "${res.value}"`);
     }
 
-    const value = ctx.text.substring(ctx.index, ctx.index + 1);
-    if (value === String.fromCharCode(code)) {
-      return failure(ctx, `found char "${value}"`);
-    }
-
-    return success({ text: ctx.text, index: ctx.index + 1 }, value);
+    return res;
   };
 };
 
@@ -153,21 +178,59 @@ export const skipCharWhere = (
  * Matches any single decimal digit
  */
 export const digit = (): Parser<number> => {
-  return map(regex(/[0-9]/, "digit"), (value) => parseInt(value, 10));
+  const read = anyChar();
+  return (ctx) => {
+    const res = read(ctx);
+    if (!res.success) return res;
+
+    const code = res.value.charCodeAt(0);
+    return code >= 48 && code <= 57
+      ? success(res.ctx, code - 48)
+      : failure(ctx, "digit");
+  };
 };
 
 /**
  * Matches any single letter (case insesitive A-Z)
  */
 export const letter = (): Parser<string> => {
-  return regex(/[a-zA-Z]/, "letter");
+  const read = anyChar();
+  return (ctx) => {
+    const res = read(ctx);
+    if (!res.success) return res;
+
+    const code = res.value.charCodeAt(0);
+    return (code >= 65 && code <= 90) || (code >= 97 && code <= 122)
+      ? res
+      : failure(ctx, "letter");
+  };
 };
 
 /**
  * Matches any whitespace
  */
 export const space = (): Parser<string> => {
-  return regex(/\s+/, "whitespace");
+  const finite = regex(/\s+/, "whitespace");
+
+  return (ctx) => {
+    if (ctx.final !== false) return finite(ctx);
+
+    let index = ctx.index;
+    while (index < ctx.text.length && /\s/.test(ctx.text[index]!)) index++;
+
+    if (index === ctx.index) {
+      return index === ctx.text.length
+        ? pending(ctx, "whitespace")
+        : failure(ctx, "whitespace");
+    }
+
+    if (index === ctx.text.length) return pending(ctx, "whitespace");
+
+    return success(
+      { text: ctx.text, index, final: false },
+      ctx.text.substring(ctx.index, index),
+    );
+  };
 };
 
 /**
@@ -183,12 +246,16 @@ export const take = (count: number): Parser<string> => {
     const endIdx = ctx.index + count;
     if (endIdx <= ctx.text.length) {
       return success(
-        { text: ctx.text, index: endIdx },
+        ctx.final === undefined
+          ? { text: ctx.text, index: endIdx }
+          : { text: ctx.text, index: endIdx, final: ctx.final },
         ctx.text.substring(ctx.index, endIdx),
       );
-    } else {
-      return failure(ctx, "unexpected end of input");
     }
+
+    return ctx.final === false
+      ? pending(ctx, `${count} characters`)
+      : failure(ctx, "unexpected end of input");
   };
 };
 
@@ -197,8 +264,14 @@ export const take = (count: number): Parser<string> => {
  */
 export const takeText = (): Parser<string> => {
   return (ctx) => {
+    if (ctx.final === false) {
+      return pending(ctx, "final input");
+    }
+
     return success(
-      { text: ctx.text, index: ctx.text.length },
+      ctx.final === undefined
+        ? { text: ctx.text, index: ctx.text.length }
+        : { text: ctx.text, index: ctx.text.length, final: ctx.final },
       ctx.text.substring(ctx.index, ctx.text.length),
     );
   };
@@ -220,6 +293,10 @@ export const eof = (): Parser<null> => {
   return (ctx) => {
     if (ctx.index < ctx.text.length) {
       return failure(ctx, "eof not reached");
+    }
+
+    if (ctx.final === false) {
+      return pending(ctx, "end of input");
     }
 
     return success(ctx, null);
@@ -258,14 +335,46 @@ export const int = (): Parser<number> => {
  */
 export const double = (): Parser<number> => {
   const decimal = regex(/[0-9]+\.[0-9]*/, "decimal number");
-  return (ctx) => {
-    const res = decimal(ctx);
-    if (!res.success) return res;
 
-    const value = Number(res.value);
+  return (ctx) => {
+    if (ctx.final !== false) {
+      const res = decimal(ctx);
+      if (!res.success) return res;
+
+      const value = Number(res.value);
+      return Number.isFinite(value)
+        ? success(res.ctx, value)
+        : failure(res.ctx, "finite decimal number");
+    }
+
+    let index = ctx.index;
+    while (index < ctx.text.length) {
+      const code = ctx.text.charCodeAt(index);
+      if (code < 48 || code > 57) break;
+      index++;
+    }
+
+    if (index === ctx.index) {
+      return index === ctx.text.length
+        ? pending(ctx, "decimal number")
+        : failure(ctx, "decimal number");
+    }
+    if (index === ctx.text.length) return pending(ctx, "decimal number");
+    if (ctx.text[index] !== ".") return failure(ctx, "decimal number");
+
+    index++;
+    while (index < ctx.text.length) {
+      const code = ctx.text.charCodeAt(index);
+      if (code < 48 || code > 57) break;
+      index++;
+    }
+
+    if (index === ctx.text.length) return pending(ctx, "decimal number");
+
+    const value = Number(ctx.text.substring(ctx.index, index));
     return Number.isFinite(value)
-      ? success(res.ctx, value)
-      : failure(res.ctx, "finite decimal number");
+      ? success({ text: ctx.text, index, final: false }, value)
+      : failure(ctx, "finite decimal number");
   };
 };
 
@@ -288,13 +397,17 @@ export const hexDigit = (): Parser<string> => {
  * Matches a hexadecimal number (`0x` lead not allowed)
  */
 export const hex = (): Parser<string> => {
+  const prefix = peek(either(str("0x"), str("0X")));
+  const digits = map(many1(hexDigit()), (hex) => hex.join(""));
+
   return (ctx) => {
-    const lead = peek(regex(/0[xX]/, "hexadecimal prefix"))(ctx);
+    const lead = prefix(ctx);
     if (lead.success) {
       return failure(ctx, "unexpected 0x lead");
     }
+    if (isPending(lead)) return lead;
 
-    return map(many1(hexDigit()), (hex) => hex.join(""))(ctx);
+    return digits(ctx);
   };
 };
 
@@ -331,10 +444,23 @@ export const regex = (re: RegExp, expected: string): Parser<string> => {
   const stickyRe = new RegExp(re.source, flags);
 
   return (ctx) => {
+    if (ctx.final === false) {
+      return pending(ctx, expected);
+    }
+
     stickyRe.lastIndex = ctx.index;
     const res = stickyRe.exec(ctx.text);
     return res && res.index === ctx.index
-      ? success({ text: ctx.text, index: res.index + res[0].length }, res[0])
+      ? success(
+          ctx.final === undefined
+            ? { text: ctx.text, index: res.index + res[0].length }
+            : {
+                text: ctx.text,
+                index: res.index + res[0].length,
+                final: ctx.final,
+              },
+          res[0],
+        )
       : failure(ctx, expected);
   };
 };

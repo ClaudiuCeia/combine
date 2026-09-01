@@ -1,4 +1,4 @@
-import type { Parser, Result } from "./Parser.ts";
+import { isPending, type Parser, type Result } from "./Parser.ts";
 
 /**
  * Aggregated stats for a single wrapped parser.
@@ -7,6 +7,7 @@ export type TraceRow = Readonly<{
   name: string;
   calls: number;
   success: number;
+  pending: number;
   failure: number;
   fatalFailure: number;
   consumed: number;
@@ -42,6 +43,7 @@ type MutableRow = {
   name: string;
   calls: number;
   success: number;
+  pending: number;
   failure: number;
   fatalFailure: number;
   consumed: number;
@@ -59,6 +61,7 @@ const getOrCreateRow = (
     name,
     calls: 0,
     success: 0,
+    pending: 0,
     failure: 0,
     fatalFailure: 0,
     consumed: 0,
@@ -95,6 +98,8 @@ export const createTracer = (opts?: { now?: () => number }): Tracer => {
           row.success++;
           const consumed = res.ctx.index - ctx.index;
           if (consumed > 0) row.consumed += consumed;
+        } else if (isPending(res)) {
+          row.pending++;
         } else {
           row.failure++;
           if (res.fatal) row.fatalFailure++;
@@ -122,6 +127,7 @@ export const formatTraceTable = (rows: TraceRow[]): string => {
     "name",
     "calls",
     "ok",
+    "pending",
     "fail",
     "fatal",
     "consumed",
@@ -135,6 +141,7 @@ export const formatTraceTable = (rows: TraceRow[]): string => {
       r.name,
       String(r.calls),
       String(r.success),
+      String(r.pending),
       String(r.failure),
       String(r.fatalFailure),
       String(r.consumed),

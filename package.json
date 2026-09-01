@@ -38,6 +38,10 @@
     "./perf": {
       "types": "./dist/src/perf.d.ts",
       "import": "./dist/src/perf.js"
+    },
+    "./streaming": {
+      "types": "./dist/src/streaming.d.ts",
+      "import": "./dist/src/streaming.js"
     }
   },
   "scripts": {
@@ -55,6 +59,7 @@
     "bench:comparison": "bun run bench/comparison_bench.ts",
     "bench:comparison:json": "bun run bench/comparison_bench.ts --json",
     "bench:compare": "bun run scripts/benchmark-report.ts",
+    "bench:streaming": "bun run bench/streaming_bench.ts",
     "bench:verify": "bun run bench/comparison_verify.ts",
     "hooks:install": "ln -sf ../../scripts/pre-commit .git/hooks/pre-commit && chmod +x scripts/pre-commit",
     "hooks:uninstall": "rm -f .git/hooks/pre-commit"

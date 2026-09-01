@@ -1,6 +1,12 @@
 import { any, not, seq, skipMany, surrounded } from "./combinators.ts";
-import { failure, fatalFailure, type Parser, success } from "./Parser.ts";
-import { regex, space, str } from "./parsers.ts";
+import {
+  failure,
+  fatalFailure,
+  type Parser,
+  pending,
+  success,
+} from "./Parser.ts";
+import { anyChar, regex, space, str } from "./parsers.ts";
 import { map } from "./utility.ts";
 
 export type TriviaParser = Parser<null>;
@@ -9,7 +15,26 @@ export type TriviaParser = Parser<null>;
  * Match and skip a line comment: `// ...` until (but not including) `\n`.
  */
 export const lineComment = (): Parser<null> => {
-  return map(regex(/\/\/[^\n]*/, "line comment"), () => null);
+  const finite = map(regex(/\/\/[^\n]*/, "line comment"), () => null);
+
+  return (ctx) => {
+    if (ctx.final !== false) return finite(ctx);
+
+    const remaining = ctx.text.length - ctx.index;
+    if (remaining === 0 || (remaining === 1 && ctx.text[ctx.index] === "/")) {
+      return pending(ctx, "line comment");
+    }
+    if (!ctx.text.startsWith("//", ctx.index)) {
+      return failure(ctx, "line comment");
+    }
+
+    const end = ctx.text.indexOf("\n", ctx.index + 2);
+    if (end === -1) {
+      return pending({ ...ctx, index: ctx.text.length }, "end of line comment");
+    }
+
+    return success({ ...ctx, index: end }, null);
+  };
 };
 
 /**
@@ -18,15 +43,25 @@ export const lineComment = (): Parser<null> => {
 export const blockComment = (): Parser<null> => {
   return (ctx) => {
     if (!ctx.text.startsWith("/*", ctx.index)) {
+      if (
+        ctx.final === false &&
+        ctx.text.length - ctx.index <= 1 &&
+        (ctx.index === ctx.text.length || ctx.text[ctx.index] === "/")
+      ) {
+        return pending(ctx, "block comment");
+      }
       return failure(ctx, "block comment");
     }
 
     const end = ctx.text.indexOf("*/", ctx.index + 2);
     if (end === -1) {
-      return fatalFailure({ text: ctx.text, index: ctx.text.length }, "*/");
+      const endCtx = { ...ctx, index: ctx.text.length };
+      return ctx.final === false
+        ? pending(endCtx, "*/")
+        : fatalFailure(endCtx, "*/");
     }
 
-    return success({ text: ctx.text, index: end + 2 }, null);
+    return success({ ...ctx, index: end + 2 }, null);
   };
 };
 
@@ -62,7 +97,19 @@ export const symbol = <const S extends string>(
 };
 
 const identContinueChar = (): Parser<string> => {
-  return regex(/[a-zA-Z0-9_]/, "identifier char");
+  const read = anyChar();
+  return (ctx) => {
+    const res = read(ctx);
+    if (!res.success) return res;
+
+    const code = res.value.charCodeAt(0);
+    return (code >= 48 && code <= 57) ||
+      (code >= 65 && code <= 90) ||
+      code === 95 ||
+      (code >= 97 && code <= 122)
+      ? res
+      : failure(ctx, "identifier char");
+  };
 };
 
 /**

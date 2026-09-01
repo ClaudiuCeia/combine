@@ -5,10 +5,13 @@ import {
   failure,
   getLocation,
   isFatal,
+  isPending,
+  pending,
   type Parser,
   pushFrame,
   success,
 } from "./Parser.ts";
+import { preserveContextFinality } from "./internal.ts";
 import { space } from "./parsers.ts";
 
 /**
@@ -60,7 +63,9 @@ export const chain = <A, B>(
 ): Parser<B> => {
   return (ctx) => {
     const res = parser(ctx);
-    return res.success ? next(res.value)(res.ctx) : res;
+    return res.success
+      ? next(res.value)(preserveContextFinality(ctx, res.ctx))
+      : res;
   };
 };
 
@@ -103,6 +108,15 @@ export const peekAnd = <A, B>(
       return and(ctx);
     }
 
+    if (isPending(res)) {
+      return pending(
+        ctx,
+        `Peek pending: expected ${res.expected}`,
+        res.variants,
+        res.stack,
+      );
+    }
+
     return failure(
       ctx,
       `Peek unsuccesful: expected ${res.expected}`,
@@ -127,10 +141,10 @@ export const ifPeek = <A, B>(
   return (ctx) => {
     const res = peek(ctx);
     if (res.success) {
-      return continueWith(res.ctx);
+      return continueWith(preserveContextFinality(ctx, res.ctx));
     }
 
-    if (isFatal(res)) return res;
+    if (isFatal(res) || isPending(res)) return res;
 
     return success(ctx, null);
   };
@@ -149,6 +163,10 @@ export const onFailure = <T>(
   return (ctx) => {
     const res = parser(ctx);
     if (res.success) {
+      return res;
+    }
+
+    if (isPending(res)) {
       return res;
     }
 
@@ -283,6 +301,10 @@ export const cut = <T>(parser: Parser<T>, expected?: string): Parser<T> => {
   return (ctx) => {
     const res = parser(ctx);
     if (res.success) {
+      return res;
+    }
+
+    if (isPending(res)) {
       return res;
     }
 

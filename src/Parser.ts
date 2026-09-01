@@ -12,12 +12,14 @@ export type Parser<T> = (ctx: Context) => Result<T>;
 export type Context = Readonly<{
   text: string;
   index: number;
+  /** `false` when more input may be appended. Omitted for finite input. */
+  final?: boolean;
 }>;
 
 /**
  * Result of running a parser.
  */
-export type Result<T> = Success<T> | Failure;
+export type Result<T> = Success<T> | Failure | Pending;
 
 /**
  * Successful parse result (value + updated context).
@@ -70,6 +72,18 @@ export type Failure = Readonly<{
   /** If true, this error should not be caught by alternative parsers (committed parse) */
   fatal: boolean;
 }>;
+
+/**
+ * Parsing cannot yet decide because more input may change the result.
+ *
+ * Pending results retain the failure fields so existing diagnostic and
+ * narrowing code remains compatible. They are never fatal.
+ */
+export type Pending = Failure &
+  Readonly<{
+    pending: true;
+    fatal: false;
+  }>;
 
 export const success = <T>(ctx: Context, value: T): Success<T> => {
   return {
@@ -184,6 +198,33 @@ export const failure = (
     fatal,
   };
 };
+
+/**
+ * Suspend parsing until more input is available or the input is finalized.
+ */
+export const pending = (
+  ctx: Context,
+  expected: string,
+  variants: Failure[] = [],
+  stack: ErrorFrame[] = [],
+): Pending => {
+  const location = getLocation(ctx);
+
+  return {
+    success: false,
+    pending: true,
+    expected,
+    ctx,
+    location,
+    variants,
+    stack,
+    fatal: false,
+  };
+};
+
+/** Check whether a parser needs more input before it can decide. */
+export const isPending = <T>(result: Result<T>): result is Pending =>
+  !result.success && "pending" in result && result.pending === true;
 
 /**
  * Create a fatal failure that will not be caught by alternative parsers.
