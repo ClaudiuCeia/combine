@@ -306,6 +306,9 @@ const expandTabs = (s: string, tabWidth: number): string => {
   return s.replaceAll("\t", " ".repeat(tabWidth));
 };
 
+const nonNegativeInteger = (value: number, fallback: number): number =>
+  Number.isFinite(value) ? Math.max(0, Math.trunc(value)) : fallback;
+
 const ansi = {
   reset: "\x1b[0m",
   dim: "\x1b[2m",
@@ -330,8 +333,8 @@ export const formatErrorSnippet = (
   f: Failure,
   opts: FormatErrorSnippetOptions = {},
 ): string => {
-  const contextLines = opts.contextLines ?? 1;
-  const tabWidth = opts.tabWidth ?? 2;
+  const contextLines = nonNegativeInteger(opts.contextLines ?? 1, 1);
+  const tabWidth = nonNegativeInteger(opts.tabWidth ?? 2, 2);
   const color = opts.color ?? false;
 
   const lines = f.ctx.text
