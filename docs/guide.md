@@ -3,6 +3,15 @@
 This page collects the "deep dive" topics that are useful once you've built a
 small parser and want to scale it to a real grammar.
 
+- [Text and offsets](#text-and-offsets)
+- [Streaming input](#streaming-input)
+- [Order and recursion](#order-and-recursion)
+- [`defineLanguage`](#definelanguage-recommended-for-larger-grammars)
+- [Version migrations](#version-migrations)
+- [Error handling](#error-handling-context-cut-attempt)
+- [Performance tracing](#perf-tracing-optional)
+- [Lexer layer](#lexer-layer-optional)
+
 ## Text and offsets
 
 `Context.index`, `runParser` start offsets, and captured spans use UTF-16 code
@@ -13,74 +22,20 @@ such as an emoji occupies two positions.
 Use a Unicode regular expression such as `regex(/./u, "Unicode code point")`
 when a parser should consume a complete Unicode code point. Its matched string
 may advance the context by two UTF-16 positions. The default `keyword` boundary
-recognizes ASCII letters, digits, and underscores; grammars with Unicode
+recognizes ASCII letters, digits, and underscores. Grammars with Unicode
 identifiers should define their own boundary parser.
 
 ## Streaming input
 
-`createStreamingParser(parser)` runs a parser over an append-only buffer. Each
-`feed(chunk)` evaluates the grammar with `Context.final === false`. `finish()`
-marks the same buffer as final and produces an authoritative success or failure.
-The current engine reruns the grammar against the accumulated text after each
-chunk; the lifecycle does not expose that implementation detail to callers.
+Streaming adds a provisional `Pending` result for append-only input. The
+single-value session used by `createStreamingParser` and `parseStream` stops
+after success or definitive failure. `parseStreamEach` continues after each
+advancing success. Success still means a prefix match unless the grammar includes
+`eof()`.
 
-```ts
-import {
-  createStreamingParser,
-  isPending,
-  seq,
-  str,
-} from "@claudiu-ceia/combine";
-
-const stream = createStreamingParser(seq(str("Content-Type"), str(":")));
-
-const partial = stream.feed("Content-");
-if (isPending(partial)) {
-  const complete = stream.feed("Type:");
-  // complete.success === true
-}
-```
-
-A streaming result has three states:
-
-- `result.success === true`: terminal success
-- `isPending(result)`: more appended input may change the outcome
-- otherwise: terminal failure
-
-Sessions are single-use after a terminal result. Calling `feed()` after success
-or definitive failure throws. Calling `finish()` more than once returns the same
-terminal result.
-
-Custom parser wrappers must forward the complete `Context`, including `final`,
-when invoking another parser. Built-in combinators restore the session marker
-between successful children for compatibility with wrappers that return a fresh
-context, but cannot recover it if a wrapper removes it before delegation.
-
-Use `parseStream(parser, chunks)` to consume an `AsyncIterable<string>`. Use
-`parseStreamEach(parser, chunks, { until? })` when one source contains repeated
-values. The repeated parser must consume input whenever it succeeds; otherwise
-`parseStreamEach` returns a failure instead of looping forever.
-
-`parseStreamEach` releases completed input between batches, so result contexts,
-locations, and spans are relative to the currently retained buffer window. A
-repeated-value parser must not depend on input before the current value.
-
-### Open boundaries
-
-Some otherwise-valid prefixes remain pending at the current end of an open
-buffer. For example, `space()` cannot publish `" "` while another whitespace
-character may arrive, and `number()` cannot publish `29` while `.8` may still
-arrive. A delimiter or `finish()` closes those choices.
-
-Ordered choice also remains pending when its selected branch is incomplete.
-Selection combinators such as `oneOf` and `furthest` wait while an unresolved
-alternative could change their result.
-
-`regex(...)` is intentionally conservative: it remains pending for every open
-input and evaluates only after finalization. JavaScript regular expressions do
-not expose enough information to prove that an arbitrary match is stable under
-appending. Use streaming-aware primitives or a custom `Parser` when early
-emission is required.
+The [streaming guide](./streaming.md) documents `createStreamingParser`,
+`parseStream`, `parseStreamEach`, open boundaries, buffering, source
+backpressure, lexer behavior, and the contract for custom streaming parsers.
 
 ## Order and recursion
 
@@ -119,7 +74,7 @@ const expr: Parser<Expr> = any(
 );
 ```
 
-For a full example, see `tests/calculator.test.ts`.
+For a full example, see the [calculator](../examples/calculator.ts).
 
 ## `defineLanguage` (recommended for larger grammars)
 
@@ -128,17 +83,35 @@ gets noisy. `defineLanguage` uses a compact map of production output types and
 gives every definition a fully typed view of the complete language.
 
 ```ts
-import { defineLanguage, str, surrounded } from "@claudiu-ceia/combine";
+import {
+  any,
+  defineLanguage,
+  map,
+  parseAll,
+  seq,
+  str,
+} from "@claudiu-ceia/combine";
+
+type Expr =
+  Readonly<{ kind: "atom" }> | Readonly<{ kind: "paren"; value: Expr }>;
 
 type Grammar = {
-  Atom: string;
-  Paren: string;
+  Expression: Expr;
+  Atom: Expr;
+  Paren: Expr;
 };
 
 const L = defineLanguage<Grammar>({
-  Atom: () => str("x"),
-  Paren: ({ Atom }) => surrounded(str("("), Atom, str(")")),
+  Expression: ({ Atom, Paren }) => any(Atom, Paren),
+  Atom: () => map(str("x"), () => ({ kind: "atom" }) as const),
+  Paren: ({ Expression }) =>
+    map(
+      seq(str("("), Expression, str(")")),
+      ([, value]) => ({ kind: "paren", value }) as const,
+    ),
 });
+
+const result = parseAll(L.Expression, "((x))");
 ```
 
 Notes:
@@ -149,7 +122,9 @@ Notes:
 - Wrong production return types are reported against the corresponding schema
   entry.
 - For typed examples that exercise recursion, see
-  `tests/define_language.test.ts`.
+  [the language tests](../tests/define_language.test.ts).
+
+## Version migrations
 
 ### Migrating from 0.3
 
@@ -157,7 +132,7 @@ Version 0.4 replaces `createLanguage` and `createLanguageThis` with the single
 `defineLanguage` API. Schemas now describe parsed output values rather than
 bound parser functions:
 
-```ts
+```text
 // 0.3
 type OldGrammar = {
   Atom: Parser<string>;
@@ -191,6 +166,8 @@ separator parser still consumes input, but its value is no longer included in
 the result:
 
 ```ts
+import { int, sepBy, str } from "@claudiu-ceia/combine";
+
 const values = sepBy(int(), str(","));
 // 0.4: Parser<(number | string)[]>
 // 0.5: Parser<number[]>
@@ -213,17 +190,22 @@ Backtracking combinators need a rule for which error to return when multiple
 alternatives fail.
 
 - `any(p1, p2, ...)` tries alternatives in order and returns the first success.
-  - If all alternatives fail, it returns the failure that got the furthest
-    (`ctx.index` is greatest).
-  - Fatal failures (from `cut(...)`) stop immediately; later alternatives are
-    not tried.
-- `furthest(p1, p2, ...)` always tries all alternatives and returns the result
-  (success or failure) that got the furthest.
+  If all alternatives fail, it returns the failure with the greatest
+  `ctx.index`. Fatal failures stop immediately, so later alternatives are not
+  tried.
+- `furthest(p1, p2, ...)` tries alternatives unless a fatal failure stops it and
+  returns the result (success or failure) that got the furthest.
   - This often improves error quality, but it may return a failure even if an
     earlier alternative succeeded.
-- `oneOf(p1, p2, ...)` evaluates alternatives from the same starting context and
-  succeeds only when exactly one matches. Use it to enforce mutually exclusive
-  branches, not for ordinary ordered choice.
+- `oneOf(p1, p2, ...)` checks alternatives from the same starting context and
+  succeeds only when exactly one matches. A second success or fatal failure
+  stops evaluation. Use it to enforce mutually exclusive branches, not for
+  ordinary ordered choice.
+
+Pending alternatives remain unresolved. `any` stops at its first pending branch,
+while `oneOf` and `furthest` wait when a pending alternative could change their
+decision. If a known prefix commits the grammar to one branch, place `cut(...)`
+after that prefix to avoid false successes and confusing backtracking.
 
 ### `context(label, parser)`
 
@@ -246,8 +228,9 @@ const result = declaration({ text: "let 123", index: 0 });
 
 ### `cut(parser, expected?)`
 
-Commit to a branch. If the inner parser fails, the failure becomes **fatal** and
-won't be swallowed by alternatives like `any(...)` or `either(...)`.
+Commit to a branch. If the inner parser fails definitively, the failure becomes
+**fatal** and won't be swallowed by alternatives like `any(...)` or
+`either(...)`. A streaming pending result remains nonfatal until it resolves.
 
 ```ts
 import { cut, str } from "@claudiu-ceia/combine";
@@ -263,20 +246,12 @@ Usually used only when you want a committed parse to be "catchable" in a very
 specific place.
 
 ```ts
-import { any, attempt } from "@claudiu-ceia/combine";
+import { any, attempt, cut, str } from "@claudiu-ceia/combine";
 
+const committedBranch = cut(str("x"));
+const fallbackBranch = str("y");
 const parser = any(attempt(committedBranch), fallbackBranch);
 ```
-
-### `any(...)` vs `furthest(...)`
-
-- `any(...)` returns the first success. It's fast, but can prefer a "too-greedy"
-  branch if an earlier alternative succeeds early.
-- `furthest(...)` tries all branches and picks the one that consumed the most
-  input, which often produces better error messages.
-
-If you know a branch should be committed after some prefix, prefer `cut(...)` to
-avoid both false successes and confusing backtracking.
 
 ### Formatting failures
 
@@ -286,14 +261,17 @@ import {
   formatErrorReport,
   formatErrorSnippet,
   formatErrorStack,
+  parseAll,
+  str,
 } from "@claudiu-ceia/combine";
 
-if (!result.success) {
-  console.error(formatErrorCompact(result));
+const parsed = parseAll(str("ready"), "reading");
+if (!parsed.success) {
+  console.error(formatErrorCompact(parsed));
   // Recommended: a single, non-redundant message (header + snippet + stack).
-  console.error(formatErrorReport(result));
-  console.error(formatErrorSnippet(result)); // line snippet with caret
-  console.error(formatErrorStack(result));
+  console.error(formatErrorReport(parsed));
+  console.error(formatErrorSnippet(parsed)); // line snippet with caret
+  console.error(formatErrorStack(parsed));
 }
 ```
 
@@ -322,6 +300,9 @@ if (res.success) {
 }
 ```
 
+The [API reference](./api.md#tracing) lists every `TraceRow` field and the
+`rows()` and `reset()` lifecycle.
+
 ## Lexer layer (optional)
 
 For larger grammars, it's common to separate "lexing" (whitespace/comments and
@@ -331,21 +312,27 @@ sprinkling `space()`/`regex()`/`optional(...)`.
 This repo includes a minimal lexer layer that consumes trailing trivia and drops
 it from the output.
 
-Exports are in `src/lexer.ts`:
+Lexer APIs are exported from `@claudiu-ceia/combine`:
 
+- `lineComment()` skips `//` content but leaves the newline unread
+- `blockComment()` skips `/* ... */` and makes an unterminated final comment
+  fatal
 - `defaultTrivia()` skips whitespace plus `//` and `/* ... */` comments
 - `lexeme(p, trivia?)` runs `p` and then consumes trailing trivia
 - `symbol("...")` is `lexeme(str("..."))`
 - `keyword("if")` like `symbol`, but enforces an identifier boundary (won't
   match `ifx`)
 - `createLexer({ trivia? })` builds a small helper object around your trivia
-  policy
+  policy, including `parens(p)`
+
+These helpers consume trailing trivia only. Parse leading trivia once in the
+entry production when a file may start with whitespace or comments. Generic
+`regex(...)` waits for finalization in streaming mode, even inside `lexeme`.
 
 Example:
 
 ```ts
-import { any, createLexer, map, seq } from "@claudiu-ceia/combine";
-import { eof, int } from "@claudiu-ceia/combine";
+import { any, createLexer, eof, int, map, seq } from "@claudiu-ceia/combine";
 
 const L = createLexer();
 
@@ -368,10 +355,12 @@ import {
   any,
   createLexer,
   defineLanguage,
+  eof,
+  int,
   map,
+  regex,
   seq,
 } from "@claudiu-ceia/combine";
-import { eof, int, regex } from "@claudiu-ceia/combine";
 
 const Lx = createLexer();
 
