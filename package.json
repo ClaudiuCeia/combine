@@ -66,17 +66,17 @@
   },
   "devDependencies": {
     "@arethetypeswrong/cli": "0.18.5",
-    "@types/bun": "1.4.0",
+    "@types/bun": "1.4.1",
     "mini-parse": "0.6.41",
     "mitata": "1.0.34",
-    "oxfmt": "0.65.0",
-    "oxlint": "1.80.0",
+    "oxfmt": "0.66.0",
+    "oxlint": "1.81.0",
     "parjs": "1.3.9",
     "parser-combinators": "1.2.7",
     "peberminta": "0.10.0",
     "publint": "0.3.24",
-    "tarsec": "0.5.3",
-    "typescript": "~5.9.0"
+    "tarsec": "0.5.4",
+    "typescript": "~7.0.0"
   },
   "engines": {
     "node": ">=20"
