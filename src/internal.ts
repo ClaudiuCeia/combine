@@ -1,4 +1,8 @@
-import { type Context, ParserInvariantError } from "./Parser.ts";
+import {
+  type Context,
+  ParserInvariantError,
+  type SourceLocation,
+} from "./Parser.ts";
 
 export const assertAdvanced = (
   name: string,
@@ -11,8 +15,6 @@ export const assertAdvanced = (
     );
   }
 };
-
-type SourceLocation = { line: number; column: number };
 
 type LineCacheEntry = {
   starts: number[] | null;

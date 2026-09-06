@@ -9,6 +9,7 @@ import {
   pending,
   type Parser,
   pushFrame,
+  type SourceLocation,
   success,
 } from "./Parser.ts";
 import { preserveContextFinality } from "./internal.ts";
@@ -196,8 +197,8 @@ export type WithSpan<T> = Readonly<{
   value: T;
   start: number;
   end: number;
-  locationStart: { line: number; column: number };
-  locationEnd: { line: number; column: number };
+  locationStart: SourceLocation;
+  locationEnd: SourceLocation;
 }>;
 
 /**
