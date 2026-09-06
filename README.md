@@ -1,12 +1,11 @@
-# **combine**
+# combine
 
 Typed parser combinators for complete strings and text streams in TypeScript.
 
 The same grammar can parse a finished value or an append-only stream. Streamed
-parses can return `pending` when the parser has not made an authoritative
-decision for the open input buffer.
+parses can return `pending` when more input could change the result.
 
-Use **combine** for streamed model output, DSLs, configuration formats, protocols,
+Use combine for streamed model output, DSLs, configuration formats, protocols,
 logs, and CLI output.
 
 [![npm](https://img.shields.io/npm/v/@claudiu-ceia/combine)](https://www.npmjs.com/package/@claudiu-ceia/combine)
@@ -37,7 +36,7 @@ const second = stream.feed("$");
 if (second.success) console.log(second.value); // "$$"
 ```
 
-After the first `$`, both `$` and `$$` are still possible. **combine** returns
+After the first `$`, both `$` and `$$` are still possible. combine returns
 `pending`. The second `$` makes the result final.
 
 - `success` - the parser has a result for the matched prefix
@@ -96,108 +95,6 @@ reinterpretation.
 
 These inputs are unfinished, not malformed.
 
-## Building a grammar
-
-Parsers are typed functions that compose into typed output. This query grammar
-handles predicates, quoted values, parentheses, and `AND` precedence over `OR`.
-It does not need a grammar file or a code-generation step.
-
-```ts
-import {
-  any,
-  chainl1,
-  context,
-  createLexer,
-  cut,
-  defineLanguage,
-  map,
-  parseAll,
-  regex,
-  seq,
-  str,
-} from "@claudiu-ceia/combine";
-
-type Query =
-  | Readonly<{ kind: "predicate"; field: string; value: string }>
-  | Readonly<{
-      kind: "and" | "or";
-      left: Query;
-      right: Query;
-    }>;
-
-const lexer = createLexer();
-const field = lexer.lexeme(regex(/[A-Za-z][A-Za-z0-9_-]*/, "field"));
-const quotedValue = lexer.lexeme(
-  map(
-    seq(str('"'), regex(/[^"]*/, "quoted value"), cut(str('"'))),
-    ([, value]) => value,
-  ),
-);
-const bareValue = lexer.lexeme(regex(/[A-Za-z0-9_-]+/, "value"));
-
-const predicate = context(
-  "in predicate",
-  map(
-    seq(
-      field,
-      lexer.symbol(":"),
-      cut(any(quotedValue, bareValue), "value after ':'"),
-    ),
-    ([field, , value]) => ({ kind: "predicate", field, value }) as const,
-  ),
-);
-
-type Productions = {
-  Primary: Query;
-  And: Query;
-  Expression: Query;
-  File: Query;
-};
-
-const QueryGrammar = defineLanguage<Productions>({
-  Primary: ({ Expression }) =>
-    context(
-      "in expression",
-      any(
-        predicate,
-        map(
-          seq(lexer.symbol("("), Expression, cut(lexer.symbol(")"))),
-          ([, expression]) => expression,
-        ),
-      ),
-    ),
-  And: ({ Primary }) =>
-    chainl1(Primary, lexer.keyword("AND"), (left, _operator, right) => ({
-      kind: "and",
-      left,
-      right,
-    })),
-  Expression: ({ And }) =>
-    chainl1(And, lexer.keyword("OR"), (left, _operator, right) => ({
-      kind: "or",
-      left,
-      right,
-    })),
-  File: ({ Expression }) =>
-    context(
-      "in query",
-      map(seq(lexer.trivia, Expression), ([, expression]) => expression),
-    ),
-});
-
-const result = parseAll(
-  QueryGrammar.File,
-  'status:open AND (owner:"Jane Doe" OR priority:high)',
-);
-
-if (result.success) console.log(result.value);
-```
-
-The result is a `Query` AST. `chainl1` defines precedence and associativity,
-while `defineLanguage` makes the recursive parenthesized production available
-without declaration-order workarounds. The complete runnable version is in
-[`examples/query.ts`](https://github.com/ClaudiuCeia/combine/blob/main/examples/query.ts).
-
 ## Streaming API
 
 - `createStreamingParser(parser)` creates one buffered parsing session
@@ -207,7 +104,7 @@ without declaration-order workarounds. The complete runnable version is in
 - `parseStreamEach(parser, chunks, options)` yields consecutive parsed values
 - `isPending(result)` distinguishes unfinished input from failure
 
-The same **combine** grammar can be used for finite and streamed input. How early a
+The same combine grammar can be used for finite and streamed input. How early a
 result finalizes depends on its parsers. Streaming-aware primitives such as
 `str`, `trie`, `digit`, `letter`, `space`, and `number` can resolve before the
 source ends. `regex(...)` waits for final input because a JavaScript regular
@@ -255,13 +152,45 @@ if (complete.success) console.log(complete.value);
 ````
 
 The parser remains pending until a complete closing-fence line arrives. See the
-[`docs/streaming.md`](https://github.com/ClaudiuCeia/combine/blob/main/docs/streaming.md)
-guide for async sources, repeated values, boundaries, retained buffers,
-relative offsets, and custom parsers.
+[streaming guide](./docs/streaming.md) for async sources, repeated values,
+boundaries, retained buffers, relative offsets, and custom parsers.
+
+## Building a grammar
+
+Parsers compose into typed output. The complete query example handles
+predicates, quoted values, parentheses, and `AND` precedence over `OR` without a
+grammar file or code-generation step.
+
+```ts
+import { parseQuery } from "./examples/query.ts";
+
+const result = parseQuery(
+  'status:open AND (owner:"Jane Doe" OR priority:high)',
+);
+
+if (!result.success) throw new Error(result.expected);
+console.log(JSON.stringify(result.value, null, 2));
+```
+
+```json
+{
+  "kind": "and",
+  "left": { "kind": "predicate", "field": "status", "value": "open" },
+  "right": {
+    "kind": "or",
+    "left": { "kind": "predicate", "field": "owner", "value": "Jane Doe" },
+    "right": { "kind": "predicate", "field": "priority", "value": "high" }
+  }
+}
+```
+
+The grammar uses `chainl1` for precedence and associativity, `defineLanguage`
+for recursive productions, and `context` plus `cut` for focused errors. See
+[examples/query.ts](./examples/query.ts) for the complete implementation.
 
 ## Errors and backtracking
 
-Running the query grammar above against this malformed input:
+Running the complete query grammar against this malformed input:
 
 ```text
 status:open AND owner:
@@ -282,24 +211,24 @@ expected value after ':' at line 1, column 23
 the value after `owner:` as required, so ordered choice does not backtrack and
 replace the useful error with an unrelated alternative.
 
-## Built with **combine**
+## Built with combine
 
 - [`exp`](https://github.com/ClaudiuCeia/exp) parses expressions into a typed AST
   with source spans, then evaluates them against an explicit environment
 - [`ts-duckling`](https://github.com/ClaudiuCeia/ts-duckling) scans free-form
-  text for typed entities such as dates, URLs, locations, and PII
+  text for dates, URLs, countries, and sensitive identifiers
 - [`pii-mask`](https://github.com/ClaudiuCeia/pii-mask) uses `ts-duckling` for
   grammar-based PII detection and adds masking, structured-value traversal, and
   logger integrations
 
 Repository examples:
 
-- [`examples/query.ts`](https://github.com/ClaudiuCeia/combine/blob/main/examples/query.ts)
-  covers typed output, precedence, recursion, and committed errors
-- [`examples/calculator.ts`](https://github.com/ClaudiuCeia/combine/blob/main/examples/calculator.ts)
-  builds a typed arithmetic AST with precedence and source spans
-- [`examples/lisp.ts`](https://github.com/ClaudiuCeia/combine/blob/main/examples/lisp.ts)
-  parses recursive lists with centralized trivia handling
+- [examples/query.ts](./examples/query.ts) covers typed output, precedence,
+  recursion, and committed errors
+- [examples/calculator.ts](./examples/calculator.ts) builds a typed arithmetic
+  AST with precedence and source spans
+- [examples/lisp.ts](./examples/lisp.ts) parses recursive lists with centralized
+  trivia handling
 
 ## Runtime support
 
@@ -317,14 +246,14 @@ available:
 | Performance tracing          | `@claudiu-ceia/combine/perf`             | `jsr:@claudiu-ceia/combine/perf`             |
 | Streaming                    | `@claudiu-ceia/combine/streaming`        | `jsr:@claudiu-ceia/combine/streaming`        |
 
-## Benchmarks
+## Benchmark methodology
 
 The checked-in comparison parses equivalent recursive arithmetic grammars with
 81 B, 1,795 B, and 14,384 B fixtures. CI runs three base and three candidate
 passes with Bun 1.4 on the same GitHub-hosted `ubuntu-latest` runner, then
 compares median p50 values. GitHub runner hardware can vary between runs.
 
-The **combine**-only streaming fixture is an 8,227 B ASCII fenced block parsed as
+The combine-only streaming fixture is an 8,227 B ASCII fenced block parsed as
 finite input, 64 B chunks, 512 B chunks, and one complete chunk. Chunked parses
 remain pending until the chunk containing the closing fence. The selected
 comparison libraries do not expose the same append-only parser lifecycle, so
@@ -336,18 +265,15 @@ bun run bench:comparison
 bun run bench:streaming
 ```
 
-See the
-[benchmark overview](https://github.com/ClaudiuCeia/combine/blob/main/bench/README.md)
-and
-[comparison methodology](https://github.com/ClaudiuCeia/combine/blob/main/bench/comparison/README.md)
-for scope and limits.
+See the [benchmark overview](./bench/README.md) and
+[comparison methodology](./bench/comparison/README.md) for scope and limits.
 
 ## Documentation
 
-- [Getting started and grammar design](https://github.com/ClaudiuCeia/combine/blob/main/docs/guide.md)
-- [Streaming guide](https://github.com/ClaudiuCeia/combine/blob/main/docs/streaming.md)
-- [API reference](https://github.com/ClaudiuCeia/combine/blob/main/docs/api.md)
-- [Nondeterministic recognizers](https://github.com/ClaudiuCeia/combine/blob/main/docs/nondeterministic.md)
+- [Getting started and grammar design](./docs/guide.md)
+- [Streaming guide](./docs/streaming.md)
+- [API reference](./docs/api.md)
+- [Nondeterministic recognizers](./docs/nondeterministic.md)
 
 ## Development and license
 
@@ -365,5 +291,4 @@ reuses the test suite through a Deno-only compatibility adapter and validates
 the native TypeScript entrypoints. Deno is otherwise only required to publish
 the JSR package.
 
-**combine** is available under the
-[MIT license](https://github.com/ClaudiuCeia/combine/blob/main/LICENSE).
+combine is available under the [MIT license](./LICENSE).

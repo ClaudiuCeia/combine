@@ -1,6 +1,6 @@
 # Streaming guide
 
-**combine** streams append-only `string` chunks through the same `Parser<T>` values
+combine streams append-only `string` chunks through the same `Parser<T>` values
 used for finite input. A parser can succeed, fail definitively, or remain pending
 while an open boundary can still change the result.
 
