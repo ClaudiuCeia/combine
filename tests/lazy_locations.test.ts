@@ -6,7 +6,7 @@ import {
   type SourceLocation,
   type WithSpan,
 } from "../mod.ts";
-import { any, many } from "../src/combinators.ts";
+import { any, many, seq } from "../src/combinators.ts";
 import {
   failure,
   pending,
@@ -16,7 +16,6 @@ import {
   type Context,
 } from "../src/Parser.ts";
 import { createLocationSession, withLocationSession } from "../src/internal.ts";
-import { str } from "../src/parsers.ts";
 
 type Equal<A, B> =
   (<T>() => T extends A ? 1 : 2) extends <T>() => T extends B ? 1 : 2
@@ -110,16 +109,38 @@ test("pending and stack frame locations use session indexing", () => {
   expect(frameSession.scannedTo).toBe(7);
 });
 
-test("ordinary swallowed mismatches do not scan for locations", () => {
+test("swallowed mismatches compute nonzero locations once", () => {
+  const text = "prefix!";
+  const inspectedIndexes: number[] = [];
+  const source = {
+    length: text.length,
+    charCodeAt: (index: number) => {
+      inspectedIndexes.push(index);
+      return text.charCodeAt(index);
+    },
+  } as string;
   const session = createLocationSession();
-  const parser = many(str("a"));
-
-  const result = withLocationSession(session, "not an a", () =>
-    parser({ text: "not an a", index: 0 }),
+  let swallowed: ReturnType<typeof failure> | undefined;
+  const parser = seq(
+    (ctx: Context) => success({ ...ctx, index: 6 }, "prefix"),
+    many((ctx) => {
+      swallowed = failure(ctx, "a");
+      return swallowed;
+    }),
   );
 
-  expect(result).toMatchObject({ success: true, value: [] });
-  expect(session.scannedTo).toBe(0);
+  const result = withLocationSession(session, source, () =>
+    parser({ text: source, index: 0 }),
+  );
+
+  expect(result).toMatchObject({
+    success: true,
+    value: ["prefix", []],
+    ctx: { index: 6 },
+  });
+  expect(swallowed?.location).toEqual({ line: 1, column: 7 });
+  expect(inspectedIndexes).toEqual([0, 1, 2, 3, 4, 5]);
+  expect(session.scannedTo).toBe(6);
 });
 
 test("location sessions incrementally scan growing input in constant space", () => {
