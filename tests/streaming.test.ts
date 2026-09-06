@@ -4,6 +4,7 @@ import {
   isPending,
   pending,
   type Parser,
+  ParserInvariantError,
   success,
   type Result,
 } from "../src/Parser.ts";
@@ -494,20 +495,18 @@ describe("async parser streams", () => {
     });
   });
 
-  test("reject non-advancing repeated parsers", async () => {
+  test("throw for non-advancing repeated parsers", async () => {
     async function* chunks(): AsyncGenerator<string> {
       yield "x";
     }
 
-    const results: Result<string>[] = [];
-    for await (const result of parseStreamEach(str(""), chunks())) {
-      results.push(result);
-    }
+    const consume = async (): Promise<void> => {
+      for await (const _result of parseStreamEach(str(""), chunks())) {
+        // Consume the generator so the invariant is evaluated.
+      }
+    };
 
-    expect(results.at(-1)).toMatchObject({
-      success: false,
-      expected: "parseStreamEach: parser succeeded without consuming input",
-    });
+    await expect(consume()).rejects.toThrow(ParserInvariantError);
   });
 
   test("turns a final pending terminator into a failure", async () => {

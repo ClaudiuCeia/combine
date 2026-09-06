@@ -1,17 +1,17 @@
-import { assertEquals } from "./assert.ts";
-import { test } from "bun:test";
+import { expect, test } from "bun:test";
 import {
   any,
   chainl1,
   chainr1,
   many,
   manyTill,
+  optional,
   sepBy,
   sepBy1,
 } from "../src/combinators.ts";
-import type { Parser } from "../src/Parser.ts";
-import { success } from "../src/Parser.ts";
+import { type Parser, ParserInvariantError, success } from "../src/Parser.ts";
 import { str } from "../src/parsers.ts";
+import { attempt } from "../src/utility.ts";
 
 const epsilon = <T>(value: T): Parser<T> => {
   return (ctx) => success(ctx, value);
@@ -19,57 +19,51 @@ const epsilon = <T>(value: T): Parser<T> => {
 
 test("many fails fast on non-advancing parser", () => {
   const p = many(epsilon("x"));
-  const res = p({ text: "abc", index: 0 });
-  assertEquals(res.success, false);
-  if (!res.success) assertEquals(res.expected.includes("many"), true);
+  expect(() => p({ text: "abc", index: 0 })).toThrow(ParserInvariantError);
+  expect(() => p({ text: "abc", index: 0 })).toThrow("many");
 });
 
 test("manyTill fails fast on non-advancing parser when end never matches", () => {
   const p = manyTill(epsilon("x"), str("END"));
-  const res = p({ text: "abc", index: 0 });
-  assertEquals(res.success, false);
-  if (!res.success) assertEquals(res.expected.includes("manyTill"), true);
+  expect(() => p({ text: "abc", index: 0 })).toThrow(ParserInvariantError);
+  expect(() => p({ text: "abc", index: 0 })).toThrow("manyTill");
 });
 
 test("sepBy fails fast on non-advancing element parser", () => {
   const p = sepBy(epsilon("x"), str(","));
-  const res = p({ text: "abc", index: 0 });
-  assertEquals(res.success, false);
-  if (!res.success) assertEquals(res.expected.includes("sepBy"), true);
+  expect(() => p({ text: "abc", index: 0 })).toThrow(ParserInvariantError);
+  expect(() => p({ text: "abc", index: 0 })).toThrow("sepBy");
 });
 
 test("sepBy fails fast on non-advancing separator parser", () => {
   const p = sepBy(str("x"), epsilon(","));
-  const res = p({ text: "x", index: 0 });
-  assertEquals(res.success, false);
-  if (!res.success) assertEquals(res.expected.includes("sepBy"), true);
+  expect(() => p({ text: "x", index: 0 })).toThrow(ParserInvariantError);
+  expect(() => p({ text: "x", index: 0 })).toThrow("sepBy");
 });
 
 test("sepBy fails fast on a non-advancing subsequent element", () => {
   const element = any(str("a"), epsilon("a"));
-  const res = sepBy(element, str(","))({ text: "a,", index: 0 });
-  assertEquals(res.success, false);
-  if (!res.success) assertEquals(res.expected.includes("sepBy"), true);
+  const p = sepBy(element, str(","));
+  expect(() => p({ text: "a,", index: 0 })).toThrow(ParserInvariantError);
+  expect(() => p({ text: "a,", index: 0 })).toThrow("sepBy");
 });
 
 test("sepBy1 fails fast on a non-advancing first element", () => {
-  const res = sepBy1(epsilon("a"), str(","))({ text: "", index: 0 });
-  assertEquals(res.success, false);
-  if (!res.success) assertEquals(res.expected.includes("sepBy1"), true);
+  const p = sepBy1(epsilon("a"), str(","));
+  expect(() => p({ text: "", index: 0 })).toThrow(ParserInvariantError);
+  expect(() => p({ text: "", index: 0 })).toThrow("sepBy1");
 });
 
 test("chainl1 fails fast on non-advancing op/term loop", () => {
   const p = chainl1(epsilon(1), epsilon("+"), (l) => l);
-  const res = p({ text: "abc", index: 0 });
-  assertEquals(res.success, false);
-  if (!res.success) assertEquals(res.expected.includes("chainl1"), true);
+  expect(() => p({ text: "abc", index: 0 })).toThrow(ParserInvariantError);
+  expect(() => p({ text: "abc", index: 0 })).toThrow("chainl1");
 });
 
 test("chainr1 fails fast on non-advancing op/term loop", () => {
   const p = chainr1(epsilon(1), epsilon("+"), (l) => l);
-  const res = p({ text: "abc", index: 0 });
-  assertEquals(res.success, false);
-  if (!res.success) assertEquals(res.expected.includes("chainr1"), true);
+  expect(() => p({ text: "abc", index: 0 })).toThrow(ParserInvariantError);
+  expect(() => p({ text: "abc", index: 0 })).toThrow("chainr1");
 });
 
 test("chain combinators fail fast on a non-advancing operator", () => {
@@ -77,9 +71,8 @@ test("chain combinators fail fast on a non-advancing operator", () => {
     chainl1(str("a"), epsilon("+"), (left) => left),
     chainr1(str("a"), epsilon("+"), (left) => left),
   ]) {
-    const res = parser({ text: "a", index: 0 });
-    assertEquals(res.success, false);
-    if (!res.success) assertEquals(res.expected.includes("chain"), true);
+    expect(() => parser({ text: "a", index: 0 })).toThrow(ParserInvariantError);
+    expect(() => parser({ text: "a", index: 0 })).toThrow("chain");
   }
 });
 
@@ -89,8 +82,23 @@ test("chain combinators fail fast on a non-advancing right term", () => {
     chainl1(term, str("+"), (left) => left),
     chainr1(term, str("+"), (left) => left),
   ]) {
-    const res = parser({ text: "a+", index: 0 });
-    assertEquals(res.success, false);
-    if (!res.success) assertEquals(res.expected.includes("chain"), true);
+    expect(() => parser({ text: "a+", index: 0 })).toThrow(
+      ParserInvariantError,
+    );
+    expect(() => parser({ text: "a+", index: 0 })).toThrow("chain");
+  }
+});
+
+test("backtracking combinators cannot swallow parser invariant errors", () => {
+  const invalid = many(epsilon("x"));
+  const parsers: Parser<unknown>[] = [
+    many(invalid),
+    optional(invalid),
+    any(invalid, str("")),
+    attempt(invalid),
+  ];
+
+  for (const parser of parsers) {
+    expect(() => parser({ text: "", index: 0 })).toThrow(ParserInvariantError);
   }
 });

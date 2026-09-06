@@ -56,14 +56,15 @@ change the set or order of matches.
 ## Advancing with `step`
 
 Do not put `recognizeAt(...)` directly inside `many(...)`. Its outer context does
-not advance, so repetition rejects it with a progress failure.
+not advance, so repetition throws `ParserInvariantError`.
 
 `step(recognizer, policy?)` chooses an end position and returns a parser that can
 be repeated safely. `StepPolicy` is `"furthest" | "shortest"`, and the default
 is `"furthest"`.
 
 `step` preserves the complete recognition array as its value. The policy changes
-only the outer success context. It fails when the chosen match does not advance.
+only the outer success context. It throws `ParserInvariantError` when a
+successful recognizer returns no matches or the chosen match does not advance.
 
 ```ts
 import { many, map, parseAll, str } from "@claudiu-ceia/combine";

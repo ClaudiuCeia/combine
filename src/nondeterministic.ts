@@ -7,6 +7,7 @@ import {
   isPending,
   type Pending,
   type Parser,
+  ParserInvariantError,
   type Result,
   success,
 } from "./Parser.ts";
@@ -117,7 +118,8 @@ export const recognizeAt = <T extends [...Parser<unknown>[]]>(
  * - `furthest`: advance to the longest match (max end index)
  * - `shortest`: advance to the shortest match (min end index)
  *
- * This fails if the chosen match does not advance the cursor.
+ * This throws `ParserInvariantError` if the recognizer succeeds without any
+ * matches or the chosen match does not advance the cursor.
  */
 export const step = <T>(
   recognizer: Parser<Recognition<T>[]>,
@@ -128,7 +130,9 @@ export const step = <T>(
     if (!res.success) return res;
 
     if (res.value.length === 0) {
-      return failure(ctx, "step: expected at least one recognition");
+      throw new ParserInvariantError(
+        "step: recognizer succeeded without returning a recognition",
+      );
     }
 
     let nextIndex = policy === "furthest" ? -1 : Number.POSITIVE_INFINITY;
@@ -141,8 +145,7 @@ export const step = <T>(
     }
 
     if (!(nextIndex > ctx.index)) {
-      return failure(
-        ctx,
+      throw new ParserInvariantError(
         `step(${policy}): recognizer did not advance (index ${ctx.index} -> ${nextIndex})`,
       );
     }

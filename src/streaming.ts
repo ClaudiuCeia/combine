@@ -5,6 +5,7 @@ import {
   type Parser,
   type Result,
 } from "./Parser.ts";
+import { assertAdvanced } from "./internal.ts";
 import { eof } from "./parsers.ts";
 
 const DEFAULT_MAX_BUFFER_LENGTH = 1024 * 1024;
@@ -190,13 +191,7 @@ export async function* parseStreamEach<T>(
         return !isPending(result) || final;
       }
 
-      if (result.ctx.index <= index) {
-        yield failure(
-          ctx,
-          "parseStreamEach: parser succeeded without consuming input",
-        );
-        return true;
-      }
+      assertAdvanced("parseStreamEach", ctx, result.ctx);
 
       index = result.ctx.index;
       yield result;
