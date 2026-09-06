@@ -111,9 +111,6 @@ export const success = <T>(ctx: Context, value: T): Success<T> => {
   };
 };
 
-/**
- * Run a parser against text from the given UTF-16 offset.
- */
 const runParserInSession = <T>(
   parser: Parser<T>,
   text: string,
@@ -132,6 +129,9 @@ const runParserInSession = <T>(
   return parser({ text, index });
 };
 
+/**
+ * Run a parser against text from the given UTF-16 offset.
+ */
 export const runParser = <T>(
   parser: Parser<T>,
   text: string,
