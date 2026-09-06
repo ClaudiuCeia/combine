@@ -9,12 +9,12 @@ bun run bench/language_bench.ts
 ```
 
 Run the maintained comparison with `bun run bench:comparison`.
-Run the Combine-only append-stream benchmark with `bun run bench:streaming`.
+Run the **combine**-only append-stream benchmark with `bun run bench:streaming`.
 
 CI uses Bun 1.4 on a GitHub-hosted `ubuntu-latest` runner. GitHub can assign
 different hardware between workflow runs, so the pull request comparison runs
 the base and candidate revisions on the same runner. It executes three runs per
-revision and compares the median p50 for each Combine benchmark.
+revision and compares the median p50 for each **combine** benchmark.
 
 ## Notes
 
@@ -32,7 +32,7 @@ revision and compares the median p50 for each Combine benchmark.
   reparsing, plus result-state validation and value access. It does not measure
   `finish()`.
 
-The streaming benchmark is Combine-only because the selected comparison
+The streaming benchmark is **combine**-only because the selected comparison
 libraries do not expose the same append-only parser lifecycle. This does not
 mean those packages cannot process streams through other designs.
 

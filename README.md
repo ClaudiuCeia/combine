@@ -1,4 +1,4 @@
-# Combine
+# **combine**
 
 Typed parser combinators for complete strings and text streams in TypeScript.
 
@@ -6,7 +6,7 @@ The same grammar can parse a finished value or an append-only stream. Streamed
 parses can return `pending` when the parser has not made an authoritative
 decision for the open input buffer.
 
-Use Combine for streamed model output, DSLs, configuration formats, protocols,
+Use **combine** for streamed model output, DSLs, configuration formats, protocols,
 logs, and CLI output.
 
 [![npm](https://img.shields.io/npm/v/@claudiu-ceia/combine)](https://www.npmjs.com/package/@claudiu-ceia/combine)
@@ -37,7 +37,7 @@ const second = stream.feed("$");
 if (second.success) console.log(second.value); // "$$"
 ```
 
-After the first `$`, both `$` and `$$` are still possible. Combine returns
+After the first `$`, both `$` and `$$` are still possible. **combine** returns
 `pending`. The second `$` makes the result final.
 
 - `success` - the parser has a result for the matched prefix
@@ -207,7 +207,7 @@ without declaration-order workarounds. The complete runnable version is in
 - `parseStreamEach(parser, chunks, options)` yields consecutive parsed values
 - `isPending(result)` distinguishes unfinished input from failure
 
-The same Combine grammar can be used for finite and streamed input. How early a
+The same **combine** grammar can be used for finite and streamed input. How early a
 result finalizes depends on its parsers. Streaming-aware primitives such as
 `str`, `trie`, `digit`, `letter`, `space`, and `number` can resolve before the
 source ends. `regex(...)` waits for final input because a JavaScript regular
@@ -282,7 +282,7 @@ expected value after ':' at line 1, column 23
 the value after `owner:` as required, so ordered choice does not backtrack and
 replace the useful error with an unrelated alternative.
 
-## Built with Combine
+## Built with **combine**
 
 - [`exp`](https://github.com/ClaudiuCeia/exp) parses expressions into a typed AST
   with source spans, then evaluates them against an explicit environment
@@ -324,7 +324,7 @@ The checked-in comparison parses equivalent recursive arithmetic grammars with
 passes with Bun 1.4 on the same GitHub-hosted `ubuntu-latest` runner, then
 compares median p50 values. GitHub runner hardware can vary between runs.
 
-The Combine-only streaming fixture is an 8,227 B ASCII fenced block parsed as
+The **combine**-only streaming fixture is an 8,227 B ASCII fenced block parsed as
 finite input, 64 B chunks, 512 B chunks, and one complete chunk. Chunked parses
 remain pending until the chunk containing the closing fence. The selected
 comparison libraries do not expose the same append-only parser lifecycle, so
@@ -365,5 +365,5 @@ reuses the test suite through a Deno-only compatibility adapter and validates
 the native TypeScript entrypoints. Deno is otherwise only required to publish
 the JSR package.
 
-Combine is available under the
+**combine** is available under the
 [MIT license](https://github.com/ClaudiuCeia/combine/blob/main/LICENSE).
