@@ -331,7 +331,8 @@ than the remaining capacity also fails even if it contains multiple complete
 values. Choose a lower application-specific limit for untrusted protocols.
 Using `Infinity` disables this protection and should be reserved for trusted
 input. Retaining old `Result` objects can also retain their older context
-strings after internal compaction.
+strings after internal compaction. Location lookup uses constant per-stream
+indexing state and does not add source strings to a global cache.
 
 Because the grammar is rerun, parsers and mapping callbacks should avoid
 observable side effects. Logging, mutation, ID allocation, and counters may run
