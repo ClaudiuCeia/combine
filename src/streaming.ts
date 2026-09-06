@@ -1,5 +1,42 @@
-import { failure, isPending, type Parser, type Result } from "./Parser.ts";
+import {
+  type Failure,
+  failure,
+  isPending,
+  type Parser,
+  type Result,
+} from "./Parser.ts";
 import { eof } from "./parsers.ts";
+
+const DEFAULT_MAX_BUFFER_LENGTH = 1024 * 1024;
+
+export type StreamingParserOptions = Readonly<{
+  /** Maximum retained UTF-16 code units. Default: 1,048,576. */
+  maxBufferLength?: number;
+}>;
+
+const resolveMaxBufferLength = (value: number | undefined): number => {
+  const limit = value ?? DEFAULT_MAX_BUFFER_LENGTH;
+  if (
+    limit !== Number.POSITIVE_INFINITY &&
+    (!Number.isSafeInteger(limit) || limit < 0)
+  ) {
+    throw new RangeError(
+      "maxBufferLength must be a non-negative safe integer or Infinity",
+    );
+  }
+  return limit;
+};
+
+const bufferLimitFailure = (
+  text: string,
+  final: boolean,
+  maxBufferLength: number,
+): Failure => {
+  return failure(
+    { text, index: text.length, final },
+    `stream buffer limit of ${maxBufferLength} UTF-16 code units exceeded`,
+  );
+};
 
 /** A single-use parser over append-only string chunks. */
 export type StreamingParser<T> = Readonly<{
@@ -20,7 +57,9 @@ export type StreamingParser<T> = Readonly<{
  */
 export const createStreamingParser = <T>(
   parser: Parser<T>,
+  options: StreamingParserOptions = {},
 ): StreamingParser<T> => {
+  const maxBufferLength = resolveMaxBufferLength(options.maxBufferLength);
   let text = "";
   let done = false;
   let latest: Result<T> | undefined;
@@ -29,6 +68,12 @@ export const createStreamingParser = <T>(
     feed: (chunk: string): Result<T> => {
       if (done) {
         throw new Error("cannot feed a completed streaming parser");
+      }
+
+      if (chunk.length > maxBufferLength - text.length) {
+        latest = bufferLimitFailure(text, false, maxBufferLength);
+        done = true;
+        return latest;
       }
 
       text += chunk;
@@ -63,8 +108,9 @@ export const createStreamingParser = <T>(
 export async function* parseStream<T>(
   parser: Parser<T>,
   chunks: AsyncIterable<string>,
+  options: StreamingParserOptions = {},
 ): AsyncGenerator<Result<T>, void, undefined> {
-  const stream = createStreamingParser(parser);
+  const stream = createStreamingParser(parser, options);
   const initial = stream.feed("");
 
   if (!isPending(initial)) {
@@ -83,10 +129,11 @@ export async function* parseStream<T>(
   yield stream.finish();
 }
 
-export type ParseStreamEachOptions = Readonly<{
-  /** Parser that marks a clean end between values. Default: `eof()`. */
-  until?: Parser<unknown>;
-}>;
+export type ParseStreamEachOptions = StreamingParserOptions &
+  Readonly<{
+    /** Parser that marks a clean end between values. Default: `eof()`. */
+    until?: Parser<unknown>;
+  }>;
 
 /** Parse and yield consecutive values from one async chunk source. */
 export async function* parseStreamEach<T>(
@@ -95,6 +142,7 @@ export async function* parseStreamEach<T>(
   options: ParseStreamEachOptions = {},
 ): AsyncGenerator<Result<T>, void, undefined> {
   const until = options.until ?? eof();
+  const maxBufferLength = resolveMaxBufferLength(options.maxBufferLength);
   let text = "";
   let index = 0;
 
@@ -164,6 +212,12 @@ export async function* parseStreamEach<T>(
 
   for await (const chunk of chunks) {
     if (chunk.length === 0) continue;
+
+    if (chunk.length > maxBufferLength - text.length) {
+      yield bufferLimitFailure(text, false, maxBufferLength);
+      return;
+    }
+
     text += chunk;
 
     const batch = parseAvailable(false);

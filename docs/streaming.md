@@ -44,7 +44,8 @@ result from a custom parser into an ordinary failure.
 
 ## One buffered value
 
-`createStreamingParser(parser)` returns a single-use `StreamingParser<T>`:
+`createStreamingParser(parser, options?)` returns a single-use
+`StreamingParser<T>`:
 
 ```ts
 type StreamingParser<T> = Readonly<{
@@ -52,12 +53,26 @@ type StreamingParser<T> = Readonly<{
   finish: () => Result<T>;
   readonly done: boolean;
 }>;
+
+type StreamingParserOptions = Readonly<{
+  maxBufferLength?: number;
+}>;
 ```
 
 Each `feed(chunk)` appends the chunk and runs the grammar with
 `Context.final === false`. While the result is pending, another chunk can be
 fed. A success or definitive failure marks the session as done, and a later
 `feed()` throws.
+
+The retained buffer defaults to at most 1,048,576 UTF-16 code units. Configure
+it with `maxBufferLength`, or explicitly pass `Infinity` for trusted unbounded
+input. The value must be a non-negative safe integer or `Infinity`; invalid
+configuration throws a `RangeError` when the streaming helper starts.
+
+If a nonempty chunk would exceed the limit, the helper does not append that
+chunk. It instead returns a definitive failure at the end of the previously
+accepted buffer and marks the session as done. Input exactly at the limit is
+allowed and can still be finalized with `finish()`.
 
 While a session is pending, `finish()` reruns the grammar with
 `Context.final === true`. If an earlier `feed()` already completed the session,
@@ -134,9 +149,10 @@ invalid.feed("OK!"); // definitive failure because input remains
 
 ## Async sources
 
-`parseStream(parser, chunks)` wraps the buffered session in an
+`parseStream(parser, chunks, options?)` wraps the buffered session in an
 `AsyncGenerator<Result<T>>`. It yields parser state updates, not only the final
-result.
+result. It accepts the same `maxBufferLength` option as
+`createStreamingParser`.
 
 ```ts
 import { isPending, str } from "@claudiu-ceia/combine";
@@ -170,7 +186,8 @@ does not synthesize a final result.
 ## Repeated values
 
 `parseStreamEach(parser, chunks, options?)` parses consecutive values from one
-source. A success is one completed value, not the end of the generator.
+source. A success is one completed value, not the end of the generator. Its
+options support both `until` and `maxBufferLength`.
 
 ```ts
 import { isPending, str } from "@claudiu-ceia/combine";
@@ -299,19 +316,22 @@ output.
 ## Buffering and backpressure
 
 Streaming is buffered rather than continuation-based. `createStreamingParser`
-and `parseStream` retain all accumulated text and rerun the grammar from the
-start after each feed. `parseStreamEach` compacts completed prefixes between
-chunk batches but retains the incomplete current value.
+and `parseStream` retain accumulated text and rerun the grammar from the start
+after each feed. `parseStreamEach` compacts completed prefixes between chunk
+batches but retains the incomplete current value.
 
 The async helpers apply pull backpressure between source chunks. The next chunk
 is not requested until the consumer asks for more results. `parseStreamEach`
 also applies record-level backpressure inside a large chunk. It yields each
 result before parsing the next available value.
 
-There is no built-in buffer limit. Use sensible chunk sizes and enforce
-protocol-level limits for untrusted or indefinitely incomplete input. Retaining
-old `Result` objects can also retain their older context strings after internal
-compaction.
+The default maximum retained buffer is 1,048,576 UTF-16 code units. The limit is
+checked before appending each nonempty source chunk, so a single chunk larger
+than the remaining capacity also fails even if it contains multiple complete
+values. Choose a lower application-specific limit for untrusted protocols.
+Using `Infinity` disables this protection and should be reserved for trusted
+input. Retaining old `Result` objects can also retain their older context
+strings after internal compaction.
 
 Because the grammar is rerun, parsers and mapping callbacks should avoid
 observable side effects. Logging, mutation, ID allocation, and counters may run

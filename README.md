@@ -104,6 +104,11 @@ These inputs are unfinished, not malformed.
 - `parseStreamEach(parser, chunks, options)` yields consecutive parsed values
 - `isPending(result)` distinguishes unfinished input from failure
 
+Streaming APIs retain at most 1,048,576 UTF-16 code units by default. Pass
+`{ maxBufferLength }` to choose a smaller or larger limit, or explicitly use
+`{ maxBufferLength: Infinity }` for trusted unbounded input. Exceeding the limit
+produces a definitive failure without appending the rejected chunk.
+
 The same combine grammar can be used for finite and streamed input. How early a
 result finalizes depends on its parsers. Streaming-aware primitives such as
 `str`, `trie`, `digit`, `letter`, `space`, and `number` can resolve before the
@@ -111,9 +116,10 @@ source ends. `regex(...)` waits for final input because a JavaScript regular
 expression cannot prove that a match will not grow.
 
 Custom parsers should preserve the supplied context and account for open input.
-The current engine retains buffered input and reparses it after each chunk. It
-does not resume from a saved parser continuation. `finish()` converts unresolved
-input into a final success or failure.
+The current engine retains buffered input up to the configured limit and
+reparses it after each chunk. It does not resume from a saved parser
+continuation. `finish()` converts unresolved input into a final success or
+failure.
 
 Code fences show why terminators need to remain open across chunk boundaries:
 

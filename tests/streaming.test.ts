@@ -191,9 +191,125 @@ describe("buffered parser sessions", () => {
       fatal: false,
     });
   });
+
+  test("allows input at the configured buffer limit", () => {
+    const stream = createStreamingParser(waitsForFinal, {
+      maxBufferLength: 3,
+    });
+
+    expect(stream.feed("abc")).toMatchObject({
+      success: false,
+      pending: true,
+    });
+    expect(stream.finish()).toMatchObject({ success: true, value: "abc" });
+  });
+
+  test("fails without appending a chunk that exceeds the buffer limit", () => {
+    const stream = createStreamingParser(waitsForFinal, {
+      maxBufferLength: 3,
+    });
+
+    expect(stream.feed("ab")).toMatchObject({ pending: true });
+    const result = stream.feed("cd");
+    expect(result).toMatchObject({
+      success: false,
+      expected: "stream buffer limit of 3 UTF-16 code units exceeded",
+      ctx: { text: "ab", index: 2, final: false },
+    });
+    expect(isPending(result)).toBe(false);
+    expect(stream.done).toBe(true);
+    expect(stream.finish()).toBe(result);
+    expect(() => stream.feed("x")).toThrow(
+      "cannot feed a completed streaming parser",
+    );
+  });
+
+  test("accepts Infinity and rejects invalid buffer limits", () => {
+    const unlimited = createStreamingParser(waitsForFinal, {
+      maxBufferLength: Number.POSITIVE_INFINITY,
+    });
+    expect(unlimited.feed("abcd")).toMatchObject({ pending: true });
+
+    for (const maxBufferLength of [
+      -1,
+      1.5,
+      Number.NaN,
+      Number.NEGATIVE_INFINITY,
+      Number.MAX_SAFE_INTEGER + 1,
+    ]) {
+      expect(() =>
+        createStreamingParser(waitsForFinal, { maxBufferLength }),
+      ).toThrow(
+        "maxBufferLength must be a non-negative safe integer or Infinity",
+      );
+    }
+  });
+
+  test("limits retained input to 1,048,576 code units by default", () => {
+    const stream = createStreamingParser(waitsForFinal);
+    const result = stream.feed("x".repeat(1024 * 1024 + 1));
+
+    expect(result).toMatchObject({
+      success: false,
+      expected: "stream buffer limit of 1048576 UTF-16 code units exceeded",
+      ctx: { text: "", index: 0, final: false },
+    });
+  });
 });
 
 describe("async parser streams", () => {
+  test("applies the configured buffer limit", async () => {
+    let pulls = 0;
+    async function* chunks(): AsyncGenerator<string> {
+      pulls++;
+      yield "ab";
+      pulls++;
+      yield "cd";
+      pulls++;
+      yield "unused";
+    }
+
+    const waitsForFinal: Parser<string> = (ctx) =>
+      ctx.final === false
+        ? pending(ctx, "final input")
+        : success(ctx, ctx.text);
+    const results: Result<string>[] = [];
+    for await (const result of parseStream(waitsForFinal, chunks(), {
+      maxBufferLength: 3,
+    })) {
+      results.push(result);
+    }
+
+    expect(results).toHaveLength(2);
+    expect(results.at(-1)).toMatchObject({
+      success: false,
+      expected: "stream buffer limit of 3 UTF-16 code units exceeded",
+      ctx: { text: "ab", index: 2, final: false },
+    });
+    expect(pulls).toBe(2);
+  });
+
+  test("limits the retained parseStreamEach buffer", async () => {
+    async function* chunks(): AsyncGenerator<string> {
+      yield "ab";
+      yield "cd";
+    }
+
+    const results: Result<string>[] = [];
+    for await (const result of parseStreamEach(str("abcd"), chunks(), {
+      maxBufferLength: 3,
+    })) {
+      results.push(result);
+    }
+
+    expect(results).toHaveLength(2);
+    expect(results.at(-1)).toMatchObject({
+      success: false,
+      expected: "stream buffer limit of 3 UTF-16 code units exceeded",
+      ctx: { text: "ab", index: 2, final: false },
+    });
+  });
+
   test("resolve nullable parsers before pulling a chunk", async () => {
     let pulls = 0;
     async function* chunks(): AsyncGenerator<string> {
