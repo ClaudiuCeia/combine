@@ -16,5 +16,6 @@
     "scripts/**/*.ts",
     "src/**/*.ts",
     "tests/**/*.ts"
-  ]
+  ],
+  "exclude": ["tests/deno_test_compat.ts"]
 }

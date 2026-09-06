@@ -59,6 +59,9 @@ jobs:
       - name: Run checks
         run: bun run check
 
+      - name: Check and test with Deno
+        run: deno task check
+
       - name: Verify JSR package
         run: deno publish --dry-run
 
@@ -71,10 +74,12 @@ jobs:
           import { parseAll, str } from "@claudiu-ceia/combine";
           import { recognizeAt } from "@claudiu-ceia/combine/nondeterministic";
           import { createTracer } from "@claudiu-ceia/combine/perf";
+          import { createStreamingParser } from "@claudiu-ceia/combine/streaming";
           const result = parseAll(str("value"), "value");
           if (!result.success || result.value !== "value") process.exit(1);
           recognizeAt(str("value"));
           createTracer();
+          createStreamingParser(str("value"));
           JS
 
   publish-jsr:

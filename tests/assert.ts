@@ -12,5 +12,5 @@ export const assertStrictEquals = (
 };
 
 export const assertObjectMatch = (actual: unknown, expected: object): void => {
-  expect(actual).toMatchObject(expected);
+  expect(actual).toMatchObject(expected as Record<PropertyKey, unknown>);
 };

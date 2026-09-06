@@ -1,0 +1,13 @@
+{
+  "imports": {
+    "@std/expect": "jsr:@std/expect@1.0.20",
+    "bun:test": "./tests/deno_test_compat.ts"
+  },
+  "lock": {
+    "path": "./deno.test.lock",
+    "frozen": true
+  },
+  "test": {
+    "include": ["tests/**/*.test.ts"]
+  }
+}
