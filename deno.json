@@ -7,6 +7,10 @@
     "./perf": "./src/perf.ts",
     "./streaming": "./src/streaming.ts"
   },
+  "tasks": {
+    "check": "deno check mod.ts examples/*.ts && deno task test",
+    "test": "deno test --config deno.test.json"
+  },
   "publish": {
     "exclude": [
       ".github/",
@@ -14,6 +18,8 @@
       "AGENTS.md",
       "bench/",
       "bun.lock",
+      "deno.test.json",
+      "deno.test.lock",
       "dist/",
       "package.json",
       "scripts/",

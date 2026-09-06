@@ -1,63 +1,315 @@
-# combine
+# **combine**
 
-Typed parser combinators for TypeScript (Bun, Deno, and Node). Build small
-parsers, then compose them into a grammar.
+Typed parser combinators for complete strings and text streams in TypeScript.
 
-[![CI](https://github.com/ClaudiuCeia/combine/actions/workflows/ci.yml/badge.svg)](https://github.com/ClaudiuCeia/combine/actions/workflows/ci.yml)
-[![JSR](https://jsr.io/badges/@claudiu-ceia/combine)](https://jsr.io/@claudiu-ceia/combine)
+The same grammar can parse a finished value or an append-only stream. Streamed
+parses can return `pending` when the parser has not made an authoritative
+decision for the open input buffer.
+
+Use **combine** for streamed model output, DSLs, configuration formats, protocols,
+logs, and CLI output.
+
 [![npm](https://img.shields.io/npm/v/@claudiu-ceia/combine)](https://www.npmjs.com/package/@claudiu-ceia/combine)
+[![JSR](https://jsr.io/badges/@claudiu-ceia/combine)](https://jsr.io/@claudiu-ceia/combine)
+[![CI](https://github.com/ClaudiuCeia/combine/actions/workflows/ci.yml/badge.svg)](https://github.com/ClaudiuCeia/combine/actions/workflows/ci.yml)
+
+## Complete input and streamed input
+
+```ts
+import {
+  createStreamingParser,
+  isPending,
+  parseAll,
+  trie,
+} from "@claudiu-ceia/combine";
+
+const delimiter = trie(["$", "$$"]);
+
+const finite = parseAll(delimiter, "$$");
+if (finite.success) console.log(finite.value); // "$$"
+
+const stream = createStreamingParser(delimiter);
+
+const first = stream.feed("$");
+console.log(isPending(first)); // true
+
+const second = stream.feed("$");
+if (second.success) console.log(second.value); // "$$"
+```
+
+After the first `$`, both `$` and `$$` are still possible. **combine** returns
+`pending`. The second `$` makes the result final.
+
+- `success` - the parser has a result for the matched prefix
+- `pending` - more input or finalization is needed before deciding
+- `failure` - the current input cannot match
+
+`pending` does not guarantee that the buffered prefix can eventually succeed.
+Some parsers make conservative decisions while the source remains open.
+Success completes a streaming session after a prefix match, even if unread text
+remains. Compose the grammar with `eof()` when trailing input must fail.
 
 ## Install
 
-### Bun (npm)
+```sh
+npm install @claudiu-ceia/combine
+```
+
+Alternatives:
 
 ```sh
+pnpm add @claudiu-ceia/combine
 bun add @claudiu-ceia/combine
 ```
 
-```ts
-import { seq, str } from "@claudiu-ceia/combine";
-```
-
-### Deno (JSR)
+Deno can import the package from JSR:
 
 ```ts
-import { seq, str } from "jsr:@claudiu-ceia/combine@^0.11.1";
+import { parseAll, str } from "jsr:@claudiu-ceia/combine";
 ```
 
-The same optional subpaths are available through JSR:
+## Why streamed text needs a pending state
+
+```text
+$
+```
+
+May become `$` or `$$`.
+
+````text
+```ts
+const answer =
+````
+
+May become a complete fenced code block.
+
+```text
+<think>
+```
+
+May become a configured tagged block.
+
+Model responses often mix prose with structured fragments. A chunk can end in
+the middle of a delimiter, code fence, citation, or custom tag. Treating every
+current buffer as a complete document causes incorrect failures or repeated
+reinterpretation.
+
+These inputs are unfinished, not malformed.
+
+## Building a grammar
+
+Parsers are typed functions that compose into typed output. This query grammar
+handles predicates, quoted values, parentheses, and `AND` precedence over `OR`.
+It does not need a grammar file or a code-generation step.
 
 ```ts
-import { recognizeAt } from "jsr:@claudiu-ceia/combine/nondeterministic";
-import { createTracer } from "jsr:@claudiu-ceia/combine/perf";
-import { parseStream } from "jsr:@claudiu-ceia/combine/streaming";
+import {
+  any,
+  chainl1,
+  context,
+  createLexer,
+  cut,
+  defineLanguage,
+  map,
+  parseAll,
+  regex,
+  seq,
+  str,
+} from "@claudiu-ceia/combine";
+
+type Query =
+  | Readonly<{ kind: "predicate"; field: string; value: string }>
+  | Readonly<{
+      kind: "and" | "or";
+      left: Query;
+      right: Query;
+    }>;
+
+const lexer = createLexer();
+const field = lexer.lexeme(regex(/[A-Za-z][A-Za-z0-9_-]*/, "field"));
+const quotedValue = lexer.lexeme(
+  map(
+    seq(str('"'), regex(/[^"]*/, "quoted value"), cut(str('"'))),
+    ([, value]) => value,
+  ),
+);
+const bareValue = lexer.lexeme(regex(/[A-Za-z0-9_-]+/, "value"));
+
+const predicate = context(
+  "in predicate",
+  map(
+    seq(
+      field,
+      lexer.symbol(":"),
+      cut(any(quotedValue, bareValue), "value after ':'"),
+    ),
+    ([field, , value]) => ({ kind: "predicate", field, value }) as const,
+  ),
+);
+
+type Productions = {
+  Primary: Query;
+  And: Query;
+  Expression: Query;
+  File: Query;
+};
+
+const QueryGrammar = defineLanguage<Productions>({
+  Primary: ({ Expression }) =>
+    context(
+      "in expression",
+      any(
+        predicate,
+        map(
+          seq(lexer.symbol("("), Expression, cut(lexer.symbol(")"))),
+          ([, expression]) => expression,
+        ),
+      ),
+    ),
+  And: ({ Primary }) =>
+    chainl1(Primary, lexer.keyword("AND"), (left, _operator, right) => ({
+      kind: "and",
+      left,
+      right,
+    })),
+  Expression: ({ And }) =>
+    chainl1(And, lexer.keyword("OR"), (left, _operator, right) => ({
+      kind: "or",
+      left,
+      right,
+    })),
+  File: ({ Expression }) =>
+    context(
+      "in query",
+      map(seq(lexer.trivia, Expression), ([, expression]) => expression),
+    ),
+});
+
+const result = parseAll(
+  QueryGrammar.File,
+  'status:open AND (owner:"Jane Doe" OR priority:high)',
+);
+
+if (result.success) console.log(result.value);
 ```
 
-### Node 20+ (npm)
+The result is a `Query` AST. `chainl1` defines precedence and associativity,
+while `defineLanguage` makes the recursive parenthesized production available
+without declaration-order workarounds. The complete runnable version is in
+[`examples/query.ts`](https://github.com/ClaudiuCeia/combine/blob/main/examples/query.ts).
 
-```sh
-npm i @claudiu-ceia/combine
+## Streaming API
+
+- `createStreamingParser(parser)` creates one buffered parsing session
+- `feed(chunk)` appends text and returns the current result
+- `finish()` closes the input and returns a final success or failure
+- `parseStream(parser, chunks)` yields states for an `AsyncIterable<string>`
+- `parseStreamEach(parser, chunks, options)` yields consecutive parsed values
+- `isPending(result)` distinguishes unfinished input from failure
+
+The same **combine** grammar can be used for finite and streamed input. How early a
+result finalizes depends on its parsers. Streaming-aware primitives such as
+`str`, `trie`, `digit`, `letter`, `space`, and `number` can resolve before the
+source ends. `regex(...)` waits for final input because a JavaScript regular
+expression cannot prove that a match will not grow.
+
+Custom parsers should preserve the supplied context and account for open input.
+The current engine retains buffered input and reparses it after each chunk. It
+does not resume from a saved parser continuation. `finish()` converts unresolved
+input into a final success or failure.
+
+Code fences show why terminators need to remain open across chunk boundaries:
+
+````ts
+import {
+  any,
+  anyChar,
+  createStreamingParser,
+  eof,
+  eol,
+  isPending,
+  many,
+  manyTill,
+  map,
+  seq,
+  str,
+} from "@claudiu-ceia/combine";
+
+const horizontalSpace = any(str(" "), str("\t"));
+const closingFence = map(
+  seq(str("```"), many(horizontalSpace), any(eol(), eof())),
+  () => "```",
+);
+const codeLine = map(manyTill(anyChar(), eol()), (parts) => parts.join(""));
+const fencedTypeScript = map(
+  seq(str("```ts"), eol(), manyTill(codeLine, closingFence)),
+  ([, , lines]) => lines.slice(0, -1).join(""),
+);
+
+const block = createStreamingParser(fencedTypeScript);
+const prefix = block.feed("```ts\nconst answer = 42;\n``");
+console.log(isPending(prefix)); // true
+
+const complete = block.feed("`\n");
+if (complete.success) console.log(complete.value);
+````
+
+The parser remains pending until a complete closing-fence line arrives. See the
+[`docs/streaming.md`](https://github.com/ClaudiuCeia/combine/blob/main/docs/streaming.md)
+guide for async sources, repeated values, boundaries, retained buffers,
+relative offsets, and custom parsers.
+
+## Errors and backtracking
+
+Running the query grammar above against this malformed input:
+
+```text
+status:open AND owner:
 ```
 
-Note: the npm package is **ESM-only**.
+Produces this output from `formatErrorReport`:
 
-```ts
-import { seq, str } from "@claudiu-ceia/combine";
+```text
+expected value after ':' at line 1, column 23
+1 | status:open AND owner:
+  |                       ^
+  in predicate at line 1, column 17
+  in expression at line 1, column 17
+  in query at line 1, column 1
 ```
 
-If you're in a CommonJS project, use a dynamic import:
+`context(...)` records which grammar productions were active. `cut(...)` marks
+the value after `owner:` as required, so ordered choice does not backtrack and
+replace the useful error with an unrelated alternative.
 
-```js
-(async () => {
-  const { seq, str } = await import("@claudiu-ceia/combine");
-  // Use seq and str here.
-})();
-```
+## Built with **combine**
 
-### Optional subpaths
+- [`exp`](https://github.com/ClaudiuCeia/exp) parses expressions into a typed AST
+  with source spans, then evaluates them against an explicit environment
+- [`ts-duckling`](https://github.com/ClaudiuCeia/ts-duckling) scans free-form
+  text for typed entities such as dates, URLs, locations, and PII
+- [`pii-mask`](https://github.com/ClaudiuCeia/pii-mask) uses `ts-duckling` for
+  grammar-based PII detection and adds masking, structured-value traversal, and
+  logger integrations
 
-The root entrypoint exports the complete API. Bun, Node, and Deno can also use
-smaller entrypoints for the specialized modules:
+Repository examples:
+
+- [`examples/query.ts`](https://github.com/ClaudiuCeia/combine/blob/main/examples/query.ts)
+  covers typed output, precedence, recursion, and committed errors
+- [`examples/calculator.ts`](https://github.com/ClaudiuCeia/combine/blob/main/examples/calculator.ts)
+  builds a typed arithmetic AST with precedence and source spans
+- [`examples/lisp.ts`](https://github.com/ClaudiuCeia/combine/blob/main/examples/lisp.ts)
+  parses recursive lists with centralized trivia handling
+
+## Runtime support
+
+The npm package supports Node 20+ and is ESM-only. CommonJS callers can load it
+with `await import("@claudiu-ceia/combine")`. CI validates the package with Bun
+1.4 and Node, then runs the same test suite and checks every JSR entrypoint with
+Deno 2.
+
+The root entrypoint exports the complete API. Specialized entrypoints are also
+available:
 
 | Module                       | npm                                      | JSR                                          |
 | ---------------------------- | ---------------------------------------- | -------------------------------------------- |
@@ -65,174 +317,18 @@ smaller entrypoints for the specialized modules:
 | Performance tracing          | `@claudiu-ceia/combine/perf`             | `jsr:@claudiu-ceia/combine/perf`             |
 | Streaming                    | `@claudiu-ceia/combine/streaming`        | `jsr:@claudiu-ceia/combine/streaming`        |
 
-## Quickstart
-
-Parsers are plain functions: `(ctx) => Result<T>`. Literal parsers preserve
-their literal types, `seq` infers a tuple, ordered choice infers a union, and
-`map` changes the output type. Use `parseAll` when the parser must consume the
-complete input, or `runParser` for prefix parsing and custom start offsets.
-
-```ts
-import {
-  map,
-  optional,
-  parseAll,
-  regex,
-  seq,
-  space,
-  str,
-  trim,
-} from "@claudiu-ceia/combine";
-
-const name = trim(regex(/[^!]+/, "name"));
-const hello = map(
-  seq(str("Hello,"), optional(space()), name, str("!")),
-  ([, , who]) => who,
-);
-
-const result = parseAll(hello, "Hello, World!");
-
-if (result.success) {
-  console.log(result.value); // "World"
-} else {
-  console.error(result.expected, result.location);
-}
-```
-
-## Common Building Blocks
-
-The library exports a lot of small pieces. These are the ones you'll likely
-reach for first:
-
-- Parsers: `str`, `regex`, `digit`, `letter`, `int`, `double`, `space`, `eof`
-- Composition: `seq`, `choice`/`any`, `either`, `oneOf`, `many`, `many1`,
-  `optional`
-- Transform: `map`, `chain`/`flatMap`, `mapJoin`, `trim`
-
-`choice` (`any`) returns the first successful alternative. `oneOf` checks
-alternatives from the same position and succeeds only when exactly one matches.
-Fatal failures stop either form of choice immediately.
-
-The [API reference](https://github.com/ClaudiuCeia/combine/blob/main/docs/api.md)
-lists every parser and combinator with its output and consumption behavior.
-
-## Streaming Input
-
-Streaming parsers accept append-only chunks and distinguish an incomplete parse
-from a definitive failure. Use `createStreamingParser` for one value,
-`parseStream` for an async source, or `parseStreamEach` for consecutive values:
-
-```ts
-import { isPending, str } from "@claudiu-ceia/combine";
-import { parseStreamEach } from "@claudiu-ceia/combine/streaming";
-
-async function* chunks(): AsyncGenerator<string> {
-  yield "a";
-  yield "ba";
-  yield "b";
-}
-
-for await (const result of parseStreamEach(str("ab"), chunks())) {
-  if (result.success) console.log(result.value);
-  else if (!isPending(result)) console.error(result.expected);
-}
-```
-
-Success means the parser matched a prefix. It does not imply that the complete
-source was consumed. Compose a value parser with `eof()` when trailing input
-must fail.
-
-The generic `regex(...)` parser waits for final input because an arbitrary
-regular expression cannot reliably prove that its match will not grow. Dedicated
-primitives such as `str`, `trie`, `digit`, `letter`, `space`, and `number` can
-resolve incrementally. The [streaming guide](https://github.com/ClaudiuCeia/combine/blob/main/docs/streaming.md)
-covers lifecycle, buffering, boundaries, repeated values, and custom parsers.
-
-## Recursion (Grammars)
-
-When a parser needs to reference itself (directly or indirectly), wrap the
-reference with `lazy`:
-
-```ts
-import { any, lazy, map, type Parser, seq, str } from "@claudiu-ceia/combine";
-
-type Expr = { kind: "paren"; inner: Expr } | { kind: "lit"; value: string };
-
-const lit: Parser<Expr> = map(str("x"), (value) => ({ kind: "lit", value }));
-const paren: Parser<Expr> = map(
-  seq(
-    str("("),
-    lazy(() => expr),
-    str(")"),
-  ),
-  ([, inner]) => ({ kind: "paren", inner }),
-);
-
-// A tiny recursive expression: x | (expr)
-const expr: Parser<Expr> = any(lit, paren);
-```
-
-If you're defining a larger mutually-recursive grammar, use `defineLanguage`
-with a map of production output types. It provides fully typed sibling parsers
-without making declaration order significant. See the
-[grammar guide](https://github.com/ClaudiuCeia/combine/blob/main/docs/guide.md).
-
-## Better Errors
-
-For user-facing parsers, wrap important nodes with `context(...)`, and commit to
-branches with `cut(...)` (to avoid confusing backtracking). To print failures:
-
-```ts
-import { formatErrorReport, parseAll, str } from "@claudiu-ceia/combine";
-
-const parsed = parseAll(str("ready"), "reading");
-if (!parsed.success) console.error(formatErrorReport(parsed));
-```
-
-## Nondeterministic Recognizers
-
-Most combinators are deterministic: they return a single success or failure. For
-tokenizer-like use cases where you want _multiple_ simultaneous matches at the
-same input position, use the nondeterministic/recognizer module:
-
-```ts
-import { many, str } from "@claudiu-ceia/combine";
-import { recognizeAt, step } from "@claudiu-ceia/combine/nondeterministic";
-
-const token = step(recognizeAt(str("="), str("==")));
-const tokens = many(token);
-```
-
-`recognizeAt` keeps the outer cursor at the starting position and returns each
-match with its own end context. `step` chooses an end position so the recognizer
-can be used safely in repetition. See the
-[recognizer guide](https://github.com/ClaudiuCeia/combine/blob/main/docs/nondeterministic.md).
-
-## More Examples
-
-- [Calculator](https://github.com/ClaudiuCeia/combine/blob/main/examples/calculator.ts)
-  shows precedence, recursion, a lexer, spans, and an AST
-- [Lisp](https://github.com/ClaudiuCeia/combine/blob/main/examples/lisp.ts)
-  shows recursive lists and trivia handling
-- [Tests](https://github.com/ClaudiuCeia/combine/tree/main/tests) cover edge cases
-  and parser contracts
-
-## Guides
-
-- [API reference](https://github.com/ClaudiuCeia/combine/blob/main/docs/api.md) - runners,
-  results, primitives, combinators, lexer, spans, errors, and tracing
-- [Grammar guide](https://github.com/ClaudiuCeia/combine/blob/main/docs/guide.md) - offsets,
-  recursion, `defineLanguage`, errors, lexer use, and tracing
-- [Streaming guide](https://github.com/ClaudiuCeia/combine/blob/main/docs/streaming.md) -
-  pending results, async sources, boundaries, buffering, and custom parsers
-- [Recognizer guide](https://github.com/ClaudiuCeia/combine/blob/main/docs/nondeterministic.md) -
-  multiple matches and explicit cursor advancement
-
 ## Benchmarks
 
-The maintained-library comparison uses a recursive arithmetic grammar built from
-advertised lexical primitives and combinators, with no user-authored regex. It
-covers successful parsing, late failures, and grammar construction. Run it with:
+The checked-in comparison parses equivalent recursive arithmetic grammars with
+81 B, 1,795 B, and 14,384 B fixtures. CI runs three base and three candidate
+passes with Bun 1.4 on the same GitHub-hosted `ubuntu-latest` runner, then
+compares median p50 values. GitHub runner hardware can vary between runs.
+
+The **combine**-only streaming fixture is an 8,227 B ASCII fenced block parsed as
+finite input, 64 B chunks, 512 B chunks, and one complete chunk. Chunked parses
+remain pending until the chunk containing the closing fence. The selected
+comparison libraries do not expose the same append-only parser lifecycle, so
+the suite does not make a general claim about their streaming capabilities.
 
 ```sh
 bun run bench:verify
@@ -240,26 +336,34 @@ bun run bench:comparison
 bun run bench:streaming
 ```
 
-See the [benchmark methodology](https://github.com/ClaudiuCeia/combine/blob/main/bench/comparison/README.md)
-for package-selection criteria and limitations. The streaming benchmark is
-Combine-only because the comparison libraries do not expose equivalent
-append-only parser lifecycles.
+See the
+[benchmark overview](https://github.com/ClaudiuCeia/combine/blob/main/bench/README.md)
+and
+[comparison methodology](https://github.com/ClaudiuCeia/combine/blob/main/bench/comparison/README.md)
+for scope and limits.
 
-## Development
+## Documentation
 
-Bun owns the development toolchain:
+- [Getting started and grammar design](https://github.com/ClaudiuCeia/combine/blob/main/docs/guide.md)
+- [Streaming guide](https://github.com/ClaudiuCeia/combine/blob/main/docs/streaming.md)
+- [API reference](https://github.com/ClaudiuCeia/combine/blob/main/docs/api.md)
+- [Nondeterministic recognizers](https://github.com/ClaudiuCeia/combine/blob/main/docs/nondeterministic.md)
+
+## Development and license
 
 ```sh
 bun install
 bun run check
 bun run build
 bun run package:check
+deno task check
 ```
 
-`bun run check` runs Oxfmt, Oxlint, TypeScript, the Bun test suite, and benchmark
-correctness verification. Deno is required only to validate or publish the JSR
-package with `deno publish --dry-run` or `deno publish`.
+`bun run check` runs formatting, linting, TypeScript, tests, and benchmark
+correctness verification and is the primary development loop. `deno task check`
+reuses the test suite through a Deno-only compatibility adapter and validates
+the native TypeScript entrypoints. Deno is otherwise only required to publish
+the JSR package.
 
-## License
-
-MIT © [Claudiu Ceia](https://github.com/ClaudiuCeia)
+**combine** is available under the
+[MIT license](https://github.com/ClaudiuCeia/combine/blob/main/LICENSE).

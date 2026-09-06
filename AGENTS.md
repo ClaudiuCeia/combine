@@ -22,6 +22,8 @@ Run these from the repo root:
 - `bun run typecheck`: Type-check source, tests, benchmarks, and scripts.
 - `bun run build`: Generates the Node 20+ ESM package into `dist/`.
 - `bun run package:check`: Validates the npm package with publint and attw.
+- `deno task check`: Type-checks examples and runs the test suite with Deno.
+- `deno task test`: Runs the shared test suite with Deno.
 
 Install the local pre-commit hook with `bun run hooks:install`; it runs
 `bun run check`.
@@ -38,6 +40,8 @@ Install the local pre-commit hook with `bun run hooks:install`; it runs
 
 - Tests live in `tests/` and should be named `*.test.ts`.
 - Use `bun:test` and deterministic inputs (no network/time dependencies).
+- `deno.test.json` remaps `bun:test` to the Deno test adapter so the same suite
+  runs under both runtimes without changing the Bun-first test imports.
 
 ## Commit & Pull Request Guidelines
 

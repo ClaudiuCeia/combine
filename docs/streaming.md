@@ -1,14 +1,16 @@
 # Streaming guide
 
-Combine streams append-only `string` chunks through the same `Parser<T>` values
+**combine** streams append-only `string` chunks through the same `Parser<T>` values
 used for finite input. A parser can succeed, fail definitively, or remain pending
 while an open boundary can still change the result.
 
 - [Result states](#result-states)
 - [One buffered value](#one-buffered-value)
+- [Delimiter boundaries](#delimiter-boundaries)
 - [Async sources](#async-sources)
 - [Repeated values](#repeated-values)
 - [Boundaries](#boundaries)
+- [Fenced blocks](#fenced-blocks)
 - [Buffering and backpressure](#buffering-and-backpressure)
 - [Custom parsers](#custom-parsers)
 - [Lexer behavior](#lexer-behavior)
@@ -73,6 +75,36 @@ const result = stream.feed("Type:");
 // result.success === true
 // stream.done === true
 ```
+
+## Delimiter boundaries
+
+`trie` waits when the current input is both a complete match and a prefix of a
+longer configured match:
+
+```ts
+import {
+  createStreamingParser,
+  isPending,
+  parseAll,
+  trie,
+} from "@claudiu-ceia/combine";
+
+const delimiter = trie(["$", "$$"]);
+
+const finite = parseAll(delimiter, "$$");
+if (finite.success) console.log(finite.value); // "$$"
+
+const stream = createStreamingParser(delimiter);
+const first = stream.feed("$");
+console.log(isPending(first)); // true
+
+const second = stream.feed("$");
+if (second.success) console.log(second.value); // "$$"
+```
+
+The first `$` is valid but not final because `$$` can still win. A second `$`
+closes the choice. Calling `finish()` after the first chunk instead closes the
+source and returns `$`.
 
 ### Prefix success and complete input
 
@@ -218,6 +250,51 @@ Ordered choice also matters. `any` and `choice` stop at the first pending
 alternative because that branch may still win. `oneOf`, `furthest`, and the
 nondeterministic selectors inspect alternatives but withhold a result while an
 alternative remains unresolved. Fatal failures stop evaluation immediately.
+
+## Fenced blocks
+
+`manyTill` checks its terminator before reading another content value. A partial
+closing fence therefore keeps the parser pending instead of consuming the
+backticks as body text:
+
+````ts
+import {
+  any,
+  anyChar,
+  createStreamingParser,
+  eof,
+  eol,
+  isPending,
+  many,
+  manyTill,
+  map,
+  seq,
+  str,
+} from "@claudiu-ceia/combine";
+
+const horizontalSpace = any(str(" "), str("\t"));
+const closingFence = map(
+  seq(str("```"), many(horizontalSpace), any(eol(), eof())),
+  () => "```",
+);
+const codeLine = map(manyTill(anyChar(), eol()), (parts) => parts.join(""));
+const fencedTypeScript = map(
+  seq(str("```ts"), eol(), manyTill(codeLine, closingFence)),
+  ([, , lines]) => lines.slice(0, -1).join(""),
+);
+
+const block = createStreamingParser(fencedTypeScript);
+const prefix = block.feed("```ts\nconst answer = 42;\n``");
+console.log(isPending(prefix)); // true
+
+const complete = block.feed("`\n");
+if (complete.success) console.log(complete.value);
+````
+
+The success value is `"const answer = 42;\n"`. A triple-backtick sequence inside
+a code line or at the start of a longer line remains content. LF and CRLF line
+endings are accepted. The terminator is consumed and removed from the mapped
+output.
 
 ## Buffering and backpressure
 
