@@ -145,7 +145,9 @@ const cachedLocationAt = (
   let hi = entry.starts.length;
   while (lo < hi) {
     const mid = (lo + hi) >> 1;
-    if (entry.starts[mid]! <= index) lo = mid + 1;
+    const start = entry.starts[mid];
+    if (start === undefined) return locationAt(text, index, undefined);
+    if (start <= index) lo = mid + 1;
     else hi = mid;
   }
 

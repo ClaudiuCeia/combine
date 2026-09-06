@@ -103,7 +103,9 @@ test("pending and stack frame locations use session indexing", () => {
   );
 
   expect(frameSession.scannedTo).toBe(7);
-  expect(framed.stack[0]!.location).toEqual({ line: 2, column: 1 });
+  expect(framed.stack).toEqual([
+    { label: "in item", location: { line: 2, column: 1 } },
+  ]);
   expect(frameSession.scannedTo).toBe(7);
   expect(framed.location).toEqual({ line: 3, column: 3 });
   expect(frameSession.scannedTo).toBe(7);
