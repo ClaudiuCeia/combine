@@ -1,3 +1,10 @@
+import {
+  createDiagnosticLocation,
+  createLocationSession,
+  getContextLocation,
+  withLocationSession,
+} from "./internal.ts";
+
 /**
  * A parser consumes input from a `Context` and returns either a `Success<T>` or
  * `Failure`. Custom parsers must preserve `ctx.text` and must not move the index
@@ -107,10 +114,10 @@ export const success = <T>(ctx: Context, value: T): Success<T> => {
 /**
  * Run a parser against text from the given UTF-16 offset.
  */
-export const runParser = <T>(
+const runParserInSession = <T>(
   parser: Parser<T>,
   text: string,
-  index = 0,
+  index: number,
 ): Result<T> => {
   if (!Number.isSafeInteger(index) || index < 0 || index > text.length) {
     const validIndex = Number.isFinite(index)
@@ -125,69 +132,33 @@ export const runParser = <T>(
   return parser({ text, index });
 };
 
+export const runParser = <T>(
+  parser: Parser<T>,
+  text: string,
+  index = 0,
+): Result<T> => {
+  return withLocationSession(createLocationSession(), text, () =>
+    runParserInSession(parser, text, index),
+  );
+};
+
 /**
  * Run a parser and require it to consume all input.
  */
 export const parseAll = <T>(parser: Parser<T>, text: string): Result<T> => {
-  const res = runParser(parser, text);
-  if (!res.success || res.ctx.index === text.length) return res;
+  return withLocationSession(createLocationSession(), text, () => {
+    const res = runParserInSession(parser, text, 0);
+    if (!res.success || res.ctx.index === text.length) return res;
 
-  return failure(res.ctx, "end of input");
-};
-
-const LINE_CACHE_LIMIT = 8;
-// Cache per input string. `null` means the string has no '\n' (single line).
-const lineStartsCache = new Map<string, number[] | null>();
-
-const getLineStarts = (text: string): number[] | null => {
-  if (lineStartsCache.has(text)) {
-    return lineStartsCache.get(text) ?? null;
-  }
-
-  const starts: number[] = [0];
-  for (let i = 0; i < text.length; i++) {
-    if (text.charCodeAt(i) === 10 /* '\n' */) starts.push(i + 1);
-  }
-
-  const value = starts.length === 1 ? null : starts;
-  lineStartsCache.set(text, value);
-  if (lineStartsCache.size > LINE_CACHE_LIMIT) {
-    const oldest = lineStartsCache.keys().next().value as string | undefined;
-    if (oldest !== undefined) lineStartsCache.delete(oldest);
-  }
-
-  return value;
+    return failure(res.ctx, "end of input");
+  });
 };
 
 /**
  * Compute line and column from context
  */
 export const getLocation = (ctx: Context): { line: number; column: number } => {
-  const text = ctx.text;
-  const textLength = text.length;
-
-  let index = Number.isFinite(ctx.index) ? Math.trunc(ctx.index) : 0;
-  if (index < 0) index = 0;
-  if (index > textLength) index = textLength;
-
-  if (index === 0) return { line: 1, column: 1 };
-
-  const starts = getLineStarts(text);
-  if (starts === null) return { line: 1, column: index + 1 };
-
-  // upper bound: number of line starts <= index => 1-based line number
-  let lo = 0;
-  let hi = starts.length;
-  while (lo < hi) {
-    const mid = (lo + hi) >> 1;
-    if (starts[mid]! <= index) lo = mid + 1;
-    else hi = mid;
-  }
-
-  const line = lo;
-  const lineStart = starts[line - 1] ?? 0;
-  const column = index - lineStart + 1;
-  return { line, column };
+  return getContextLocation(ctx);
 };
 
 export const failure = (
@@ -197,7 +168,7 @@ export const failure = (
   stack: ErrorFrame[] = [],
   fatal = false,
 ): Failure => {
-  const location = getLocation(ctx);
+  const location = createDiagnosticLocation(ctx);
 
   return {
     success: false,
@@ -219,7 +190,7 @@ export const pending = (
   variants: Failure[] = [],
   stack: ErrorFrame[] = [],
 ): Pending => {
-  const location = getLocation(ctx);
+  const location = createDiagnosticLocation(ctx);
 
   return {
     success: false,
@@ -259,7 +230,7 @@ export const pushFrame = (
   label: string,
   ctx?: Context,
 ): Failure => {
-  const location = ctx ? getLocation(ctx) : f.location;
+  const location = ctx ? createDiagnosticLocation(ctx) : f.location;
   const frame: ErrorFrame = {
     label,
     location,

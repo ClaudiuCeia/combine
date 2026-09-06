@@ -5,7 +5,11 @@ import {
   type Parser,
   type Result,
 } from "./Parser.ts";
-import { assertAdvanced } from "./internal.ts";
+import {
+  assertAdvanced,
+  createLocationSession,
+  withLocationSession,
+} from "./internal.ts";
 import { eof } from "./parsers.ts";
 
 const DEFAULT_MAX_BUFFER_LENGTH = 1024 * 1024;
@@ -61,6 +65,7 @@ export const createStreamingParser = <T>(
   options: StreamingParserOptions = {},
 ): StreamingParser<T> => {
   const maxBufferLength = resolveMaxBufferLength(options.maxBufferLength);
+  const locationSession = createLocationSession();
   let text = "";
   let done = false;
   let latest: Result<T> | undefined;
@@ -72,28 +77,37 @@ export const createStreamingParser = <T>(
       }
 
       if (chunk.length > maxBufferLength - text.length) {
-        latest = bufferLimitFailure(text, false, maxBufferLength);
+        latest = withLocationSession(locationSession, text, () =>
+          bufferLimitFailure(text, false, maxBufferLength),
+        );
         done = true;
         return latest;
       }
 
       text += chunk;
-      latest = parser({ text, index: 0, final: false });
+      latest = withLocationSession(locationSession, text, () =>
+        parser({ text, index: 0, final: false }),
+      );
       if (!isPending(latest)) done = true;
       return latest;
     },
     finish: (): Result<T> => {
       if (done && latest) return latest;
 
-      latest = parser({ text, index: 0, final: true });
+      latest = withLocationSession(locationSession, text, () =>
+        parser({ text, index: 0, final: true }),
+      );
       done = true;
 
       if (isPending(latest)) {
-        latest = failure(
-          latest.ctx,
-          latest.expected,
-          latest.variants,
-          latest.stack,
+        const pendingResult = latest;
+        latest = withLocationSession(locationSession, text, () =>
+          failure(
+            pendingResult.ctx,
+            pendingResult.expected,
+            pendingResult.variants,
+            pendingResult.stack,
+          ),
         );
       }
 
@@ -144,6 +158,7 @@ export async function* parseStreamEach<T>(
 ): AsyncGenerator<Result<T>, void, undefined> {
   const until = options.until ?? eof();
   const maxBufferLength = resolveMaxBufferLength(options.maxBufferLength);
+  let locationSession = createLocationSession();
   let text = "";
   let index = 0;
 
@@ -151,6 +166,7 @@ export async function* parseStreamEach<T>(
     if (index === 0) return;
     text = text.substring(index);
     index = 0;
+    locationSession = createLocationSession();
   };
 
   function* parseAvailable(
@@ -158,12 +174,14 @@ export async function* parseStreamEach<T>(
   ): Generator<Result<T>, boolean, undefined> {
     while (true) {
       const ctx = { text, index, final };
-      const end = until(ctx);
+      const end = withLocationSession(locationSession, text, () => until(ctx));
       if (end.success) return true;
       if (isPending(end)) {
         if (!final && index >= text.length) return false;
         yield final
-          ? failure(end.ctx, end.expected, end.variants, end.stack)
+          ? withLocationSession(locationSession, text, () =>
+              failure(end.ctx, end.expected, end.variants, end.stack),
+            )
           : end;
         return final;
       }
@@ -176,14 +194,13 @@ export async function* parseStreamEach<T>(
         return final;
       }
 
-      const result = parser(ctx);
+      const result = withLocationSession(locationSession, text, () =>
+        parser(ctx),
+      );
       if (!result.success) {
         if (final && isPending(result)) {
-          yield failure(
-            result.ctx,
-            result.expected,
-            result.variants,
-            result.stack,
+          yield withLocationSession(locationSession, text, () =>
+            failure(result.ctx, result.expected, result.variants, result.stack),
           );
         } else {
           yield result;
@@ -198,7 +215,9 @@ export async function* parseStreamEach<T>(
     }
   }
 
-  const initialEnd = until({ text, index, final: false });
+  const initialEnd = withLocationSession(locationSession, text, () =>
+    until({ text, index, final: false }),
+  );
   if (initialEnd.success) return;
   if (initialEnd.fatal) {
     yield initialEnd;
@@ -209,7 +228,9 @@ export async function* parseStreamEach<T>(
     if (chunk.length === 0) continue;
 
     if (chunk.length > maxBufferLength - text.length) {
-      yield bufferLimitFailure(text, false, maxBufferLength);
+      yield withLocationSession(locationSession, text, () =>
+        bufferLimitFailure(text, false, maxBufferLength),
+      );
       return;
     }
 
