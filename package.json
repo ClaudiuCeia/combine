@@ -1,6 +1,6 @@
 {
   "name": "@claudiu-ceia/combine",
-  "version": "0.11.1",
+  "version": "0.11.2",
   "description": "Build typed parsers for complete strings and text streams, with pending results for incomplete input.",
   "keywords": [
     "bun",
