@@ -1,6 +1,13 @@
 import { expect, test } from "bun:test";
 import { many } from "../src/combinators.ts";
-import { failure, getLocation, pending, pushFrame } from "../src/Parser.ts";
+import {
+  failure,
+  getLocation,
+  pending,
+  pushFrame,
+  runParser,
+  success,
+} from "../src/Parser.ts";
 import { createLocationSession, withLocationSession } from "../src/internal.ts";
 import { str } from "../src/parsers.ts";
 
@@ -45,7 +52,7 @@ test("small unscoped locations preserve their plain data shape", () => {
 
 test("pending and stack frame locations use session indexing", () => {
   const pendingSession = createLocationSession();
-  const pendingResult = withLocationSession(pendingSession, () =>
+  const pendingResult = withLocationSession(pendingSession, "a\nb", () =>
     pending({ text: "a\nb", index: 2, final: false }, "more input"),
   );
 
@@ -54,7 +61,7 @@ test("pending and stack frame locations use session indexing", () => {
   expect(pendingSession.scannedTo).toBe(2);
 
   const frameSession = createLocationSession();
-  const framed = withLocationSession(frameSession, () =>
+  const framed = withLocationSession(frameSession, "a\nbc\ndef", () =>
     pushFrame(failure({ text: "a\nbc\ndef", index: 7 }, "value"), "in item", {
       text: "a\nbc\ndef",
       index: 2,
@@ -72,7 +79,7 @@ test("ordinary swallowed mismatches do not scan for locations", () => {
   const session = createLocationSession();
   const parser = many(str("a"));
 
-  const result = withLocationSession(session, () =>
+  const result = withLocationSession(session, "not an a", () =>
     parser({ text: "not an a", index: 0 }),
   );
 
@@ -84,20 +91,90 @@ test("location sessions incrementally scan growing input in constant space", () 
   const session = createLocationSession();
 
   expect(
-    withLocationSession(session, () => getLocation({ text: "a\n", index: 2 })),
+    withLocationSession(session, "a\n", () =>
+      getLocation({ text: "a\n", index: 2 }),
+    ),
   ).toEqual({ line: 2, column: 1 });
   expect(session).toEqual({ scannedTo: 2, line: 2, lineStart: 2 });
 
   expect(
-    withLocationSession(session, () =>
+    withLocationSession(session, "a\nb\n", () =>
       getLocation({ text: "a\nb\n", index: 4 }),
     ),
   ).toEqual({ line: 3, column: 1 });
   expect(session).toEqual({ scannedTo: 4, line: 3, lineStart: 4 });
 
   expect(
-    withLocationSession(session, () => getLocation({ text: "a\n", index: 1 })),
+    withLocationSession(session, "a\n", () =>
+      getLocation({ text: "a\n", index: 1 }),
+    ),
   ).toEqual({ line: 1, column: 2 });
   expect(session).toEqual({ scannedTo: 4, line: 3, lineStart: 4 });
   expect(Object.keys(session)).toEqual(["scannedTo", "line", "lineStart"]);
+});
+
+test("location sessions isolate diagnostics from another source", () => {
+  let foreignFailure: ReturnType<typeof failure> | undefined;
+  let foreignPending: ReturnType<typeof pending> | undefined;
+  let foreignFrame: ReturnType<typeof failure> | undefined;
+
+  const result = runParser((ctx) => {
+    const primary = failure({ ...ctx, index: 4 }, "primary");
+    const foreignCtx = { text: "xxxx\ny", index: 6 };
+    foreignFailure = failure(foreignCtx, "foreign");
+    foreignPending = pending({ ...foreignCtx, final: false }, "foreign");
+    foreignFrame = pushFrame(primary, "in foreign source", foreignCtx);
+    return success(ctx, null);
+  }, "a\nb\nc");
+
+  expect(result).toEqual(success({ text: "a\nb\nc", index: 0 }, null));
+  expect(foreignFailure?.location).toEqual({ line: 2, column: 2 });
+  expect(foreignPending?.location).toEqual({ line: 2, column: 2 });
+  expect(foreignFrame?.stack).toEqual([
+    { label: "in foreign source", location: { line: 2, column: 2 } },
+  ]);
+});
+
+test("nested location sessions restore the outer source", () => {
+  const outerSession = createLocationSession();
+  let outerLocation: ReturnType<typeof getLocation> | undefined;
+
+  withLocationSession(outerSession, "a\nb\nc", () => {
+    getLocation({ text: "a\nb\nc", index: 4 });
+
+    const innerResult = runParser(
+      (innerCtx) => failure({ ...innerCtx, index: 6 }, "inner"),
+      "xxxx\ny",
+    );
+    expect(innerResult.success).toBe(false);
+
+    outerLocation = getLocation({ text: "a\nb\nc", index: 5 });
+  });
+
+  expect(outerLocation).toEqual({ line: 3, column: 2 });
+  expect(outerSession).toEqual({ scannedTo: 5, line: 3, lineStart: 4 });
+});
+
+test("location sessions restore the previous source after exceptions", () => {
+  const outerSession = createLocationSession();
+  const innerSession = createLocationSession();
+
+  withLocationSession(outerSession, "a\nb", () => {
+    getLocation({ text: "a\nb", index: 1 });
+
+    expect(() =>
+      withLocationSession(innerSession, "x\ny", () => {
+        getLocation({ text: "x\ny", index: 2 });
+        throw new Error("inner failed");
+      }),
+    ).toThrow("inner failed");
+
+    expect(getLocation({ text: "a\nb", index: 3 })).toEqual({
+      line: 2,
+      column: 2,
+    });
+  });
+
+  expect(outerSession).toEqual({ scannedTo: 3, line: 2, lineStart: 2 });
+  expect(innerSession).toEqual({ scannedTo: 2, line: 2, lineStart: 2 });
 });

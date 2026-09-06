@@ -28,7 +28,12 @@ export type LocationSession = {
   lineStart: number;
 };
 
-let activeLocationSession: LocationSession | undefined;
+type ActiveLocationSession = Readonly<{
+  session: LocationSession;
+  source: string;
+}>;
+
+let activeLocationSession: ActiveLocationSession | undefined;
 let lineCacheBytes = 0;
 const lineStartsCache = new Map<string, LineCacheEntry>();
 
@@ -129,10 +134,11 @@ export const createLocationSession = (): LocationSession => ({
 
 export const withLocationSession = <T>(
   session: LocationSession,
+  source: string,
   run: () => T,
 ): T => {
   const previous = activeLocationSession;
-  activeLocationSession = session;
+  activeLocationSession = { session, source };
   try {
     return run();
   } finally {
@@ -142,8 +148,8 @@ export const withLocationSession = <T>(
 
 export const getContextLocation = (ctx: Context): SourceLocation => {
   const index = normalizeIndex(ctx.index, ctx.text.length);
-  if (activeLocationSession) {
-    return locationAt(ctx.text, index, activeLocationSession);
+  if (activeLocationSession?.source === ctx.text) {
+    return locationAt(ctx.text, index, activeLocationSession.session);
   }
   return (
     cachedLocationAt(ctx.text, index) ?? locationAt(ctx.text, index, undefined)
@@ -180,8 +186,8 @@ const createLazyLocation = (source: string, index: number): SourceLocation => {
 export const createDiagnosticLocation = (ctx: Context): SourceLocation => {
   const index = normalizeIndex(ctx.index, ctx.text.length);
   if (index === 0) return { line: 1, column: 1 };
-  if (activeLocationSession) {
-    return locationAt(ctx.text, index, activeLocationSession);
+  if (activeLocationSession?.source === ctx.text) {
+    return locationAt(ctx.text, index, activeLocationSession.session);
   }
   return (
     cachedLocationAt(ctx.text, index) ?? createLazyLocation(ctx.text, index)

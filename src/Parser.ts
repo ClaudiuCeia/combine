@@ -137,7 +137,7 @@ export const runParser = <T>(
   text: string,
   index = 0,
 ): Result<T> => {
-  return withLocationSession(createLocationSession(), () =>
+  return withLocationSession(createLocationSession(), text, () =>
     runParserInSession(parser, text, index),
   );
 };
@@ -146,7 +146,7 @@ export const runParser = <T>(
  * Run a parser and require it to consume all input.
  */
 export const parseAll = <T>(parser: Parser<T>, text: string): Result<T> => {
-  return withLocationSession(createLocationSession(), () => {
+  return withLocationSession(createLocationSession(), text, () => {
     const res = runParserInSession(parser, text, 0);
     if (!res.success || res.ctx.index === text.length) return res;
 
