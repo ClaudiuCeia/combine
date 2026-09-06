@@ -60,9 +60,9 @@ bypasses session indexing, so each diagnostic on an oversized source scans its
 prefix once to produce a detached location snapshot.
 
 The exported model types are `Parser`, `Context`, `Result`, `Success`, `Failure`,
-`Pending`, and `ErrorFrame`. `ParserInvariantError` is thrown when an invalid
-grammar or custom parser violates a structural combinator requirement. Error
-formatting also exports
+`Pending`, `ErrorFrame`, and the read-only `SourceLocation` used by diagnostic
+and span locations. `ParserInvariantError` is thrown when an invalid grammar or
+custom parser violates a structural combinator requirement. Error formatting also exports
 `FormatErrorSnippetOptions` and `FormatErrorReportOptions`.
 
 Custom parsers must preserve `ctx.text`, must not move the index backwards on

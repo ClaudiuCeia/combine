@@ -1,8 +1,14 @@
 import { expect, test } from "bun:test";
+import {
+  type ErrorFrame,
+  type Failure,
+  getLocation,
+  type SourceLocation,
+  type WithSpan,
+} from "../mod.ts";
 import { any, many } from "../src/combinators.ts";
 import {
   failure,
-  getLocation,
   pending,
   pushFrame,
   runParser,
@@ -11,6 +17,31 @@ import {
 } from "../src/Parser.ts";
 import { createLocationSession, withLocationSession } from "../src/internal.ts";
 import { str } from "../src/parsers.ts";
+
+type Equal<A, B> =
+  (<T>() => T extends A ? 1 : 2) extends <T>() => T extends B ? 1 : 2
+    ? true
+    : false;
+type Assert<T extends true> = T;
+type ExpectedLocation = Readonly<{ line: number; column: number }>;
+type _SourceLocationIsReadonly = Assert<
+  Equal<SourceLocation, ExpectedLocation>
+>;
+type _GetLocationIsReadonly = Assert<
+  Equal<ReturnType<typeof getLocation>, ExpectedLocation>
+>;
+type _FailureLocationIsReadonly = Assert<
+  Equal<Failure["location"], ExpectedLocation>
+>;
+type _FrameLocationIsReadonly = Assert<
+  Equal<ErrorFrame["location"], ExpectedLocation>
+>;
+type _SpanStartIsReadonly = Assert<
+  Equal<WithSpan<unknown>["locationStart"], ExpectedLocation>
+>;
+type _SpanEndIsReadonly = Assert<
+  Equal<WithSpan<unknown>["locationEnd"], ExpectedLocation>
+>;
 
 test("oversized unscoped locations are detached snapshots", () => {
   const location = (() =>

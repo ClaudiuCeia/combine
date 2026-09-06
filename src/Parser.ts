@@ -48,6 +48,12 @@ export type Success<T> = Readonly<{
   ctx: Context;
 }>;
 
+/** A 1-based line and column in parser input. */
+export type SourceLocation = Readonly<{
+  line: number;
+  column: number;
+}>;
+
 /**
  * A single frame in an error stack trace.
  * Similar to how TypeScript traces type errors through nested structures.
@@ -56,10 +62,7 @@ export type ErrorFrame = Readonly<{
   /** Human-readable context label (e.g., "in match expression", "in function body") */
   label: string;
   /** Location where this context started */
-  location: {
-    line: number;
-    column: number;
-  };
+  location: SourceLocation;
 }>;
 
 /**
@@ -75,10 +78,7 @@ export type Failure = Readonly<{
   /** The immediate expected value/token */
   expected: string;
   ctx: Context;
-  location: {
-    line: number;
-    column: number;
-  };
+  location: SourceLocation;
   /** Alternative parse attempts at the same position */
   variants: Failure[];
   /**
@@ -157,7 +157,7 @@ export const parseAll = <T>(parser: Parser<T>, text: string): Result<T> => {
 /**
  * Compute line and column from context
  */
-export const getLocation = (ctx: Context): { line: number; column: number } => {
+export const getLocation = (ctx: Context): SourceLocation => {
   return getContextLocation(ctx);
 };
 
