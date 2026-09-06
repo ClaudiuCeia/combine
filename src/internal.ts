@@ -195,33 +195,6 @@ export const getContextLocation = (ctx: Context): SourceLocation => {
   );
 };
 
-const createLazyLocation = (source: string, index: number): SourceLocation => {
-  let text: string | undefined = source;
-  let line = 0;
-  let column = 0;
-
-  return {
-    get line(): number {
-      if (text !== undefined) {
-        const resolved = locationAt(text, index, undefined);
-        line = resolved.line;
-        column = resolved.column;
-        text = undefined;
-      }
-      return line;
-    },
-    get column(): number {
-      if (text !== undefined) {
-        const resolved = locationAt(text, index, undefined);
-        line = resolved.line;
-        column = resolved.column;
-        text = undefined;
-      }
-      return column;
-    },
-  };
-};
-
 export const createDiagnosticLocation = (ctx: Context): SourceLocation => {
   const index = normalizeIndex(ctx.index, ctx.text.length);
   if (index === 0) return { line: 1, column: 1 };
@@ -229,7 +202,7 @@ export const createDiagnosticLocation = (ctx: Context): SourceLocation => {
     return locationAt(ctx.text, index, activeLocationSession.session);
   }
   return (
-    cachedLocationAt(ctx.text, index) ?? createLazyLocation(ctx.text, index)
+    cachedLocationAt(ctx.text, index) ?? locationAt(ctx.text, index, undefined)
   );
 };
 

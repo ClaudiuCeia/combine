@@ -12,33 +12,36 @@ import {
 import { createLocationSession, withLocationSession } from "../src/internal.ts";
 import { str } from "../src/parsers.ts";
 
-test("failure locations resolve lazily without changing their shape", () => {
-  const result = failure(
-    { text: `${"x".repeat(70_000)}\ndef`, index: 70_002 },
-    "value",
-  );
+test("oversized unscoped locations are detached snapshots", () => {
+  const location = (() =>
+    failure({ text: `${"x".repeat(70_000)}\ndef`, index: 70_002 }, "value")
+      .location)();
 
-  expect(Object.keys(result.location)).toEqual(["line", "column"]);
-  expect(
-    typeof Object.getOwnPropertyDescriptor(result.location, "line")?.get,
-  ).toBe("function");
-
-  const copy = { ...result };
-  expect(copy.location).toBe(result.location);
-
-  expect(result.location).toEqual({ line: 2, column: 2 });
-  expect(Object.keys(result.location)).toEqual(["line", "column"]);
-  expect(JSON.parse(JSON.stringify(result))).toMatchObject({
-    location: { line: 2, column: 2 },
+  expect(Reflect.ownKeys(location)).toEqual(["line", "column"]);
+  expect(Object.getOwnPropertyDescriptors(location)).toEqual({
+    line: {
+      value: 2,
+      writable: true,
+      enumerable: true,
+      configurable: true,
+    },
+    column: {
+      value: 2,
+      writable: true,
+      enumerable: true,
+      configurable: true,
+    },
   });
+  expect(location).toEqual({ line: 2, column: 2 });
+  expect(JSON.parse(JSON.stringify(location))).toEqual({ line: 2, column: 2 });
 
   const denseResult = failure(
     { text: "\n".repeat(10_000), index: 9_999 },
     "value",
   );
   expect(
-    typeof Object.getOwnPropertyDescriptor(denseResult.location, "line")?.get,
-  ).toBe("function");
+    Object.getOwnPropertyDescriptor(denseResult.location, "line"),
+  ).toMatchObject({ value: 10_000 });
   expect(denseResult.location).toEqual({ line: 10_000, column: 1 });
 });
 
