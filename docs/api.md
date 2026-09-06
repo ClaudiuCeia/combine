@@ -269,8 +269,9 @@ console.log(formatTraceTable(tracer.rows()));
 ## Specialized modules
 
 - [Streaming](./streaming.md) documents `StreamingParser`,
-  `createStreamingParser`, `parseStream`, `ParseStreamEachOptions`, and
-  `parseStreamEach`.
+  `StreamingParserOptions`, `createStreamingParser`, `parseStream`,
+  `ParseStreamEachOptions`, and `parseStreamEach`. All streaming helpers accept
+  `maxBufferLength`; retained buffers default to 1,048,576 UTF-16 code units.
 - [Nondeterministic recognizers](./nondeterministic.md) document `Recognition`,
   `StepPolicy`, `recognizeAt`, `step`, `furthestAll`, and `allMatches`.
 - Performance tracing is available from `@claudiu-ceia/combine/perf` as well as
