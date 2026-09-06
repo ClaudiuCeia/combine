@@ -1,12 +1,20 @@
 {
   "name": "@claudiu-ceia/combine",
   "version": "0.11.1",
-  "description": "Typed parser combinators for TypeScript",
+  "description": "Build typed parsers for complete strings and text streams, with pending results for incomplete input.",
   "keywords": [
     "bun",
     "deno",
+    "dsl",
+    "grammar",
+    "lexer",
+    "llm",
     "parser",
     "parser-combinators",
+    "parsing",
+    "streaming",
+    "streaming-parser",
+    "structured-text",
     "typescript"
   ],
   "homepage": "https://github.com/ClaudiuCeia/combine#readme",
