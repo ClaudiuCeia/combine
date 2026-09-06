@@ -45,16 +45,19 @@ open and `true` after explicit finalization.
 | `pushFrame(failure, label, ctx?)`                   | Add an `ErrorFrame` to a failure stack.                                                                                           |
 
 A success contains `value` and the next `ctx`. A failure contains `expected`,
-`ctx`, a `location`, equal-position `variants`, a contextual `stack`, and
-`fatal`. Locations for oversized unscoped inputs are resolved on first
-observation. Pending results carry the same diagnostic fields, plus
+`ctx`, a precomputed `location`, equal-position `variants`, a contextual `stack`,
+and `fatal`. Pending results carry the same diagnostic fields, plus
 `pending: true`, but are not final errors.
 
 Location indexing is scoped to one finite or streaming parse session and retains
 constant auxiliary state. The fallback cache for direct parser calls is capped
 at 64 KiB of estimated retained source and line-index data. Sources larger than
-the entire budget are never admitted, and oversized line indexes use lazy
-location resolution instead.
+the entire budget are never admitted and are scanned directly without being
+retained by the location or global cache.
+
+Call `runParser` or `parseAll` for large inputs. Invoking a `Parser` directly
+bypasses session indexing, so each diagnostic on an oversized source scans its
+prefix once to produce a detached location snapshot.
 
 The exported model types are `Parser`, `Context`, `Result`, `Success`, `Failure`,
 `Pending`, and `ErrorFrame`. `ParserInvariantError` is thrown when an invalid
