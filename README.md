@@ -152,41 +152,37 @@ if (complete.success) console.log(complete.value);
 ````
 
 The parser remains pending until a complete closing-fence line arrives. See the
-[streaming guide](./docs/streaming.md) for async sources, repeated values,
-boundaries, retained buffers, relative offsets, and custom parsers.
+[streaming guide](https://github.com/ClaudiuCeia/combine/blob/main/docs/streaming.md)
+for async sources, repeated values, boundaries, retained buffers, relative
+offsets, and custom parsers.
 
 ## Building a grammar
 
-Parsers compose into typed output. The complete query example handles
-predicates, quoted values, parentheses, and `AND` precedence over `OR` without a
-grammar file or code-generation step.
+Parsers compose into typed output without a grammar file or code-generation
+step.
 
 ```ts
-import { parseQuery } from "./examples/query.ts";
+import { map, parseAll, regex, seq, str } from "@claudiu-ceia/combine";
 
-const result = parseQuery(
-  'status:open AND (owner:"Jane Doe" OR priority:high)',
+const predicate = map(
+  seq(
+    regex(/[A-Za-z][A-Za-z0-9_-]*/, "field"),
+    str(":"),
+    regex(/[A-Za-z0-9_-]+/, "value"),
+  ),
+  ([field, , value]) => ({ field, value }),
 );
 
+const result = parseAll(predicate, "status:open");
+
 if (!result.success) throw new Error(result.expected);
-console.log(JSON.stringify(result.value, null, 2));
+console.log(result.value); // { field: "status", value: "open" }
 ```
 
-```json
-{
-  "kind": "and",
-  "left": { "kind": "predicate", "field": "status", "value": "open" },
-  "right": {
-    "kind": "or",
-    "left": { "kind": "predicate", "field": "owner", "value": "Jane Doe" },
-    "right": { "kind": "predicate", "field": "priority", "value": "high" }
-  }
-}
-```
-
-The grammar uses `chainl1` for precedence and associativity, `defineLanguage`
-for recursive productions, and `context` plus `cut` for focused errors. See
-[examples/query.ts](./examples/query.ts) for the complete implementation.
+The [complete query example](https://github.com/ClaudiuCeia/combine/blob/main/examples/query.ts)
+adds quoted values and parentheses, uses `chainl1` for precedence and
+associativity, `defineLanguage` for recursive productions, and `context` plus
+`cut` for focused errors.
 
 ## Errors and backtracking
 
@@ -223,12 +219,12 @@ replace the useful error with an unrelated alternative.
 
 Repository examples:
 
-- [examples/query.ts](./examples/query.ts) covers typed output, precedence,
-  recursion, and committed errors
-- [examples/calculator.ts](./examples/calculator.ts) builds a typed arithmetic
-  AST with precedence and source spans
-- [examples/lisp.ts](./examples/lisp.ts) parses recursive lists with centralized
-  trivia handling
+- [`examples/query.ts`](https://github.com/ClaudiuCeia/combine/blob/main/examples/query.ts)
+  covers typed output, precedence, recursion, and committed errors
+- [`examples/calculator.ts`](https://github.com/ClaudiuCeia/combine/blob/main/examples/calculator.ts)
+  builds a typed arithmetic AST with precedence and source spans
+- [`examples/lisp.ts`](https://github.com/ClaudiuCeia/combine/blob/main/examples/lisp.ts)
+  parses recursive lists with centralized trivia handling
 
 ## Runtime support
 
@@ -265,15 +261,18 @@ bun run bench:comparison
 bun run bench:streaming
 ```
 
-See the [benchmark overview](./bench/README.md) and
-[comparison methodology](./bench/comparison/README.md) for scope and limits.
+See the
+[benchmark overview](https://github.com/ClaudiuCeia/combine/blob/main/bench/README.md)
+and
+[comparison methodology](https://github.com/ClaudiuCeia/combine/blob/main/bench/comparison/README.md)
+for scope and limits.
 
 ## Documentation
 
-- [Getting started and grammar design](./docs/guide.md)
-- [Streaming guide](./docs/streaming.md)
-- [API reference](./docs/api.md)
-- [Nondeterministic recognizers](./docs/nondeterministic.md)
+- [Getting started and grammar design](https://github.com/ClaudiuCeia/combine/blob/main/docs/guide.md)
+- [Streaming guide](https://github.com/ClaudiuCeia/combine/blob/main/docs/streaming.md)
+- [API reference](https://github.com/ClaudiuCeia/combine/blob/main/docs/api.md)
+- [Nondeterministic recognizers](https://github.com/ClaudiuCeia/combine/blob/main/docs/nondeterministic.md)
 
 ## Development and license
 
@@ -291,4 +290,5 @@ reuses the test suite through a Deno-only compatibility adapter and validates
 the native TypeScript entrypoints. Deno is otherwise only required to publish
 the JSR package.
 
-combine is available under the [MIT license](./LICENSE).
+combine is available under the
+[MIT license](https://github.com/ClaudiuCeia/combine/blob/main/LICENSE).
