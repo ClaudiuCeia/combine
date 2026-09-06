@@ -23,9 +23,13 @@ const LINE_CACHE_MAX_BYTES = 64 * 1024;
 const LINE_CACHE_ENTRY_OVERHEAD = 64;
 
 export type LocationSession = {
+  sourceLength: number;
   scannedTo: number;
   line: number;
   lineStart: number;
+  reverseTo: number;
+  reverseLine: number;
+  reverseLineStart: number;
 };
 
 type ActiveLocationSession = Readonly<{
@@ -49,6 +53,25 @@ const locationAt = (
   index: number,
   session: LocationSession | undefined,
 ): SourceLocation => {
+  if (session && index < session.scannedTo && index <= session.reverseTo) {
+    let line = session.reverseLine;
+    let lineStart = session.reverseLineStart;
+
+    while (index < lineStart) {
+      line--;
+      let previousNewline = lineStart - 2;
+      while (previousNewline >= 0 && text.charCodeAt(previousNewline) !== 10) {
+        previousNewline--;
+      }
+      lineStart = previousNewline + 1;
+    }
+
+    session.reverseTo = index;
+    session.reverseLine = line;
+    session.reverseLineStart = lineStart;
+    return { line, column: index - lineStart + 1 };
+  }
+
   let line = 1;
   let lineStart = 0;
   let start = 0;
@@ -66,10 +89,13 @@ const locationAt = (
     }
   }
 
-  if (session && index >= session.scannedTo) {
+  if (session && index > session.scannedTo) {
     session.scannedTo = index;
     session.line = line;
     session.lineStart = lineStart;
+    session.reverseTo = index;
+    session.reverseLine = line;
+    session.reverseLineStart = lineStart;
   }
 
   return { line, column: index - lineStart + 1 };
@@ -127,9 +153,13 @@ const cachedLocationAt = (
 };
 
 export const createLocationSession = (): LocationSession => ({
+  sourceLength: 0,
   scannedTo: 0,
   line: 1,
   lineStart: 0,
+  reverseTo: 0,
+  reverseLine: 1,
+  reverseLineStart: 0,
 });
 
 export const withLocationSession = <T>(
@@ -138,6 +168,15 @@ export const withLocationSession = <T>(
   run: () => T,
 ): T => {
   const previous = activeLocationSession;
+  if (source.length < session.sourceLength) {
+    session.scannedTo = 0;
+    session.line = 1;
+    session.lineStart = 0;
+  }
+  session.sourceLength = source.length;
+  session.reverseTo = session.scannedTo;
+  session.reverseLine = session.line;
+  session.reverseLineStart = session.lineStart;
   activeLocationSession = { session, source };
   try {
     return run();
