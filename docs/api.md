@@ -50,7 +50,9 @@ and `fatal`. Pending results carry the same diagnostic fields, plus
 `pending: true`, but are not final errors.
 
 The exported model types are `Parser`, `Context`, `Result`, `Success`, `Failure`,
-`Pending`, and `ErrorFrame`. Error formatting also exports
+`Pending`, and `ErrorFrame`. `ParserInvariantError` is thrown when an invalid
+grammar or custom parser violates a structural combinator requirement. Error
+formatting also exports
 `FormatErrorSnippetOptions` and `FormatErrorReportOptions`.
 
 Custom parsers must preserve `ctx.text`, must not move the index backwards on
@@ -121,8 +123,9 @@ pending. Fatal failures stop all three forms immediately.
 | `skipMany1(parser)`         | The `many1` behavior with a `null` result.                                          |
 
 Every successful child of an unbounded repetition must advance the cursor.
-Zero-width success becomes a descriptive failure instead of an infinite loop.
-Pending and fatal failures propagate rather than ending repetition.
+Zero-width success throws `ParserInvariantError` instead of becoming an input
+failure that backtracking could swallow. Pending and fatal failures propagate
+rather than ending repetition.
 
 ### Lookahead and output selection
 

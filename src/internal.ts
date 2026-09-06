@@ -1,4 +1,16 @@
-import type { Context } from "./Parser.ts";
+import { type Context, ParserInvariantError } from "./Parser.ts";
+
+export const assertAdvanced = (
+  name: string,
+  before: Context,
+  after: Context,
+): void => {
+  if (!(after.index > before.index)) {
+    throw new ParserInvariantError(
+      `${name}: parser succeeded without consuming input (index ${before.index} -> ${after.index}; this would loop forever)`,
+    );
+  }
+};
 
 export const preserveContextFinality = (
   session: Context,

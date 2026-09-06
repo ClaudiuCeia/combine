@@ -22,6 +22,17 @@ export type Context = Readonly<{
 export type Result<T> = Success<T> | Failure | Pending;
 
 /**
+ * Thrown when a parser violates a structural requirement of its combinator.
+ * This indicates an invalid grammar or custom parser, not invalid input.
+ */
+export class ParserInvariantError extends Error {
+  public constructor(message: string) {
+    super(message);
+    this.name = "ParserInvariantError";
+  }
+}
+
+/**
  * Successful parse result (value + updated context).
  */
 export type Success<T> = Readonly<{

@@ -206,10 +206,10 @@ for await (const result of parseStreamEach(str("ab"), chunks())) {
 }
 ```
 
-The repeated parser must advance on every success. A zero-width success becomes
-a descriptive failure instead of an infinite loop. Any definitive parser
-failure is yielded and ends iteration. The helper does not skip malformed input
-or recover automatically.
+The repeated parser must advance on every success. A zero-width success throws
+`ParserInvariantError` because it indicates an invalid grammar and would
+otherwise loop forever. Any definitive parser failure is yielded and ends
+iteration. The helper does not skip malformed input or recover automatically.
 
 Completed prefixes are discarded between source-chunk batches. The current
 incomplete value stays buffered. Result contexts and spans are therefore
