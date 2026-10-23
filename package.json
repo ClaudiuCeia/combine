@@ -1,6 +1,6 @@
 {
   "name": "@claudiu-ceia/combine",
-  "version": "0.11.3",
+  "version": "0.11.4",
   "description": "Build typed parsers for complete strings and text streams, with pending results for incomplete input.",
   "keywords": [
     "bun",
@@ -74,20 +74,20 @@
   },
   "devDependencies": {
     "@arethetypeswrong/cli": "0.18.5",
-    "@types/bun": "1.4.2",
+    "@types/bun": "1.4.4",
     "mini-parse": "0.6.41",
     "mitata": "1.0.34",
-    "oxfmt": "0.68.0",
-    "oxlint": "1.83.0",
+    "oxfmt": "0.74.0",
+    "oxlint": "1.89.0",
     "parjs": "1.3.9",
     "parser-combinators": "1.2.7",
     "peberminta": "0.10.0",
-    "publint": "0.3.24",
-    "tarsec": "0.5.4",
+    "publint": "0.3.25",
+    "tarsec": "0.5.5",
     "typescript": "~7.0.0"
   },
   "engines": {
     "node": ">=20"
   },
-  "packageManager": "bun@1.4.0"
+  "packageManager": "bun@1.4.4"
 }
