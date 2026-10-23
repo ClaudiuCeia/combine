@@ -93,7 +93,8 @@ import {
 } from "@claudiu-ceia/combine";
 
 type Expr =
-  Readonly<{ kind: "atom" }> | Readonly<{ kind: "paren"; value: Expr }>;
+  | Readonly<{ kind: "atom" }>
+  | Readonly<{ kind: "paren"; value: Expr }>;
 
 type Grammar = {
   Expression: Expr;

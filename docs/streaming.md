@@ -200,8 +200,7 @@ async function* chunks(): AsyncGenerator<string> {
 }
 
 for await (const result of parseStreamEach(str("ab"), chunks())) {
-  if (result.success)
-    console.log(result.value); // "ab", then "ab"
+  if (result.success) console.log(result.value); // "ab", then "ab"
   else if (!isPending(result)) console.error(result.expected);
 }
 ```
