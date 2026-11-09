@@ -1,5 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import {
+  EMPTY,
+  type Empty,
   failure,
   isPending,
   pending,
@@ -787,7 +789,7 @@ describe("streaming lexer", () => {
       success: false,
       pending: true,
     });
-    expect(stream.finish()).toMatchObject({ success: true, value: null });
+    expect(stream.finish()).toMatchObject({ success: true, value: EMPTY });
   });
 
   test("finishes a line comment when a newline arrives", () => {
@@ -795,7 +797,7 @@ describe("streaming lexer", () => {
       createStreamingParser(lineComment()).feed("// note\n"),
     ).toMatchObject({
       success: true,
-      value: null,
+      value: EMPTY,
       ctx: { index: 7, final: false },
     });
   });
@@ -808,7 +810,7 @@ describe("streaming lexer", () => {
       success: false,
       pending: true,
     });
-    expect(stream.feed("*/")).toMatchObject({ success: true, value: null });
+    expect(stream.feed("*/")).toMatchObject({ success: true, value: EMPTY });
   });
 
   test("makes an unterminated final block comment fatal", () => {
@@ -832,7 +834,7 @@ describe("streaming lexer", () => {
   });
 
   test("waits for a keyword identifier boundary", () => {
-    const noTrivia: Parser<null> = (ctx) => success(ctx, null);
+    const noTrivia: Parser<Empty> = (ctx) => success(ctx, EMPTY);
     const stream = createStreamingParser(keyword("let", noTrivia));
 
     expect(stream.feed("let")).toMatchObject({ success: false, pending: true });
@@ -913,7 +915,7 @@ describe("streaming end of input", () => {
     const stream = createStreamingParser(eof());
 
     expect(stream.feed("")).toMatchObject({ success: false, pending: true });
-    expect(stream.finish()).toMatchObject({ success: true, value: null });
+    expect(stream.finish()).toMatchObject({ success: true, value: EMPTY });
   });
 
   test("eof fails definitively when input remains", () => {
@@ -1093,7 +1095,7 @@ describe("streaming lookahead", () => {
     });
     expect(stream.feed("b")).toMatchObject({
       success: true,
-      value: null,
+      value: EMPTY,
       ctx: { index: 0 },
     });
   });
@@ -1102,7 +1104,7 @@ describe("streaming lookahead", () => {
     const stream = createStreamingParser(not(str("x")));
 
     expect(stream.feed("")).toMatchObject({ success: false, pending: true });
-    expect(stream.feed("y")).toMatchObject({ success: true, value: null });
+    expect(stream.feed("y")).toMatchObject({ success: true, value: EMPTY });
   });
 
   test("subtraction waits for the excluded parser", () => {

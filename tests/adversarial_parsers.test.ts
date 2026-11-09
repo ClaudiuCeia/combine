@@ -1,7 +1,7 @@
 import { expect, test } from "bun:test";
 import { assertEquals, assertObjectMatch } from "./assert.ts";
 import { furthest, seq } from "../src/combinators.ts";
-import { type Parser, runParser } from "../src/Parser.ts";
+import { EMPTY, type Parser, runParser } from "../src/Parser.ts";
 import {
   anyChar,
   char,
@@ -238,12 +238,12 @@ test("character parsers reject invalid UTF-16 codes", () => {
 test("comment trivia keeps delimiters and fatal termination behavior", () => {
   assertObjectMatch(lineComment()({ text: "//x\nY", index: 0 }), {
     success: true,
-    value: null,
+    value: EMPTY,
     ctx: { index: 3 },
   });
   assertObjectMatch(blockComment()({ text: "/*a*/b*/", index: 0 }), {
     success: true,
-    value: null,
+    value: EMPTY,
     ctx: { index: 5 },
   });
 

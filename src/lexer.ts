@@ -1,5 +1,7 @@
-import { any, not, seq, skipMany, surrounded } from "./combinators.ts";
+import { any, not, seq, skip1, skipMany, surrounded } from "./combinators.ts";
 import {
+  EMPTY,
+  type Empty,
   failure,
   fatalFailure,
   type Parser,
@@ -9,13 +11,13 @@ import {
 import { anyChar, regex, space, str } from "./parsers.ts";
 import { map } from "./utility.ts";
 
-export type TriviaParser = Parser<null>;
+export type TriviaParser = Parser<Empty>;
 
 /**
  * Match and skip a line comment: `// ...` until (but not including) `\n`.
  */
-export const lineComment = (): Parser<null> => {
-  const finite = map(regex(/\/\/[^\n]*/, "line comment"), () => null);
+export const lineComment = (): Parser<Empty> => {
+  const finite = skip1(regex(/\/\/[^\n]*/, "line comment"));
 
   return (ctx) => {
     if (ctx.final !== false) return finite(ctx);
@@ -33,14 +35,14 @@ export const lineComment = (): Parser<null> => {
       return pending({ ...ctx, index: ctx.text.length }, "end of line comment");
     }
 
-    return success({ ...ctx, index: end }, null);
+    return success({ ...ctx, index: end }, EMPTY);
   };
 };
 
 /**
  * Match and skip a block comment (non-greedy).
  */
-export const blockComment = (): Parser<null> => {
+export const blockComment = (): Parser<Empty> => {
   return (ctx) => {
     if (!ctx.text.startsWith("/*", ctx.index)) {
       if (
@@ -61,7 +63,7 @@ export const blockComment = (): Parser<null> => {
         : fatalFailure(endCtx, "*/");
     }
 
-    return success({ ...ctx, index: end + 2 }, null);
+    return success({ ...ctx, index: end + 2 }, EMPTY);
   };
 };
 

@@ -1,5 +1,7 @@
 import {
   type Context,
+  EMPTY,
+  type Empty,
   type Failure,
   failure,
   isFatal,
@@ -596,7 +598,7 @@ export const sepBy1 = <T, S>(
  *
  * Fatal errors are propagated immediately.
  */
-export const skipMany = <T>(parser: Parser<T>): Parser<null> => {
+export const skipMany = <T>(parser: Parser<T>): Parser<Empty> => {
   return (ctx) => {
     const res = many(parser)(ctx);
 
@@ -605,7 +607,7 @@ export const skipMany = <T>(parser: Parser<T>): Parser<null> => {
       return res;
     }
 
-    return success(res.ctx, null);
+    return success(res.ctx, EMPTY);
   };
 };
 
@@ -614,11 +616,11 @@ export const skipMany = <T>(parser: Parser<T>): Parser<null> => {
  *
  * Fatal errors are propagated immediately.
  */
-export const skipMany1 = <T>(parser: Parser<T>): Parser<null> => {
+export const skipMany1 = <T>(parser: Parser<T>): Parser<Empty> => {
   return (ctx) => {
     const res = many1(parser)(ctx);
     if (res.success) {
-      return success(res.ctx, null);
+      return success(res.ctx, EMPTY);
     }
 
     return res;
@@ -628,11 +630,11 @@ export const skipMany1 = <T>(parser: Parser<T>): Parser<null> => {
 /**
  * Match a parser, but don't consume any input.
  */
-export const peek = <T>(parser: Parser<T>): Parser<null> => {
+export const peek = <T>(parser: Parser<T>): Parser<Empty> => {
   return (ctx) => {
     const res = parser(ctx);
     if (res.success) {
-      return success(ctx, null);
+      return success(ctx, EMPTY);
     }
 
     if (isPending(res)) {
@@ -657,11 +659,11 @@ export const peek = <T>(parser: Parser<T>): Parser<null> => {
 /**
  * Skips matching a single parser while consuming input.
  */
-export const skip1 = <T>(parser: Parser<T>): Parser<null> => {
+export const skip1 = <T>(parser: Parser<T>): Parser<Empty> => {
   return (ctx) => {
     const res = parser(ctx);
     if (res.success) {
-      return success(res.ctx, null);
+      return success(res.ctx, EMPTY);
     }
 
     return res;
@@ -713,10 +715,10 @@ export const minus = <T>(a: Parser<T>, b: Parser<unknown>): Parser<T> => {
 };
 
 /**
- * Negative lookahead that succeeds with `null` if `a` does not match, and fails
- * if it does.
+ * Negative lookahead that succeeds with `EMPTY` if `a` does not match, and
+ * fails if it does.
  */
-export const not = <T>(a: Parser<T>): Parser<null> => {
+export const not = <T>(a: Parser<T>): Parser<Empty> => {
   return (ctx) => {
     const res = a(ctx);
     if (res.success) {
@@ -725,21 +727,22 @@ export const not = <T>(a: Parser<T>): Parser<null> => {
 
     if (isFatal(res) || isPending(res)) return res;
 
-    return success(ctx, null);
+    return success(ctx, EMPTY);
   };
 };
 
 /**
- * Remove `null` values from an array parser result.
+ * Remove `EMPTY` values from an array parser result. Things like `optional`
+ * that conditionally return `null` aren't affected.
  */
-export const keepNonNull = <T>(parser: Parser<(T | null)[]>): Parser<T[]> =>
-  map(parser, (matches) => matches.filter((v) => v !== null) as T[]);
+export const dropEmpty = <T>(parser: Parser<(T | Empty)[]>): Parser<T[]> =>
+  map(parser, (matches) => matches.filter((v) => v !== EMPTY) as T[]);
 
 /**
- * Sequence parsers and keep only non-null results.
+ * Sequence parsers and keep only non-`Empty` results.
  */
-export const seqNonNull = <T>(...parsers: Parser<T | null>[]): Parser<T[]> =>
-  keepNonNull(seq(...parsers));
+export const seqNonEmpty = <T>(...parsers: Parser<T | Empty>[]): Parser<T[]> =>
+  dropEmpty(seq(...parsers));
 
 /**
  * Parse left-associative infix expressions.
