@@ -5,17 +5,18 @@ import {
   chainl1,
   chainr1,
   choice,
+  dropEmpty,
   furthest,
-  keepNonNull,
   minus,
   oneOf,
+  optional,
   peek,
   repeat,
   seq,
-  seqNonNull,
+  seqNonEmpty,
   skip1,
 } from "../src/combinators.ts";
-import { failure, type Parser } from "../src/Parser.ts";
+import { EMPTY, failure, type Parser } from "../src/Parser.ts";
 import { str } from "../src/parsers.ts";
 import { map } from "../src/utility.ts";
 
@@ -87,7 +88,7 @@ test("skip1 consumes a successful inner parser and discards its value", () => {
   const res = skip1(str("a"))({ text: "ab", index: 0 });
   assertEquals(res.success, true);
   if (res.success) {
-    assertEquals(res.value, null);
+    assertEquals(res.value, EMPTY);
     assertEquals(res.ctx.index, 1);
   }
 });
@@ -107,21 +108,34 @@ test("minus delegates to the included parser when the exclusion misses", () => {
   }
 });
 
-test("keepNonNull filters nulls from array result", () => {
-  const p = keepNonNull(map(seq(str("a"), str("b")), () => ["x", null, "y"]));
+test("dropEmpty removes EMPTY but keeps null", () => {
+  const p = dropEmpty(
+    map(seq(str("a"), str("b")), () => ["x", EMPTY, null, "y"]),
+  );
   const res = p({ text: "ab", index: 0 });
   assertEquals(res.success, true);
-  if (res.success) assertEquals(res.value, ["x", "y"]);
+  if (res.success) assertEquals(res.value, ["x", null, "y"]);
 });
 
-test("seqNonNull sequences parsers and drops null results", () => {
-  const p = seqNonNull(
+test("seqNonEmpty sequences parsers and drops empty results", () => {
+  const p = seqNonEmpty(
     map(str("a"), () => "a"),
-    map(str("b"), () => null),
+    skip1(str("b")),
   );
   const res = p({ text: "ab", index: 0 });
   assertEquals(res.success, true);
   if (res.success) assertEquals(res.value, ["a"]);
+});
+
+test("seqNonEmpty keeps null from a missing optional", () => {
+  const p = seqNonEmpty(
+    map(str("a"), () => "a"),
+    optional(str("x")),
+    skip1(str("b")),
+  );
+  const res = p({ text: "ab", index: 0 });
+  assertEquals(res.success, true);
+  if (res.success) assertEquals(res.value, ["a", null]);
 });
 
 test("chainl1 fails when operator matches but right operand does not", () => {

@@ -13,6 +13,24 @@ import {
 export type Parser<T> = (ctx: Context) => Result<T>;
 
 /**
+ * Special value indicating a parser that never returns a value. We use this
+ * instead of `null` because some parsers (`optional` in particular)
+ * conditionally return `null`, so we need to be able to distinguish between the
+ * two cases.
+ *
+ * Note that it makes no sense for a parser to conditionally return `EMPTY`.
+ */
+export const EMPTY = Symbol("empty");
+
+/**
+ * The type of `EMPTY`. Parsers should declare this as their output type if
+ * their output is useless or should be discarded. Parsers should never
+ * conditionally return this type (i.e. never declare a return type of
+ * `Parser<T | Empty>`).
+ */
+export type Empty = typeof EMPTY;
+
+/**
  * Parsing context (input + current UTF-16 offset). The index must be a safe
  * integer between zero and `text.length`, inclusive.
  */
