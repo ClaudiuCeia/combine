@@ -731,18 +731,33 @@ export const not = <T>(a: Parser<T>): Parser<Empty> => {
   };
 };
 
+type RemoveEmpty<T extends [...unknown[]]> = number extends T["length"]
+  ? Exclude<T[number], Empty>[]
+  : T extends [infer Head, ...infer Tail]
+    ? [Head] extends [Empty]
+      ? RemoveEmpty<Tail>
+      : [Head, ...RemoveEmpty<Tail>]
+    : [];
+
 /**
  * Remove `EMPTY` values from an array parser result. Things like `optional`
  * that conditionally return `null` aren't affected.
  */
-export const dropEmpty = <T>(parser: Parser<(T | Empty)[]>): Parser<T[]> =>
-  map(parser, (matches) => matches.filter((v) => v !== EMPTY) as T[]);
+export const dropEmpty = <T extends [...unknown[]]>(
+  parser: Parser<[...T]>,
+): Parser<RemoveEmpty<T>> => {
+  return map(parser, (matches) => matches.filter((v) => v !== EMPTY)) as Parser<
+    RemoveEmpty<T>
+  >;
+};
 
 /**
  * Sequence parsers and keep only non-`Empty` results.
  */
-export const seqNonEmpty = <T>(...parsers: Parser<T | Empty>[]): Parser<T[]> =>
-  dropEmpty(seq(...parsers));
+export const seqNonEmpty = <T extends [...Parser<unknown>[]]>(
+  ...parsers: [...T]
+): Parser<RemoveEmpty<UnwrapParsers<T>>> =>
+  dropEmpty(seq(...parsers)) as Parser<RemoveEmpty<UnwrapParsers<T>>>;
 
 /**
  * Parse left-associative infix expressions.
