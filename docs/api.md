@@ -69,6 +69,16 @@ Custom parsers must preserve `ctx.text`, must not move the index backwards on
 success, and must preserve `ctx.final`. See the [streaming guide](./streaming.md)
 before returning pending results.
 
+`EMPTY` is a special value parsers return when their output can be ignored,
+usually because it doesn't provide any information beyond the fact that the
+parser matched. It's used by utilities like `dropEmpty` and `seqNonEmpty` to
+discard unused parser outputs. You can also use `skip1` to explicitly discard any
+parser's output. Custom parsers that always discard their output should also
+return `EMPTY`. We use a unique symbol type (`Empty`) here instead of `null`
+because `null` is used by several parsers to mean something else (e.g.
+`optional` uses `null` for a missing value, and we don't want `dropEmpty` to
+remove that `null` since it has semantic value).
+
 ## Primitive parsers
 
 | API                           | Output                      | Matches                                                                             |
@@ -83,11 +93,11 @@ before returning pending results.
 | `digit()`                     | `number`                    | One ASCII digit, returned as `0` through `9`.                                       |
 | `letter()`                    | `string`                    | One ASCII letter, `A-Z` or `a-z`.                                                   |
 | `space()`                     | `string`                    | One or more JavaScript `\s` characters.                                             |
-| `horizontalSpace()`           | `null`                      | One or more spaces or tabs.                                                         |
+| `horizontalSpace()`           | `Empty`                     | One or more spaces or tabs.                                                         |
 | `take(count)`                 | `string`                    | Exactly `count` UTF-16 code units.                                                  |
 | `takeText()`                  | `string`                    | All input from the current position to the end.                                     |
 | `eol()`                       | `string`                    | LF or CRLF. A lone CR does not match.                                               |
-| `eof()`                       | `null`                      | The current position is the final end of input.                                     |
+| `eof()`                       | `Empty`                     | The current position is the final end of input.                                     |
 | `int()`                       | `number`                    | One or more ASCII digits forming a non-negative safe integer.                       |
 | `double()`                    | `number`                    | A finite unsigned decimal with a dot. `29.` is valid.                               |
 | `number()`                    | `number`                    | `double()` or `int()`. The result is unsigned.                                      |
@@ -129,8 +139,8 @@ pending. Fatal failures stop all three forms immediately.
 | `manyTill(parser, end)`     | Match values until `end` succeeds. The end value is appended to the returned tuple. |
 | `sepBy(parser, separator)`  | Match zero or more values, discard separators, and reject a trailing separator.     |
 | `sepBy1(parser, separator)` | The one-or-more form of `sepBy`.                                                    |
-| `skipMany(parser)`          | The `many` behavior with a `null` result.                                           |
-| `skipMany1(parser)`         | The `many1` behavior with a `null` result.                                          |
+| `skipMany(parser)`          | The `many` behavior with an `EMPTY` result.                                         |
+| `skipMany1(parser)`         | The `many1` behavior with an `EMPTY` result.                                        |
 
 Every successful child of an unbounded repetition must advance the cursor.
 Zero-width success throws `ParserInvariantError` instead of becoming an input
@@ -141,15 +151,15 @@ rather than ending repetition.
 
 | API                               | Contract                                                                                                 |
 | --------------------------------- | -------------------------------------------------------------------------------------------------------- |
-| `peek(parser)`                    | Require `parser` to match, return `null`, and leave the cursor unchanged.                                |
-| `not(parser)`                     | Succeed with `null` only when `parser` definitively does not match. It never consumes.                   |
+| `peek(parser)`                    | Require `parser` to match, return `EMPTY`, and leave the cursor unchanged.                               |
+| `not(parser)`                     | Succeed with `EMPTY` only when `parser` definitively does not match. It never consumes.                  |
 | `minus(parser, excluded)`         | Run `parser` only when `excluded` definitively does not match at the same position.                      |
 | `peekAnd(probe, parser)`          | Require `probe`, then run `parser` from the original position.                                           |
 | `ifPeek(probe, parser)`           | If `probe` succeeds, run `parser` from its end. Return `null` only after a definitive nonfatal mismatch. |
-| `skip1(parser)`                   | Run one parser and discard its value.                                                                    |
+| `skip1(parser)`                   | Run one parser and discard its value, returning `EMPTY`.                                                 |
 | `surrounded(open, middle, close)` | Return only the middle value.                                                                            |
-| `keepNonNull(parser)`             | Remove `null` values from a parsed array.                                                                |
-| `seqNonNull(...parsers)`          | Sequence parsers and return only non-null values.                                                        |
+| `dropEmpty(parser)`               | Remove `EMPTY` values from a parsed array. `null` values are kept.                                       |
+| `seqNonEmpty(...parsers)`         | Sequence parsers and return only values that weren't `EMPTY`.                                            |
 
 Lookahead propagates pending and fatal results. It does not turn an unresolved
 boundary into a match or mismatch.

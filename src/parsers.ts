@@ -1,5 +1,13 @@
 import { any, either, many1, peek, seq, skipMany1 } from "./combinators.ts";
-import { failure, isPending, type Parser, pending, success } from "./Parser.ts";
+import {
+  EMPTY,
+  type Empty,
+  failure,
+  isPending,
+  type Parser,
+  pending,
+  success,
+} from "./Parser.ts";
 import { Trie } from "./Trie.ts";
 import { map } from "./utility.ts";
 
@@ -289,7 +297,7 @@ export const eol = (): Parser<string> => {
 /**
  * Matches if there's no input left to parse
  */
-export const eof = (): Parser<null> => {
+export const eof = (): Parser<Empty> => {
   return (ctx) => {
     if (ctx.index < ctx.text.length) {
       return failure(ctx, "eof not reached");
@@ -299,7 +307,7 @@ export const eof = (): Parser<null> => {
       return pending(ctx, "end of input");
     }
 
-    return success(ctx, null);
+    return success(ctx, EMPTY);
   };
 };
 
@@ -307,7 +315,7 @@ export const eof = (): Parser<null> => {
  * Matches horizontal space (spaces/tabs), if at least one space
  * follows.
  */
-export const horizontalSpace = (): Parser<null> => {
+export const horizontalSpace = (): Parser<Empty> => {
   return (ctx) => {
     return skipMany1(charWhere((code) => code === 0x20 || code === 0x09))(ctx);
   };

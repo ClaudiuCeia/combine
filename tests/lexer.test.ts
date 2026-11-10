@@ -11,7 +11,7 @@ import {
 import { eof, int, str } from "../src/parsers.ts";
 import { seq } from "../src/combinators.ts";
 import { map } from "../src/utility.ts";
-import type { Parser } from "../src/Parser.ts";
+import { EMPTY, type Parser } from "../src/Parser.ts";
 
 test("symbol and keyword preserve literal result types", () => {
   const symbolParser: Parser<"("> = symbol("(");
@@ -47,7 +47,7 @@ test("blockComment consumes empty and multiline comments", () => {
     const res = blockComment()({ text, index: 0 });
     assertEquals(res.success, true);
     if (res.success) {
-      assertEquals(res.value, null);
+      assertEquals(res.value, EMPTY);
       assertEquals(res.ctx.index, text.length);
     }
   }

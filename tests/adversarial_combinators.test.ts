@@ -9,9 +9,9 @@ import {
   chainl1,
   chainr1,
   choice,
+  dropEmpty,
   either,
   furthest,
-  keepNonNull,
   many,
   many1,
   manyTill,
@@ -24,13 +24,19 @@ import {
   sepBy,
   sepBy1,
   seq,
-  seqNonNull,
+  seqNonEmpty,
   skip1,
   skipMany,
   skipMany1,
   surrounded,
 } from "../src/combinators.ts";
-import { failure, type Parser, success } from "../src/Parser.ts";
+import {
+  EMPTY,
+  type Empty,
+  failure,
+  type Parser,
+  success,
+} from "../src/Parser.ts";
 import { str } from "../src/parsers.ts";
 import {
   attempt,
@@ -226,8 +232,8 @@ test("onFailure preserves identity when the callback makes no change", () => {
 
 test("all combinators preserve input text and valid cursor bounds", () => {
   const text = "a+a";
-  const succeedsWithArray: Parser<(string | null)[]> = (ctx) =>
-    success(ctx, ["a", null]);
+  const succeedsWithArray: Parser<(string | Empty)[]> = (ctx) =>
+    success(ctx, ["a", EMPTY]);
   const cases: Array<{ parser: Parser<unknown>; index?: number }> = [
     { parser: seq(str("a"), str("+"), str("a")) },
     { parser: either(str("a"), str("b")) },
@@ -249,11 +255,11 @@ test("all combinators preserve input text and valid cursor bounds", () => {
     { parser: surrounded(str("a"), str("+"), str("a")) },
     { parser: minus(str("a"), str("z")) },
     { parser: not(str("z")) },
-    { parser: keepNonNull(succeedsWithArray) },
+    { parser: dropEmpty(succeedsWithArray) },
     {
-      parser: seqNonNull(
+      parser: seqNonEmpty(
         str("a"),
-        map(str("+"), () => null),
+        map(str("+"), (): Empty => EMPTY),
       ),
     },
     { parser: chainl1(str("a"), str("+"), (left) => left) },
